@@ -29,14 +29,14 @@ public:
 	 */
 	void setAttitudeSetpoint(const matrix::Quatf &quaternion_setpoint)
 	{
-		_attitude_setpoint = matrix::DMCf(quaternion_setpoint);
+		_attitude_setpoint = matrix::Dcmf(quaternion_setpoint);
 	}
 
 	void setAngularVelocitySetpoint(const matrix::Vector3f &angular_velocity_setpoint) { _angular_velocity_setpoint = angular_velocity_setpoint; }
 
 	void setAngularAccelerationSetpoint(const matrix::Vector3f &angular_acceleration_setpoint) { _angular_acceleration_setpoint = angular_acceleration_setpoint; }
 
-	void setAttitude(const matrix::Quatf &quaternion) { _attitude = matrix::DCMf(quaternion); }
+	void setAttitude(const matrix::Quatf &quaternion) { _attitude = matrix::Dcmf(quaternion); }
 
 	void setAngularVelocity(const matrix::Vector3f &angular_velocity) {_angular_velocity = angular_velocity; }
 
@@ -65,7 +65,7 @@ private:
     // return matrix::Vector3f(std::tanh(v[0]), std::tanh(v[1]), std::tanh(v[1]));
 		matrix::Vector3f result;
 		for (auto i=0; i<3; i++) {
-			result[i] = std::tanh(_tanh_factor * input[i]);
+			result(i) = std::tanh(_tanh_factor * input(i));
 		}
 
 		return result;
@@ -79,12 +79,12 @@ private:
 	float _tanh_factor;
 
 	// setpoints
-	matrix::DCMf _attitude_setpoint;
+	matrix::Dcmf _attitude_setpoint;
 	matrix::Vector3f _angular_velocity_setpoint;
 	matrix::Vector3f _angular_acceleration_setpoint;
 
 	// measurments
-	matrix::DCMf _attitude;
+	matrix::Dcmf _attitude;
 	matrix::Vector3f _angular_velocity;
 	matrix::Vector3f _angular_acceleration;
 };
