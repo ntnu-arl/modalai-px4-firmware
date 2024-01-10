@@ -242,8 +242,8 @@ MulticopterAttitudeControl::Run()
 		if (_vehicle_angular_velocity_sub.updated()) {
 			vehicle_angular_velocity_s vehicle_angular_velocity;
 			if(_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity)) {
-				_attitude_control.setAngularVelocity(Vector3f(vehicle_angular_velocity.xyz));
-				_attitude_control.setAngularAcceleration(Vector3f(vehicle_angular_velocity.xyz_derivative));
+				_attitude_control.setAngularVelocity(Vector3f(vehicle_angular_velocity.xyz[0], vehicle_angular_velocity.xyz[1], vehicle_angular_velocity.xyz[2]));
+				_attitude_control.setAngularAcceleration(Vector3f(vehicle_angular_velocity.xyz_derivative[0], vehicle_angular_velocity.xyz_derivative[1], vehicle_angular_velocity.xyz_derivative[2]));
 			}
 
 		}
