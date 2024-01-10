@@ -260,7 +260,7 @@ MulticopterAttitudeControl::Run()
 		if (_vehicle_rates_setpoint_sub.updated()) {
 			vehicle_rates_setpoint_s vehicle_rates_setpoint;
 			if (vehicle_rates_setpoint_sub.copy(&vehicle_rates_setpoint) {
-				_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0, 0.0, 0.0));
+				_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0, 0.0, 0.0));
 			}
 		}
 		//
