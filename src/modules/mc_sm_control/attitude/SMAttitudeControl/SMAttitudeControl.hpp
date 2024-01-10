@@ -43,17 +43,6 @@ public:
 	void setAngularAcceleration(const matrix::Vector3f &angular_acceleration) { _angular_acceleration = angular_acceleration; }
 
 	/**
-	 * Adjust last known attitude setpoint by a delta rotation
-	 * Optional use to avoid glitches when attitude estimate reference e.g. heading changes.
-	 * @param q_delta delta rotation to apply
-	 */
-	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta)
-	{
-		_attitude_setpoint_q = q_delta * _attitude_setpoint_q;
-		_attitude_setpoint_q.normalize();
-	}
-
-	/**
 	 * Run one control loop cycle calculation
 	 * @param q estimation of the current vehicle attitude unit quaternion
 	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
@@ -88,4 +77,3 @@ private:
 	matrix::Vector3f _angular_velocity;
 	matrix::Vector3f _angular_acceleration;
 };
-c
