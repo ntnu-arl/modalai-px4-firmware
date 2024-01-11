@@ -100,8 +100,12 @@ MulticopterSMAttitudeControl::parameters_updated()
 
 	_attitude_control.setTanhFactor(_param_tanh_factor.get());
 
-	// TODO: set inertia
-	// _attitude_control.setInertia();
+	const float inertia3x3[] = {
+		_param_inertia_xx.get(), 0, 0,
+		0, _param_inertia_yy.get(), 0,
+		0, 0, _param_inertia_zz.get()
+	};
+	_attitude_control.setInertia(matrix::Matrix3f(inertia3x3));
 }
 
 float

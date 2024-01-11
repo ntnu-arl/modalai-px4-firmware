@@ -156,7 +156,10 @@ private:
 		(ParamFloat<px4::params::GAIN_X>)     	_param_gain_x,
 		(ParamFloat<px4::params::GAIN_Y>)     	_param_gain_y,
 		(ParamFloat<px4::params::GAIN_Z>)     	_param_gain_z,
-		(ParamFloat<px4::params::TANH_FACTOR>)	_param_tanh_factor
+		(ParamFloat<px4::params::TANH_FACTOR>)	_param_tanh_factor,
+		(ParamFloat<px4::params::INERTIA_XX>)		_param_inertia_xx,
+		(ParamFloat<px4::params::INERTIA_YY>)		_param_inertia_yy,
+		(ParamFloat<px4::params::INERTIA_ZZ>)		_param_inertia_zz
 		// (ParamInt<px4::params::MC_AIRMODE>)         _param_mc_airmode,
 		// (ParamFloat<px4::params::MC_MAN_TILT_TAU>)  _param_mc_man_tilt_tau,
 

@@ -130,3 +130,42 @@ PARAM_DEFINE_FLOAT(GAIN_Z, 100.0f);
  */
 PARAM_DEFINE_FLOAT(TANH_FACTOR, 2.0f);
 
+/**
+ * inertia xx
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 100
+ * @decimal 2
+ * @increment 0.001
+ * @group Multicopter SM Attitude Control
+ */
+PARAM_DEFINE_FLOAT(INERTIA_XX, 0.01f);
+
+/**
+ * inertia yy
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 100
+ * @decimal 2
+ * @increment 0.001
+ * @group Multicopter SM Attitude Control
+ */
+PARAM_DEFINE_FLOAT(INERTIA_YY, 0.01f);
+
+/**
+ * inertia zz
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 100
+ * @decimal 2
+ * @increment 0.001
+ * @group Multicopter SM Attitude Control
+ */
+PARAM_DEFINE_FLOAT(INERTIA_ZZ, 0.02f);
+
