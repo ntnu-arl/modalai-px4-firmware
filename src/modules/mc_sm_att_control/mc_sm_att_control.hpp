@@ -54,20 +54,22 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 
-#include <AttitudeControl.hpp>
+#include <SMAttitudeControl.hpp>
 
 using namespace time_literals;
 
-class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams,
+class MulticopterSMAttitudeControl : public ModuleBase<MulticopterSMAttitudeControl>, public ModuleParams,
 	public px4::WorkItem
 {
 public:
-	MulticopterAttitudeControl(bool vtol = false);
-	~MulticopterAttitudeControl() override;
+	MulticopterSMAttitudeControl(bool vtol = false);
+	~MulticopterSMAttitudeControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -95,7 +97,7 @@ private:
 	 */
 	void generate_attitude_setpoint(const matrix::Quatf &q, float dt, bool reset_yaw_sp);
 
-	AttitudeControl _attitude_control; /**< class for attitude control calculations */
+	SMAttitudeControl _attitude_control; /**< class for attitude control calculations */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -126,8 +128,8 @@ private:
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
 
-	//float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
-	//float _man_tilt_max;                    /**< maximum tilt allowed for manual flight [rad] */
+	float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
+	float _man_tilt_max;                    /**< maximum tilt allowed for manual flight [rad] */
 
 	//SlewRate<float> _manual_throttle_minimum{0.f}; ///< 0 when landed and ramped to MPC_MANTHR_MIN in air
 	//SlewRate<float> _manual_throttle_maximum{0.f}; ///< 0 when disarmed ramped to 1 when spooled up
@@ -146,6 +148,7 @@ private:
 	uint8_t _quat_reset_counter{0};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MC_SM_LAM_X>)         _param_mc_sm_att_lam_x
 		// (ParamInt<px4::params::MC_AIRMODE>)         _param_mc_airmode,
 		// (ParamFloat<px4::params::MC_MAN_TILT_TAU>)  _param_mc_man_tilt_tau,
 
