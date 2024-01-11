@@ -148,7 +148,13 @@ private:
 	uint8_t _quat_reset_counter{0};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MC_SM_LAM_X>)         _param_mc_sm_att_lam_x
+		(ParamFloat<px4::params::LAM_X>)      	_param_lam_x,
+		(ParamFloat<px4::params::LAM_Y>)      	_param_lam_y,
+		(ParamFloat<px4::params::LAM_Z>)      	_param_lam_z,
+		(ParamFloat<px4::params::GAIN_X>)     	_param_gain_x,
+		(ParamFloat<px4::params::GAIN_Y>)     	_param_gain_y,
+		(ParamFloat<px4::params::GAIN_Z>)     	_param_gain_z,
+		(ParamFloat<px4::params::TANH_FACTOR>)	_param_tanh_factor
 		// (ParamInt<px4::params::MC_AIRMODE>)         _param_mc_airmode,
 		// (ParamFloat<px4::params::MC_MAN_TILT_TAU>)  _param_mc_man_tilt_tau,
 
