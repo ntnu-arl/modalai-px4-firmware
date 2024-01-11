@@ -281,7 +281,21 @@ MulticopterSMAttitudeControl::Run()
 
 		/* check for updates in other topics */
 		//_manual_control_setpoint_sub.update(&_manual_control_setpoint);
-		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
+		if (_vehicle_control_mode_sub.updated()) {
+			PX4_INFO("updated vehicle control mode");
+			if (_vehicle_control_mode_sub.copy(&_vehicle_control_mode)) {
+				PX4_INFO("%lu", _vehicle_control_mode.timestamp);
+				PX4_INFO("offboard %d", _vehicle_control_mode.flag_control_offboard_enabled);
+				PX4_INFO("manual %d", _vehicle_control_mode.flag_control_manual_enabled);
+				PX4_INFO("position %d", _vehicle_control_mode.flag_control_position_enabled);
+				PX4_INFO("velocity %d", _vehicle_control_mode.flag_control_velocity_enabled);
+				PX4_INFO("altitude %d", _vehicle_control_mode.flag_control_altitude_enabled);
+				PX4_INFO("climb rate %d", _vehicle_control_mode.flag_control_climb_rate_enabled);
+				PX4_INFO("accerl %d", _vehicle_control_mode.flag_control_acceleration_enabled);
+				PX4_INFO("attitude %d", _vehicle_control_mode.flag_control_attitude_enabled);
+				PX4_INFO("rates %d", _vehicle_control_mode.flag_control_rates_enabled);
+			}
+		}
 
 		if (_vehicle_status_sub.updated()) {
 			vehicle_status_s vehicle_status;
@@ -293,6 +307,21 @@ MulticopterSMAttitudeControl::Run()
 				_spooled_up = armed;
 			}
 		}
+
+		// =================================
+		// publish offboard control commands
+		// =================================
+		offboard_control_mode_s ocm{};
+		ocm.position = false;
+		ocm.velocity = false;
+		ocm.acceleration = false;
+		ocm.attitude = false;
+		ocm.body_rate = false;
+		ocm.thrust_and_torque = true;
+		ocm.direct_actuator = false;
+		ocm.timestamp = hrt_absolute_time();
+		_offboard_control_mode_pub.publish(ocm);
+
 
 
 		//compute control torques and thrust
@@ -308,10 +337,11 @@ MulticopterSMAttitudeControl::Run()
 			// 	_man_pitch_input_filter.reset(0.f);
 			// }
 
-
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 				Vector3f torque_sp = _attitude_control.update();
-				PX4_INFO("Sliding MOOOOOOOOOOODE");
+
+				//PX4_INFO("Sliding MOOOOOOOOOOODE");
+				//PX4_INFO("torque_sp: %f %f %f ", torque_sp(0), torque_sp(1) , torque_sp(2));
 
 				//const hrt_abstime now = hrt_absolute_time();
 

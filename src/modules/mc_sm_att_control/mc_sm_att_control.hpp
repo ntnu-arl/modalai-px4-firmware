@@ -59,6 +59,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
+#include <uORB/topics/offboard_control_mode.h>
 
 #include <SMAttitudeControl.hpp>
 
@@ -116,6 +117,7 @@ private:
 	//uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	// =================================================
 
 
