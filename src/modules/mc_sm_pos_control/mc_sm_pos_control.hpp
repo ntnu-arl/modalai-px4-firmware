@@ -46,16 +46,12 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -97,19 +93,16 @@ private:
 
 
 	//uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position{this, ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_setpoint{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	//uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
-	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 
-	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
 	//uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
-	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
-	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	// =================================================
 
@@ -124,10 +117,8 @@ private:
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
 
 	float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
-	float _man_tilt_max;                    /**< maximum tilt allowed for manual flight [rad] */
 
 	hrt_abstime _last_run{0};
-	hrt_abstime _last_attitude_setpoint{0};
 
 	bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
