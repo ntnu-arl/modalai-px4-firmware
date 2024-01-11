@@ -242,6 +242,7 @@ MulticopterSMAttitudeControl::Run()
 		_last_run = vehicle_attitude.timestamp_sample;
 
 		const Quatf q{vehicle_attitude.q};
+		_attitude_control.setAttitude(q);
 
 		// Check for new attitude setpoint
 		if (_vehicle_attitude_setpoint_sub.updated()) {
@@ -255,6 +256,9 @@ MulticopterSMAttitudeControl::Run()
 				_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
 			}
 		}
+
+		//_attitude_control.setAttitudeSetpoint(Quatf(1.0,0.0,0.0,0.0));
+
 
 		// update angular velocity
 		// update angular acceleration
@@ -302,9 +306,8 @@ MulticopterSMAttitudeControl::Run()
 		/* check for updates in other topics */
 		//_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		if (_vehicle_control_mode_sub.updated()) {
-			PX4_INFO("updated vehicle control mode");
 			if (_vehicle_control_mode_sub.copy(&_vehicle_control_mode)) {
-				PX4_INFO("%lu", _vehicle_control_mode.timestamp);
+				/* PX4_INFO("%lu", _vehicle_control_mode.timestamp);
 				PX4_INFO("offboard %d", _vehicle_control_mode.flag_control_offboard_enabled);
 				PX4_INFO("manual %d", _vehicle_control_mode.flag_control_manual_enabled);
 				PX4_INFO("position %d", _vehicle_control_mode.flag_control_position_enabled);
@@ -313,7 +316,7 @@ MulticopterSMAttitudeControl::Run()
 				PX4_INFO("climb rate %d", _vehicle_control_mode.flag_control_climb_rate_enabled);
 				PX4_INFO("accerl %d", _vehicle_control_mode.flag_control_acceleration_enabled);
 				PX4_INFO("attitude %d", _vehicle_control_mode.flag_control_attitude_enabled);
-				PX4_INFO("rates %d", _vehicle_control_mode.flag_control_rates_enabled);
+				PX4_INFO("rates %d", _vehicle_control_mode.flag_control_rates_enabled); */
 			}
 		}
 
@@ -359,9 +362,8 @@ MulticopterSMAttitudeControl::Run()
 
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 				Vector3f torque_sp = _attitude_control.update();
+				//float thrust_sp = _attitude_control
 
-				//PX4_INFO("Sliding MOOOOOOOOOOODE");
-				//PX4_INFO("torque_sp: %f %f %f ", torque_sp(0), torque_sp(1) , torque_sp(2));
 
 				//const hrt_abstime now = hrt_absolute_time();
 
@@ -375,6 +377,11 @@ MulticopterSMAttitudeControl::Run()
 				vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_sp(0)) ? torque_sp(0) : 0.f;
 				vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_sp(1)) ? torque_sp(1) : 0.f;
 				vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_sp(2)) ? torque_sp(2) : 0.f;
+
+
+				for(int i=0; i<3; i++){
+					torque_sp(i) = constrain(torque_sp(i),-1.f,1.f);
+				}
 
 				vehicle_thrust_setpoint.timestamp_sample = vehicle_attitude.timestamp_sample;
 				vehicle_thrust_setpoint.timestamp = hrt_absolute_time();

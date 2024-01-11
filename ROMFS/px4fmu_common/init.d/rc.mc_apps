@@ -58,6 +58,9 @@ control_allocator start
 #
 mc_rate_control start
 
+# start sliding mode controller
+mc_sm_att_control start
+
 #
 # Start Multicopter Attitude Controller.
 #
