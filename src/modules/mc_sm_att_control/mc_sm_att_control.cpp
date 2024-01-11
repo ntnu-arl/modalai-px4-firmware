@@ -84,8 +84,24 @@ void
 MulticopterSMAttitudeControl::parameters_updated()
 {
 	// Store some of the parameters in a more convenient way & precompute often-used values
+	const float lambda3x3[] = {
+		_param_lam_x.get(), 0, 0,
+		0, _param_lam_y.get(), 0,
+		0, 0, _param_lam_z.get()
+	};
+	_attitude_control.setLambda(matrix::Matrix3f(lambda3x3));
 
+	const float gain3x3[] = {
+		_param_gain_x.get(), 0, 0,
+		0, _param_gain_y.get(), 0,
+		0, 0, _param_gain_z.get()
+	};
+  _attitude_control.setSwitchingGain(matrix::Matrix3f(gain3x3));
 
+	_attitude_control.setTanhFactor(_param_tanh_factor.get());
+
+	// TODO: set inertia
+	// _attitude_control.setInertia();
 }
 
 float
