@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_main.cpp
+ * @file mc_sm_att_control.cpp
  * Multicopter attitude controller.
  *
  * @author Lorenz Meier		<lorenz@px4.io>
@@ -43,13 +43,11 @@
  *
  */
 
-#include "mc_att_control.hpp"
+#include "mc_sm_att_control.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
-
-#include "AttitudeControl/AttitudeControlMath.hpp"
 
 using namespace matrix;
 
@@ -401,7 +399,7 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("mc_att_control", "controller");
+	PRINT_MODULE_USAGE_NAME("mc_sm_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -413,7 +411,7 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
 /**
  * Multicopter attitude control app start / stop handling function
  */
-extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
+extern "C" __EXPORT int mc_sm_control_main(int argc, char *argv[])
 {
 	return MulticopterAttitudeControl::main(argc, argv);
 }
