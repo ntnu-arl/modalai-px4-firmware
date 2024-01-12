@@ -72,7 +72,7 @@ MulticopterSMControl::~MulticopterSMControl()
 bool
 MulticopterSMControl::init()
 {
-	if (!_vehicle_local_position_sub.registerCallback()) {
+	if (!_vehicle_attitude_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -96,7 +96,7 @@ MulticopterSMControl::parameters_updated()
 		0, _param_pos_gain_y.get(), 0,
 		0, 0, _param_pos_gain_z.get()
 	};
-  _position_control.setSwitchingGain(matrix::Matrix3f(posGain3x3));
+  	_position_control.setSwitchingGain(matrix::Matrix3f(posGain3x3));
 
 	const float attLambda3x3[] = {
 		_param_att_lam_x.get(), 0, 0,
@@ -110,18 +110,25 @@ MulticopterSMControl::parameters_updated()
 		0, _param_att_gain_y.get(), 0,
 		0, 0, _param_att_gain_z.get()
 	};
-  _attitude_control.setSwitchingGain(matrix::Matrix3f(attGain3x3));
+  	_attitude_control.setSwitchingGain(matrix::Matrix3f(attGain3x3));
 
 	_position_control.setTanhFactor(_param_pos_tanh_factor.get());
 	_attitude_control.setTanhFactor(_param_att_tanh_factor.get());
 	_position_control.setMass(_param_mass.get());
+
+	const float inertia3x3[] = {
+		_param_inertia_xx.get(), 0, 0,
+		0, _param_inertia_yy.get(), 0,
+		0, 0, _param_inertia_zz.get()
+	};
+	_attitude_control.setInertia(matrix::Matrix3f(inertia3x3));
 }
 
 void
 MulticopterSMControl::Run()
 {
 	if (should_exit()) {
-		_vehicle_local_position_sub.unregisterCallback();
+		_vehicle_attitude_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -139,17 +146,27 @@ MulticopterSMControl::Run()
 	}
 
 	// run controller on position updates
-	vehicle_local_position_s vehicle_local_position;
+	vehicle_attitude_s vehicle_attitude;
 
-	if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
+	if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
 
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 		//const float dt = math::constrain(((vehicle_attitude.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
-		_last_run = vehicle_local_position.timestamp_sample;
+		_last_run = vehicle_attitude.timestamp_sample;
+		const Quatf q(vehicle_attitude.q);
+		_position_control.setAttitude(q);
+		_attitude_control.setAttitude(q);
 
-		_position_control.setPosition(Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z));
-		_position_control.setLinearVelocity(Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
-		_position_control.setLinearAcceleration(Vector3f(vehicle_local_position.ax, vehicle_local_position.ay, vehicle_local_position.az));
+		// update position
+		if (_vehicle_local_position_sub.updated()) {
+			vehicle_local_position_s vehicle_local_position;
+			if(_vehicle_local_position_sub.copy(&vehicle_local_position)) {
+				_position_control.setPosition(Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z));
+				_position_control.setLinearVelocity(Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
+				_position_control.setLinearAcceleration(Vector3f(vehicle_local_position.ax, vehicle_local_position.ay, vehicle_local_position.az));
+			}
+		}
+
 
 		// Check for new position setpoint
 		if (_vehicle_local_position_setpoint_sub.updated()) {
@@ -167,16 +184,6 @@ MulticopterSMControl::Run()
 		}
 
 
-		// update angular velocity
-		// update angular acceleration
-		if (_vehicle_attitude_sub.updated()) {
-			vehicle_attitude_s vehicle_attitude;
-			if(_vehicle_attitude_sub.copy(&vehicle_attitude)) {
-				const Quatf q(vehicle_attitude.q);
-				_position_control.setAttitude(q);
-				_attitude_control.setAttitude(q);
-			}
-		}
 
 		if (_vehicle_angular_velocity_sub.updated()) {
 			vehicle_angular_velocity_s vehicle_angular_velocity;
@@ -245,6 +252,7 @@ MulticopterSMControl::Run()
 
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 				_position_control.setPositionSetpoint(Vector3f(0.0f,0.0f,-2.5f));
+				_position_control.setYawSetpoint(0.0f);
 				_position_control.setLinearVelocitySetpoint(Vector3f(0.0f,0.0f,0.0f));
 				_position_control.setLinearAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
 				_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f,0.0f,0.0f));
@@ -253,9 +261,11 @@ MulticopterSMControl::Run()
 				float thrust_setpoint;
 				Quatf attitude_setpoint;
 				_position_control.update(thrust_setpoint, attitude_setpoint);
+				attitude_setpoint.print();
 
 				_attitude_control.setAttitudeSetpoint(attitude_setpoint);
 				Vector3f torque_setpoint = _attitude_control.update();
+				PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1), (double)torque_setpoint(2));
 
 				// publish thrust and attitude setpoints
 				vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
@@ -263,20 +273,20 @@ MulticopterSMControl::Run()
 
 				for(int i=0; i<3; i++){
 					torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
-          vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
-        }
-        PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+					vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
+				}
+       				PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
 				thrust_setpoint = -constrain(thrust_setpoint, 0.0f, _param_thrust_max.get()) / _param_thrust_max.get();
 				PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
 				vehicle_thrust_setpoint.xyz[0] = 0.0f;
 				vehicle_thrust_setpoint.xyz[1] = 0.0f;
 				vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
 
-				vehicle_thrust_setpoint.timestamp_sample = vehicle_local_position.timestamp_sample;
+				vehicle_thrust_setpoint.timestamp_sample = vehicle_attitude.timestamp_sample;
 				vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 				_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 
-				vehicle_torque_setpoint.timestamp_sample = vehicle_local_position.timestamp_sample;
+				vehicle_torque_setpoint.timestamp_sample = vehicle_attitude.timestamp_sample;
 				vehicle_torque_setpoint.timestamp = hrt_absolute_time();
 				_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 			}
