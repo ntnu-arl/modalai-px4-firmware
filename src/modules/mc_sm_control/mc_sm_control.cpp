@@ -259,23 +259,19 @@ MulticopterSMControl::Run()
 				vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
 				vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 
-				// _thrust_setpoint_body.copyTo(vehicle_thrust_setpoint.xyz);
-				vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
-				vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
-				vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
-
 				for(int i=0; i<3; i++){
-					torque_setpoint(i) = constrain(torque_setpoint(i),-1.f,1.f);
-				}
-				PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+					torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
+          vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
+        }
+        PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
 				thrust_setpoint = -constrain(thrust_setpoint, 0.0f, _param_thrust_max.get()) / _param_thrust_max.get();
 				PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
-
-				vehicle_thrust_setpoint.timestamp_sample = vehicle_local_position.timestamp_sample;
-				vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 				vehicle_thrust_setpoint.xyz[0] = 0.0f;
 				vehicle_thrust_setpoint.xyz[1] = 0.0f;
 				vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
+
+				vehicle_thrust_setpoint.timestamp_sample = vehicle_local_position.timestamp_sample;
+				vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 				_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 
 				vehicle_torque_setpoint.timestamp_sample = vehicle_local_position.timestamp_sample;
