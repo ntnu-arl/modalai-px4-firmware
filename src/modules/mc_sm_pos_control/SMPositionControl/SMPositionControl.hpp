@@ -38,7 +38,7 @@ public:
 	/**
 	 * Run one control loop cycle calculation
 	 */
-	void update(float &thrust_setpoint, Dcmf &attitude_setpoint) const;
+	void update(float &thrust_setpoint, Quatf &quaternion_setpoint) const;
 
 private:
   Vector3f signum(const Vector3f& input) const {
@@ -56,8 +56,6 @@ private:
 	float calculateThrust(const Vector3f &acceleration) const;
 
 	Dcmf calculateAttitude(const Vector3f &acceleration) const;
-
-	Vector3f _gravity;
 
   // controller parameters
   Matrix3f _switching_gain;

@@ -8,7 +8,9 @@ Vector3f SMPositionControl::calculateAcceleration() const {
 	// TODO: make _lambda a vector
 	const Vector3f sigma = error_velocity + _lambda * error_position;
 
-	const Vector3f acceleration = _linear_acceleration_setpoint - _gravity - _lambda * error_velocity - _switching_gain * signum(sigma);
+  const Vector3f gravity(0, 0, 9.81);
+
+  const Vector3f acceleration = _linear_acceleration_setpoint - gravity - _lambda * error_velocity - _switching_gain * signum(sigma);
 
 	return acceleration;
 }
@@ -40,10 +42,12 @@ Dcmf SMPositionControl::calculateAttitude(const Vector3f& acceleration) const
 	return Dcmf(result);
 }
 
-void SMPositionControl::update(float &thrust_setpoint, Dcmf &attitude_setpoint) const
+void SMPositionControl::update(float &thrust_setpoint, Quatf &quaternion_setpoint) const
 {
 	const Vector3f acceleration = calculateAcceleration();
 
 	thrust_setpoint = calculateThrust(acceleration);
-	attitude_setpoint = calculateAttitude(acceleration);
+	const Dcmf attitude_setpoint = calculateAttitude(acceleration);
+
+	quaternion_setpoint = Quatf(attitude_setpoint);
 }
