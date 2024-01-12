@@ -257,8 +257,6 @@ MulticopterSMAttitudeControl::Run()
 			}
 		}
 
-		//_attitude_control.setAttitudeSetpoint(Quatf(1.0,0.0,0.0,0.0));
-
 
 		// update angular velocity
 		// update angular acceleration
@@ -338,7 +336,7 @@ MulticopterSMAttitudeControl::Run()
 		ocm.position = false;
 		ocm.velocity = false;
 		ocm.acceleration = false;
-		ocm.attitude = false;
+		ocm.attitude = true;
 		ocm.body_rate = false;
 		ocm.thrust_and_torque = true;
 		ocm.direct_actuator = false;
@@ -361,6 +359,10 @@ MulticopterSMAttitudeControl::Run()
 			// }
 
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
+				_attitude_control.setAttitudeSetpoint(Quatf(1.0,0.0,0.0,0.0));
+				_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, 0.0f));
+				_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
+
 				Vector3f torque_sp = _attitude_control.update();
 				//float thrust_sp = _attitude_control
 

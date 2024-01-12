@@ -150,16 +150,16 @@ private:
 	uint8_t _quat_reset_counter{0};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::LAM_X>)      	_param_lam_x,
-		(ParamFloat<px4::params::LAM_Y>)      	_param_lam_y,
-		(ParamFloat<px4::params::LAM_Z>)      	_param_lam_z,
-		(ParamFloat<px4::params::GAIN_X>)     	_param_gain_x,
-		(ParamFloat<px4::params::GAIN_Y>)     	_param_gain_y,
-		(ParamFloat<px4::params::GAIN_Z>)     	_param_gain_z,
-		(ParamFloat<px4::params::TANH_FACTOR>)	_param_tanh_factor,
-		(ParamFloat<px4::params::INERTIA_XX>)		_param_inertia_xx,
-		(ParamFloat<px4::params::INERTIA_YY>)		_param_inertia_yy,
-		(ParamFloat<px4::params::INERTIA_ZZ>)		_param_inertia_zz
+		(ParamFloat<px4::params::SM_ATT_LAM_X>)      	_param_lam_x,
+		(ParamFloat<px4::params::SM_ATT_LAM_Y>)      	_param_lam_y,
+		(ParamFloat<px4::params::SM_ATT_LAM_Z>)      	_param_lam_z,
+		(ParamFloat<px4::params::SM_ATT_GAIN_X>)     	_param_gain_x,
+		(ParamFloat<px4::params::SM_ATT_GAIN_Y>)     	_param_gain_y,
+		(ParamFloat<px4::params::SM_ATT_GAIN_Z>)     	_param_gain_z,
+		(ParamFloat<px4::params::SM_ATT_TANH>)	_param_tanh_factor,
+		(ParamFloat<px4::params::SM_ATT_I_XX>)		_param_inertia_xx,
+		(ParamFloat<px4::params::SM_ATT_I_YY>)		_param_inertia_yy,
+		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz
 		// (ParamInt<px4::params::MC_AIRMODE>)         _param_mc_airmode,
 		// (ParamFloat<px4::params::MC_MAN_TILT_TAU>)  _param_mc_man_tilt_tau,
 

@@ -47,10 +47,12 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -93,8 +95,8 @@ private:
 
 
 	//uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_local_position{this, ORB_ID(vehicle_local_position)};
-	uORB::Subscription _vehicle_local_position_setpoint{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -102,7 +104,7 @@ private:
 
 
 	//uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
-	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	// =================================================
 
@@ -119,6 +121,7 @@ private:
 	float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
 
 	hrt_abstime _last_run{0};
+	hrt_abstime _last_vehicle_local_position_setpoint{0};
 
 	bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
@@ -129,9 +132,9 @@ private:
 		(ParamFloat<px4::params::SM_POS_GAIN_X>)     	_param_gain_x,
 		(ParamFloat<px4::params::SM_POS_GAIN_Y>)     	_param_gain_y,
 		(ParamFloat<px4::params::SM_POS_GAIN_Z>)     	_param_gain_z,
-		(ParamFloat<px4::params::SM_POS_TANH_FACTOR>)	_param_tanh_factor,
+		(ParamFloat<px4::params::SM_POS_TANH>)	_param_tanh_factor,
 		(ParamFloat<px4::params::SM_POS_MASS>)				_param_mass,
-		(ParamFloat<px4::params::SM_POS_THRUST_MAX>)	_param_thrust_max
+		(ParamFloat<px4::params::SM_POS_T_MAX>)	_param_thrust_max
 	)
 };
 

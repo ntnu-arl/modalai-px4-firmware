@@ -72,7 +72,7 @@ MulticopterSMPositionControl::~MulticopterSMPositionControl()
 bool
 MulticopterSMPositionControl::init()
 {
-	if (!_vehicle_attitude_sub.registerCallback()) {
+	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -133,6 +133,8 @@ MulticopterSMPositionControl::Run()
 		_last_run = vehicle_local_position.timestamp_sample;
 
 		_position_control.setPosition(Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z));
+		_position_control.setLinearVelocity(Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
+		_position_control.setLinearAcceleration(Vector3f(vehicle_local_position.ax, vehicle_local_position.ay, vehicle_local_position.az));
 
 		// Check for new position setpoint
 		if (_vehicle_local_position_setpoint_sub.updated()) {
@@ -142,54 +144,21 @@ MulticopterSMPositionControl::Run()
 			    && (vehicle_local_position_setpoint.timestamp > _last_vehicle_local_position_setpoint)) {
 
 				_position_control.setPositionSetpoint(Vector3f(vehicle_local_position_setpoint.x, vehicle_local_position_setpoint.y, vehicle_local_position_setpoint.z));
+				_position_control.setLinearVelocitySetpoint(Vector3f(vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy, vehicle_local_position_setpoint.vz));
+				_position_control.setLinearAccelerationSetpoint(Vector3f(vehicle_local_position_setpoint.acceleration[0], vehicle_local_position_setpoint.acceleration[1], vehicle_local_position_setpoint.acceleration[2]));
+				_position_control.setYawSetpoint(vehicle_local_position_setpoint.yaw);
 				_last_vehicle_local_position_setpoint = vehicle_local_position_setpoint.timestamp;
 			}
 		}
 
-		//_position_control.setAttitudeSetpoint(Quatf(1.0,0.0,0.0,0.0));
-
 
 		// update angular velocity
 		// update angular acceleration
-		if (_vehicle_angular_velocity_sub.updated()) {
-			vehicle_angular_velocity_s vehicle_angular_velocity;
-			if(_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity)) {
-				_position_control.setAngularVelocity(Vector3f(vehicle_angular_velocity.xyz[0], vehicle_angular_velocity.xyz[1], vehicle_angular_velocity.xyz[2]));
-				_position_control.setAngularAcceleration(Vector3f(vehicle_angular_velocity.xyz_derivative[0], vehicle_angular_velocity.xyz_derivative[1], vehicle_angular_velocity.xyz_derivative[2]));
+		if (_vehicle_attitude_sub.updated()) {
+			vehicle_attitude_s vehicle_attitude;
+			if(_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+				_position_control.setAttitude(Quatf(vehicle_attitude.q));
 			}
-
-		}
-
-		// update angular velocity setpoint
-		if (_vehicle_rates_setpoint_sub.updated()) {
-			vehicle_rates_setpoint_s vehicle_rates_setpoint;
-			if (_vehicle_rates_setpoint_sub.copy(&vehicle_rates_setpoint)) {
-				_position_control.setAngularVelocitySetpoint(Vector3f(vehicle_rates_setpoint.roll, vehicle_rates_setpoint.pitch, vehicle_rates_setpoint.yaw));
-			}
-		}
-
-		// set angular accel setpoint to 0
-		if (_vehicle_rates_setpoint_sub.updated()) {
-			vehicle_rates_setpoint_s vehicle_rates_setpoint;
-			if (_vehicle_rates_setpoint_sub.copy(&vehicle_rates_setpoint)) {
-				_position_control.setAngularAccelerationSetpoint(Vector3f(0.0, 0.0, 0.0));
-			}
-		}
-		//
-
-		// Check for a heading reset
-		if (_quat_reset_counter != vehicle_attitude.quat_reset_counter) {
-			const Quatf delta_q_reset(vehicle_attitude.delta_q_reset);
-
-			// for stabilized attitude generation only extract the heading change from the delta quaternion
-			_man_yaw_sp = wrap_pi(_man_yaw_sp + Eulerf(delta_q_reset).psi());
-
-			if (vehicle_attitude.timestamp > _last_attitude_setpoint) {
-				// adapt existing attitude setpoint unless it was generated after the current attitude estimate
-				_position_control.adaptAttitudeSetpoint(delta_q_reset);
-			}
-
-			_quat_reset_counter = vehicle_attitude.quat_reset_counter;
 		}
 
 		/* check for updates in other topics */
@@ -227,7 +196,7 @@ MulticopterSMPositionControl::Run()
 		ocm.position = false;
 		ocm.velocity = false;
 		ocm.acceleration = false;
-		ocm.attitude = false;
+		ocm.attitude = true;
 		ocm.body_rate = false;
 		ocm.thrust_and_torque = true;
 		ocm.direct_actuator = false;
@@ -250,35 +219,47 @@ MulticopterSMPositionControl::Run()
 			// }
 
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
-				Vector3f torque_sp = _position_control.update();
-				//float thrust_sp = _position_control
+				_position_control.setPositionSetpoint(Vector3f(0.0f,0.0f,-2.5f));
+				_position_control.setLinearVelocitySetpoint(Vector3f(0.0f,0.0f,0.0f));
+				_position_control.setLinearAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
+
+				float thrust_setpoint;
+				Quatf attitude_setpoint;
+				_position_control.update(thrust_setpoint, attitude_setpoint);
+
+				// publish thrust and attitude setpoints
+				// vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
+				vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
+				// vehicle_torque_setpoint_s vehicle_torque_setpoint{};
+
+				// _thrust_setpoint_body.copyTo(vehicle_thrust_setpoint.xyz);
+				// vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_sp(0)) ? torque_sp(0) : 0.f;
+				// vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_sp(1)) ? torque_sp(1) : 0.f;
+				// vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_sp(2)) ? torque_sp(2) : 0.f;
 
 
-				//const hrt_abstime now = hrt_absolute_time();
+				// for(int i=0; i<3; i++){
+				// 	torque_sp(i) = constrain(torque_sp(i),-1.f,1.f);
+				// }
+				PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+				thrust_setpoint = -constrain(thrust_setpoint, 0.0f, _param_thrust_max.get()) / _param_thrust_max.get();
+				PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
 
+				// vehicle_thrust_setpoint.timestamp_sample = vehicle_local_position.timestamp_sample;
+				// vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+				// vehicle_thrust_setpoint.xyz = {0.0f, 0.0f, thrust_setpoint}
+				// _vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 
-
-				// publish thrust and torque setpoints
-				vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-				vehicle_torque_setpoint_s vehicle_torque_setpoint{};
-
-				_thrust_setpoint_body.copyTo(vehicle_thrust_setpoint.xyz);
-				vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_sp(0)) ? torque_sp(0) : 0.f;
-				vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_sp(1)) ? torque_sp(1) : 0.f;
-				vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_sp(2)) ? torque_sp(2) : 0.f;
-
-
-				for(int i=0; i<3; i++){
-					torque_sp(i) = constrain(torque_sp(i),-1.f,1.f);
-				}
-
-				vehicle_thrust_setpoint.timestamp_sample = vehicle_attitude.timestamp_sample;
-				vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
-				_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
-
-				vehicle_torque_setpoint.timestamp_sample = vehicle_attitude.timestamp_sample;
-				vehicle_torque_setpoint.timestamp = hrt_absolute_time();
-				_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
+				// vehicle_torque_setpoint.timestamp_sample = vehicle_attitude.timestamp_sample;
+				// vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+				// _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
+				// vehicle_attitude_setpoint.timestamp_sample = vehicle_local_position.timestamp_sample;
+				vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+				vehicle_attitude_setpoint.thrust_body[0] = 0.0f;
+				vehicle_attitude_setpoint.thrust_body[1] = 0.0f;
+				vehicle_attitude_setpoint.thrust_body[2] = thrust_setpoint;
+				attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
+				_vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
 			}
 
 		}
@@ -349,7 +330,7 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("mc_sm_att_control", "controller");
+	PRINT_MODULE_USAGE_NAME("mc_sm_pos_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -361,7 +342,7 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
 /**
  * Multicopter attitude control app start / stop handling function
  */
-extern "C" __EXPORT int mc_sm_att_control_main(int argc, char *argv[])
+extern "C" __EXPORT int mc_sm_pos_control_main(int argc, char *argv[])
 {
 	return MulticopterSMPositionControl::main(argc, argv);
 }
