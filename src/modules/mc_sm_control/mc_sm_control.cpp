@@ -247,6 +247,8 @@ MulticopterSMControl::Run()
 				_position_control.setPositionSetpoint(Vector3f(0.0f,0.0f,-2.5f));
 				_position_control.setLinearVelocitySetpoint(Vector3f(0.0f,0.0f,0.0f));
 				_position_control.setLinearAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
+				_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f,0.0f,0.0f));
+				_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
 
 				float thrust_setpoint;
 				Quatf attitude_setpoint;
