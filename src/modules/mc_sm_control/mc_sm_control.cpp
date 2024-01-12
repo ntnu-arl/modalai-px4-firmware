@@ -221,7 +221,7 @@ MulticopterSMControl::Run()
 		ocm.position = false;
 		ocm.velocity = false;
 		ocm.acceleration = false;
-		ocm.attitude = true;
+		ocm.attitude = false;
 		ocm.body_rate = false;
 		ocm.thrust_and_torque = true;
 		ocm.direct_actuator = false;
