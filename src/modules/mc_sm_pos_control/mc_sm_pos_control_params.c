@@ -50,7 +50,7 @@
  * @increment 0.1
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(LAM_X, 2.0f);
+PARAM_DEFINE_FLOAT(SM_POS_LAM_X, 2.0f);
 
 /**
  * Y sliding surface dynamics
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(LAM_X, 2.0f);
  * @increment 0.1
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(LAM_Y, 2.0f);
+PARAM_DEFINE_FLOAT(SM_POS_LAM_Y, 2.0f);
 
 /**
  * Z sliding surface dynamics
@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(LAM_Y, 2.0f);
  * @increment 0.1
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(LAM_Z, 2.0f);
+PARAM_DEFINE_FLOAT(SM_POS_LAM_Z, 2.0f);
 
 /**
  * X switching gain
@@ -89,7 +89,7 @@ PARAM_DEFINE_FLOAT(LAM_Z, 2.0f);
  * @increment 0.1
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(GAIN_X, 2.0f);
+PARAM_DEFINE_FLOAT(SM_POS_GAIN_X, 2.0f);
 
 /**
  * Y switching gain
@@ -102,7 +102,7 @@ PARAM_DEFINE_FLOAT(GAIN_X, 2.0f);
  * @increment 0.1
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(GAIN_Y, 2.0f);
+PARAM_DEFINE_FLOAT(SM_POS_GAIN_Y, 2.0f);
 
 /**
  * Z switching gain
@@ -115,7 +115,7 @@ PARAM_DEFINE_FLOAT(GAIN_Y, 2.0f);
  * @increment 0.1
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(GAIN_Z, 2.0f);
+PARAM_DEFINE_FLOAT(SM_POS_GAIN_Z, 2.0f);
 
 /**
  * tanh factor
@@ -128,7 +128,7 @@ PARAM_DEFINE_FLOAT(GAIN_Z, 2.0f);
  * @increment 0.1
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(TANH_FACTOR, 10.0f);
+PARAM_DEFINE_FLOAT(SM_POS_TANH_FACTOR, 10.0f);
 
 /**
  * mass [g]
@@ -141,7 +141,7 @@ PARAM_DEFINE_FLOAT(TANH_FACTOR, 10.0f);
  * @increment 0.001
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(MASS, 1000.0f);
+PARAM_DEFINE_FLOAT(SM_POS_MASS, 1000.0f);
 
 /**
  * Thrust max
@@ -154,4 +154,4 @@ PARAM_DEFINE_FLOAT(MASS, 1000.0f);
  * @increment 0.01
  * @group Multicopter SM Position Control
  */
-PARAM_DEFINE_FLOAT(THRUST_MAX, 100.0f);
+PARAM_DEFINE_FLOAT(SM_POS_THRUST_MAX, 100.0f);

@@ -123,15 +123,15 @@ private:
 	bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::LAM_X>)      	_param_lam_x,
-		(ParamFloat<px4::params::LAM_Y>)      	_param_lam_y,
-		(ParamFloat<px4::params::LAM_Z>)      	_param_lam_z,
-		(ParamFloat<px4::params::GAIN_X>)     	_param_gain_x,
-		(ParamFloat<px4::params::GAIN_Y>)     	_param_gain_y,
-		(ParamFloat<px4::params::GAIN_Z>)     	_param_gain_z,
-		(ParamFloat<px4::params::TANH_FACTOR>)	_param_tanh_factor,
-		(ParamFloat<px4::params::MASS>)					_param_mass,
-		(ParamFloat<px4::params::THRUST_MAX>)		_param_thrust_max
+		(ParamFloat<px4::params::SM_POS_LAM_X>)      	_param_lam_x,
+		(ParamFloat<px4::params::SM_POS_LAM_Y>)      	_param_lam_y,
+		(ParamFloat<px4::params::SM_POS_LAM_Z>)      	_param_lam_z,
+		(ParamFloat<px4::params::SM_POS_GAIN_X>)     	_param_gain_x,
+		(ParamFloat<px4::params::SM_POS_GAIN_Y>)     	_param_gain_y,
+		(ParamFloat<px4::params::SM_POS_GAIN_Z>)     	_param_gain_z,
+		(ParamFloat<px4::params::SM_POS_TANH_FACTOR>)	_param_tanh_factor,
+		(ParamFloat<px4::params::SM_POS_MASS>)				_param_mass,
+		(ParamFloat<px4::params::SM_POS_THRUST_MAX>)	_param_thrust_max
 	)
 };
 
