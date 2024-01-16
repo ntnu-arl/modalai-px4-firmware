@@ -289,13 +289,21 @@ MulticopterSMControl::Run()
 					float yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
 					Eulerf euler(q);
 					float yaw_ref = euler.psi();
-					Dcmf R_ned_frd_ref(Eulerf(roll_ref, pitch_ref, yaw_ref));
+					Quatf q_sp(Eulerf(roll_ref, pitch_ref, yaw_ref));
 
+					vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+					const Eulerf euler_sp(q_sp);
+					vehicle_attitude_setpoint.roll_body = euler_sp(0);
+					vehicle_attitude_setpoint.pitch_body = euler_sp(1);
+					vehicle_attitude_setpoint.yaw_body = euler_sp(2);
+
+					vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+					_vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
 
 					// run attitude controller
 					_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f,0.0f,yawspeed_ref));
 					_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
-					_attitude_control.setAttitudeSetpoint(Quatf(R_ned_frd_ref));
+					_attitude_control.setAttitudeSetpoint(q_sp);
 					thrust_setpoint = -throttle_curve(_manual_thrust);
 
 				}
