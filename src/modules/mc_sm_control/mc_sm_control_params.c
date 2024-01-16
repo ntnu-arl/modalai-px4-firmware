@@ -166,7 +166,7 @@ PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 16.0f);
  * @increment 0.1
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_LAM_X, 3.0f);
+PARAM_DEFINE_FLOAT(SM_ATT_LAM_X, 10.0f);
 
 /**
  * Pitch sliding surface dynamics
@@ -179,7 +179,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_LAM_X, 3.0f);
  * @increment 0.1
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_LAM_Y, 3.0f);
+PARAM_DEFINE_FLOAT(SM_ATT_LAM_Y, 10.0f);
 
 /**
  * Yaw sliding surface dynamics
@@ -192,7 +192,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_LAM_Y, 3.0f);
  * @increment 0.1
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_LAM_Z, 1.0f);
+PARAM_DEFINE_FLOAT(SM_ATT_LAM_Z, 5.0f);
 
 /**
  * Roll switching gain
@@ -205,7 +205,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_LAM_Z, 1.0f);
  * @increment 0.1
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_GAIN_X, 10.0f);
+PARAM_DEFINE_FLOAT(SM_ATT_GAIN_X, 25.0f);
 
 /**
  * Pitch switching gain
@@ -218,7 +218,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_GAIN_X, 10.0f);
  * @increment 0.1
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_GAIN_Y, 10.0f);
+PARAM_DEFINE_FLOAT(SM_ATT_GAIN_Y, 25.0f);
 
 /**
  * Yaw switching gain
@@ -231,7 +231,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_GAIN_Y, 10.0f);
  * @increment 0.1
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_GAIN_Z, 1.0f);
+PARAM_DEFINE_FLOAT(SM_ATT_GAIN_Z, 5.0f);
 
 /**
  * tanh factor
@@ -244,7 +244,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_GAIN_Z, 1.0f);
  * @increment 0.1
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_TANH, 2.0f);
+PARAM_DEFINE_FLOAT(SM_ATT_TANH, 1.0f);
 
 /**
  * inertia xx
