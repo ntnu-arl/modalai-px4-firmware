@@ -286,7 +286,7 @@ MulticopterSMControl::Run()
 					// get an attitude setpoint from the current manual inputs
 					float roll_ref = 1.f * _manual_roll * M_PI_4_F;
 					float pitch_ref = 1.f * _manual_pitch * M_PI_4_F;
-					float yawspeed_ref = 1.f * _manual_yaw * M_PI_4_F;
+					float yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
 					Eulerf euler(q);
 					float yaw_ref = euler.psi();
 					Dcmf R_ned_frd_ref(Eulerf(roll_ref, pitch_ref, yaw_ref));
