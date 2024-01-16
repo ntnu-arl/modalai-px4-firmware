@@ -123,7 +123,8 @@ MulticopterSMControl::parameters_updated()
 	_attitude_control.setInertia(matrix::Matrix3f(inertia3x3));
 }
 
-float throttle_curve(float throttle_stick_input){
+float
+MulticopterSMControl::throttle_curve(float throttle_stick_input){
 	return (throttle_stick_input + 1.0f) / 2.0f;
 }
 
