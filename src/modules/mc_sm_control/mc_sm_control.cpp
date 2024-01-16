@@ -224,10 +224,10 @@ MulticopterSMControl::Run()
 			}
 		}
 
-		float manual_thrust;
-		float manual_roll;
-		float manual_pitch;
-		float manual_yaw;
+		float manual_thrust = 0.5f;
+		float manual_roll = 0.f;
+		float manual_pitch = 0.f;
+		float manual_yaw  = 0.f;
 
 		if (_manual_control_setpoint_sub.updated()) {
 			manual_control_setpoint_s manual_control_setpoint;
@@ -286,17 +286,16 @@ MulticopterSMControl::Run()
 					float roll_ref = 1.f * manual_roll * M_PI_4_F;
 					float pitch_ref = 1.f * manual_pitch * M_PI_4_F;
 					float yawspeed_ref = 1.f * manual_yaw * M_PI_4_F;
-					Eulerf E_current(Quatf(q));
-					float yaw_ref = E_current.psi();
+					Eulerf euler(q);
+					float yaw_ref = euler.psi();
 					Dcmf R_ned_frd_ref(Eulerf(roll_ref, pitch_ref, yaw_ref));
-					Quatf attitude_setpoint(R_ned_frd_ref);
 
 
 					// run attitude controller
 					_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f,0.0f,yawspeed_ref));
 					_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
-					_attitude_control.setAttitudeSetpoint(attitude_setpoint);
-					thrust_setpoint = manual_thrust
+					_attitude_control.setAttitudeSetpoint(Quatf(R_ned_frd_ref));
+					thrust_setpoint = -manual_thrust;
 
 				}
 
@@ -313,6 +312,9 @@ MulticopterSMControl::Run()
 					_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
 					_attitude_control.setAttitudeSetpoint(attitude_setpoint);
 
+					PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+					thrust_setpoint = -constrain(thrust_setpoint, 0.0f, _param_thrust_max.get()) / _param_thrust_max.get();
+
 				}
 
 				// run attitude controller
@@ -328,8 +330,7 @@ MulticopterSMControl::Run()
 					torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
 					vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
 				}
-       				PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
-				thrust_setpoint = -constrain(thrust_setpoint, 0.0f, _param_thrust_max.get()) / _param_thrust_max.get();
+
 				PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
 				vehicle_thrust_setpoint.xyz[0] = 0.0f;
 				vehicle_thrust_setpoint.xyz[1] = 0.0f;
