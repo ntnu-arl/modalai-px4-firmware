@@ -149,11 +149,8 @@ MulticopterSMControl::Run()
 		parameters_updated();
 	}
 
-	// TODO: create manual mode from stick input
-
-	// run controller on position updates
+	// run controller on angular rate updates
 	vehicle_angular_velocity_s vehicle_angular_velocity;
-	// TODO: trigger on angular rate measurement, higher rate
 	if (_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity)) {
 
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
@@ -261,16 +258,6 @@ MulticopterSMControl::Run()
 
 		//compute control torques and thrust
 		if (true) {
-
-			// if (_vehicle_control_mode.flag_control_offboard_enabled) {
-
-			// 	generate_attitude_setpoint(q, dt, _reset_yaw_sp);
-			// 	attitude_setpoint_generated = true;
-
-			// } else {
-			// 	_man_roll_input_filter.reset(0.f);
-			// 	_man_pitch_input_filter.reset(0.f);
-			// }
 
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
