@@ -230,7 +230,7 @@ MulticopterSMControl::Run()
 			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
 				_manual_thrust = manual_control_setpoint.throttle;
 				_manual_roll = manual_control_setpoint.roll;
-				_manual_pitch = manual_control_setpoint.pitch;
+				_manual_pitch = -manual_control_setpoint.pitch;
 				_manual_yaw = manual_control_setpoint.yaw;
 
 			}
