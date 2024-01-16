@@ -125,7 +125,11 @@ private:
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
 
-	float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
+
+	float _manual_thrust{0.f};
+	float _manual_roll{0.f};
+	float _manual_pitch{0.f};
+	float _manual_yaw{0.f};
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_vehicle_local_position_setpoint{0};

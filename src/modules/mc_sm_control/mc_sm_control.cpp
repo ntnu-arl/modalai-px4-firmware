@@ -224,18 +224,14 @@ MulticopterSMControl::Run()
 			}
 		}
 
-		float manual_thrust = 0.5f;
-		float manual_roll = 0.f;
-		float manual_pitch = 0.f;
-		float manual_yaw  = 0.f;
 
 		if (_manual_control_setpoint_sub.updated()) {
 			manual_control_setpoint_s manual_control_setpoint;
 			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
-				manual_thrust = manual_control_setpoint.throttle;
-				manual_roll = manual_control_setpoint.roll;
-				manual_pitch = manual_control_setpoint.pitch;
-				manual_yaw = manual_control_setpoint.yaw;
+				_manual_thrust = manual_control_setpoint.throttle;
+				_manual_roll = manual_control_setpoint.roll;
+				_manual_pitch = manual_control_setpoint.pitch;
+				_manual_yaw = manual_control_setpoint.yaw;
 
 			}
 
@@ -283,9 +279,9 @@ MulticopterSMControl::Run()
 				// ====================================
 				if (true){
 					// get an attitude setpoint from the current manual inputs
-					float roll_ref = 1.f * manual_roll * M_PI_4_F;
-					float pitch_ref = 1.f * manual_pitch * M_PI_4_F;
-					float yawspeed_ref = 1.f * manual_yaw * M_PI_4_F;
+					float roll_ref = 1.f * _manual_roll * M_PI_4_F;
+					float pitch_ref = 1.f * _manual_pitch * M_PI_4_F;
+					float yawspeed_ref = 1.f * _manual_yaw * M_PI_4_F;
 					Eulerf euler(q);
 					float yaw_ref = euler.psi();
 					Dcmf R_ned_frd_ref(Eulerf(roll_ref, pitch_ref, yaw_ref));
@@ -295,7 +291,7 @@ MulticopterSMControl::Run()
 					_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f,0.0f,yawspeed_ref));
 					_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
 					_attitude_control.setAttitudeSetpoint(Quatf(R_ned_frd_ref));
-					thrust_setpoint = -manual_thrust;
+					thrust_setpoint = -_manual_thrust;
 
 				}
 
