@@ -93,6 +93,8 @@ private:
 	 */
 	void parameters_updated();
 
+	float throttle_curve(float throttle_stick_input);
+
 	SMPositionControl _position_control; /**< class for position control calculations */
 	SMAttitudeControl _attitude_control;
 

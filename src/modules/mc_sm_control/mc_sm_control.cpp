@@ -123,6 +123,10 @@ MulticopterSMControl::parameters_updated()
 	_attitude_control.setInertia(matrix::Matrix3f(inertia3x3));
 }
 
+float throttle_curve(float throttle_stick_input){
+	return (throttle_stick_input + 1.0f) / 2.0f;
+}
+
 void
 MulticopterSMControl::Run()
 {
@@ -291,7 +295,7 @@ MulticopterSMControl::Run()
 					_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f,0.0f,yawspeed_ref));
 					_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
 					_attitude_control.setAttitudeSetpoint(Quatf(R_ned_frd_ref));
-					thrust_setpoint = -_manual_thrust;
+					thrust_setpoint = -throttle_curve(_manual_thrust);
 
 				}
 
