@@ -126,8 +126,9 @@ private:
 
 	perf_counter_t  _loop_perf;             /**< loop duration performance counter */
 
-	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
+	Quatf _attitude;
 
+	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
 
 	float _manual_thrust{0.f};
 	float _manual_roll{0.f};
