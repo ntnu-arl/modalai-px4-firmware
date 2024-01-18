@@ -160,13 +160,12 @@ MulticopterSMControl::Run()
 		_attitude_control.setAngularAcceleration(Vector3f(vehicle_angular_velocity.xyz_derivative));
 
 		// update vehicle attitude
-		Quatf q;
 		if (_vehicle_attitude_sub.updated()) {
 			vehicle_attitude_s vehicle_attitude;
 			if(_vehicle_attitude_sub.copy(&vehicle_attitude)) {
-				q = Quatf(vehicle_attitude.q);
-				_position_control.setAttitude(q);
-				_attitude_control.setAttitude(q);
+				_attitude = Quatf(vehicle_attitude.q);
+				_position_control.setAttitude(_attitude);
+				_attitude_control.setAttitude(_attitude);
 			}
 		}
 
@@ -274,8 +273,8 @@ MulticopterSMControl::Run()
 					float roll_ref = 1.f * _manual_roll * M_PI_4_F;
 					float pitch_ref = 1.f * _manual_pitch * M_PI_4_F;
 					float yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
-					Eulerf euler(q);
-					float yaw_ref = euler.psi();
+					float yaw_ref = Eulerf(_attitude).psi();
+
 					Quatf q_sp(Eulerf(roll_ref, pitch_ref, yaw_ref));
 
 					vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
@@ -283,6 +282,8 @@ MulticopterSMControl::Run()
 					vehicle_attitude_setpoint.roll_body = euler_sp(0);
 					vehicle_attitude_setpoint.pitch_body = euler_sp(1);
 					vehicle_attitude_setpoint.yaw_body = euler_sp(2);
+					q_sp.copyTo(vehicle_attitude_setpoint.q_d);
+					vehicle_attitude_setpoint.yaw_sp_move_rate = yawspeed_ref;
 
 					vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
 					_vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
