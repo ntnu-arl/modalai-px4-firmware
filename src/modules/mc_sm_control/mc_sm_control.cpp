@@ -249,8 +249,9 @@ MulticopterSMControl::Run()
 		ocm.acceleration = false;
 		ocm.attitude = false;
 		ocm.body_rate = false;
-		ocm.thrust_and_torque = true;
-		ocm.direct_actuator = false;
+		ocm.actuator = true;
+		// ocm.thrust_and_torque = true;
+		// ocm.direct_actuator = false;
 		ocm.timestamp = hrt_absolute_time();
 		_offboard_control_mode_pub.publish(ocm);
 
