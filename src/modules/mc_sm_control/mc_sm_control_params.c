@@ -141,7 +141,7 @@ PARAM_DEFINE_FLOAT(SM_POS_TANH, 10.0f);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.8f);
+PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
 
 /**
  * Thrust max
@@ -154,7 +154,7 @@ PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.8f);
  * @increment 0.01
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 16.0f);
+PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 14.0f);
 /**
  * Roll sliding surface dynamics
  *
@@ -252,12 +252,12 @@ PARAM_DEFINE_FLOAT(SM_ATT_TANH, 1.0f);
  * ...
  *
  * @min 0.0
- * @max 100
- * @decimal 2
- * @increment 0.001
+ * @max 1
+ * @decimal 5
+ * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.01f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.00085f);
 
 /**
  * inertia yy
@@ -265,12 +265,12 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.01f);
  * ...
  *
  * @min 0.0
- * @max 100
- * @decimal 2
- * @increment 0.001
+ * @max 1
+ * @decimal 5
+ * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.01f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.00087f);
 
 /**
  * inertia zz
@@ -278,9 +278,9 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.01f);
  * ...
  *
  * @min 0.0
- * @max 100
- * @decimal 2
- * @increment 0.001
+ * @max 1
+ * @decimal 5
+ * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.02f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.00162f);
