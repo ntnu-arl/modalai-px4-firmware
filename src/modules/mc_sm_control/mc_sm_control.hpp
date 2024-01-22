@@ -131,14 +131,16 @@ private:
 	Quatf _attitude;
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
+	trajectory_setpoint_s _trajectory_setpoint{};
 
-	float _manual_thrust{0.f};
-	float _manual_roll{0.f};
-	float _manual_pitch{0.f};
-	float _manual_yaw{0.f};
+	float _manual_thrust{ 0.f };
+	float _manual_roll{ 0.f };
+	float _manual_pitch{ 0.f };
+	float _manual_yaw{ 0.f };
 
-	hrt_abstime _last_run{0};
-	hrt_abstime _last_vehicle_local_position_setpoint{0};
+	hrt_abstime _last_run{ 0 };
+	hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
+	hrt_abstime _time_offboard_enabled{ 0 };
 
 	bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
