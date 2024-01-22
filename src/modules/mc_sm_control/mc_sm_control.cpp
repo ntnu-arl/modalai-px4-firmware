@@ -234,7 +234,9 @@ MulticopterSMControl::Run()
 				_manual_pitch = -manual_control_setpoint.pitch;
 				_manual_yaw = manual_control_setpoint.yaw;
 
+				PX4_INFO("RC aux: %f %f %f %f %f %f", double(manual_control_setpoint.aux1), double(manual_control_setpoint.aux2), double(manual_control_setpoint.aux3), double(manual_control_setpoint.aux4), double(manual_control_setpoint.aux5), double(manual_control_setpoint.aux6));
 			}
+		}
 
 		if (_trajectory_setpoint_sub.updated()){
 			trajectory_setpoint_s trajectory_setpoint;
