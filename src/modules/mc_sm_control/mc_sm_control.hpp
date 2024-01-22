@@ -119,11 +119,12 @@ private:
 	uORB::Publication<vehicle_local_position_setpoint_s> _vehicle_local_position_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
 	// =================================================
 
+  const trajectory_setpoint_s empty_trajectory_setpoint = {
+    0, { NAN, NAN, NAN }, { 0.0f, 0.0f, 0.0f }, { NAN, NAN, NAN }, { NAN, NAN, NAN }, NAN, NAN
+  };
 
-
-
-	//manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
-	vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
+  // manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
+  vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
 
 	perf_counter_t  _loop_perf;             /**< loop duration performance counter */
 
