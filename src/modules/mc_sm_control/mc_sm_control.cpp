@@ -283,6 +283,10 @@ MulticopterSMControl::Run()
 			}
 			// TODO: setpoint from mocap
 			else {
+				vehicle_local_position_setpoint_s local_pos_sp{};
+				local_pos_sp.timestamp = hrt_absolute_time();
+				_vehicle_local_position_setpoint_pub.publish(local_pos_sp);
+
         _position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
         _position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
         _position_control.setLinearAcceleration(Vector3f(_trajectory_setpoint.acceleration));
@@ -315,6 +319,12 @@ MulticopterSMControl::Run()
 			vehicle_thrust_setpoint.xyz[0] = 0.0f;
 			vehicle_thrust_setpoint.xyz[1] = 0.0f;
 			vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
+
+			vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
+			vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+			vehicle_attitude_setpoint.thrust_body = vehicle_thrust_setpoint.xyz;
+			attitude_setpoint.copyTo(&vehicle_attitude_setpoint.q_d);
+			_vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
 
 			vehicle_thrust_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
 			vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
