@@ -183,6 +183,7 @@ void MulticopterSMControl::Run()
         else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled)
         {
           PX4_INFO("implement empty setpoint");
+          _trajectory_setpoint = trajectory_setpoint_s();
         }
         /* PX4_INFO("%lu", _vehicle_control_mode.timestamp);
         PX4_INFO("offboard %d", _vehicle_control_mode.flag_control_offboard_enabled);
@@ -218,12 +219,13 @@ void MulticopterSMControl::Run()
     if (_vehicle_control_mode.flag_control_offboard_enabled)
     {
       // set failsafe setpoint if there hasn't been a new
-      // trajectory setpoint since position control started
+      // trajectory setpoint since offboard control started
       if ((_trajectory_setpoint.timestamp < _time_offboard_enabled) &&
           (vehicle_angular_velocity.timestamp_sample > _time_offboard_enabled))
       {
-        PX4_WARN("invalid setpoints");
-        _trajectory_setpoint = trajectory_setpoint_s();
+        PX4_WARN("invalid setpoint, impl failsafe: %f %f %f", double(_trajectory_setpoint.position[0]),
+                 double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+        _trajectory_setpoint = empty_trajectory_setpoint;
         _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
       }
     }
