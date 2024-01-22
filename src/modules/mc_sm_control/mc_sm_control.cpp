@@ -181,14 +181,14 @@ MulticopterSMControl::Run()
 		//_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_offboard_enabled = _vehicle_control_mode.flag_control_offboard_enabled;
-			
+
 			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
 				if (!previous_offboard_enabled && _vehicle_control_mode.flag_control_offboard_enabled){
 					_time_offboard_enabled = _vehicle_control_mode.timestamp;
         }
         else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled)
         {
-					PX4::INFO("implement empty setpoint");
+					PX4_INFO("implement empty setpoint");
         }
         /* PX4_INFO("%lu", _vehicle_control_mode.timestamp);
 				PX4_INFO("offboard %d", _vehicle_control_mode.flag_control_offboard_enabled);
@@ -244,7 +244,7 @@ MulticopterSMControl::Run()
 
 		//compute control torques and thrust
     if (_vehicle_control_mode.flag_control_offboard_enabled &&
-        (_param_manual_ctrl.get() || (_trajectory_setpoint >= _time_offboard_enabled)))
+        (_param_manual_ctrl.get() || (_trajectory_setpoint.timestamp >= _time_offboard_enabled)))
     {
       float thrust_setpoint;
 			Quatf attitude_setpoint;

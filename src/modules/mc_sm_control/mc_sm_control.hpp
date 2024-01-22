@@ -139,10 +139,10 @@ private:
 	float _manual_yaw{ 0.f };
 
 	hrt_abstime _last_run{ 0 };
-	hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
+	// hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
 	hrt_abstime _time_offboard_enabled{ 0 };
 
-	bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
+	// bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SM_MANUAL_CTRL>)	_param_manual_ctrl,
