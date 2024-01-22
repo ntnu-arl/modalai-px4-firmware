@@ -236,7 +236,15 @@ MulticopterSMControl::Run()
 
 			}
 
-		}
+		if (_trajectory_setpoint_sub.updated()){
+			trajectory_setpoint_s trajectory_setpoint;
+			if (_trajectory_setpoint_sub.copy(&trajectory_setpoint)){
+        const auto position =
+            Vector3f(trajectory_setpoint.position[0], trajectory_setpoint.position[1], trajectory_setpoint.position[2]);
+        _position_control.setPositionSetpoint(position);
+				// position.print();
+			}
+    }
 
 
 		// =================================
@@ -300,8 +308,8 @@ MulticopterSMControl::Run()
 
 				// TODO: setpoint from mocap
 				else {
-					_position_control.setPositionSetpoint(Vector3f(0.0f,0.0f,-2.5f));
-					_position_control.setYawSetpoint(0.0f);
+					// _position_control.setPositionSetpoint(Vector3f(0.0f,0.0f,-2.5f));
+					// _position_control.setYawSetpoint(0.0f);
 					_position_control.setLinearVelocitySetpoint(Vector3f(0.0f,0.0f,0.0f));
 					_position_control.setLinearAccelerationSetpoint(Vector3f(0.0f,0.0f,0.0f));
 					_position_control.update(thrust_setpoint, attitude_setpoint);
