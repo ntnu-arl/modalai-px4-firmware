@@ -40,6 +40,15 @@
  */
 
 /**
+ * Toggle for manual control
+ *
+ * @min 0
+ * @max 1
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 0);
+
+/**
  * X sliding surface dynamics
  *
  * ...
