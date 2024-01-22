@@ -65,13 +65,13 @@ private:
 
 	// setpoints
 	float _yaw_setpoint;
-	Vector3f _position_setpoint;
-	Vector3f _linear_velocity_setpoint;
-	Vector3f _linear_acceleration_setpoint;
+	Vector3f _position_setpoint{};
+	Vector3f _linear_velocity_setpoint{};
+	Vector3f _linear_acceleration_setpoint{};
 
 	// measurments
-	Dcmf _attitude;
-	Vector3f _position;
-	Vector3f _linear_velocity;
-	Vector3f _linear_acceleration;
+	Dcmf _attitude{};
+	Vector3f _position{};
+	Vector3f _linear_velocity{};
+	Vector3f _linear_acceleration{};
 };

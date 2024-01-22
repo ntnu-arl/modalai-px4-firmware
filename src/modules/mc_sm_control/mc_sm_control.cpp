@@ -181,20 +181,20 @@ MulticopterSMControl::Run()
 		}
 
 
-		// Check for new position setpoint
-		if (_vehicle_local_position_setpoint_sub.updated()) {
-			vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
+		// // Check for new position setpoint
+		// if (_vehicle_local_position_setpoint_sub.updated()) {
+		// 	vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
 
-			if (_vehicle_local_position_setpoint_sub.copy(&vehicle_local_position_setpoint)
-			    && (vehicle_local_position_setpoint.timestamp > _last_vehicle_local_position_setpoint)) {
+		// 	if (_vehicle_local_position_setpoint_sub.copy(&vehicle_local_position_setpoint)
+		// 	    && (vehicle_local_position_setpoint.timestamp > _last_vehicle_local_position_setpoint)) {
 
-				_position_control.setPositionSetpoint(Vector3f(vehicle_local_position_setpoint.x, vehicle_local_position_setpoint.y, vehicle_local_position_setpoint.z));
-				_position_control.setLinearVelocitySetpoint(Vector3f(vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy, vehicle_local_position_setpoint.vz));
-				_position_control.setLinearAccelerationSetpoint(Vector3f(vehicle_local_position_setpoint.acceleration[0], vehicle_local_position_setpoint.acceleration[1], vehicle_local_position_setpoint.acceleration[2]));
-				_position_control.setYawSetpoint(vehicle_local_position_setpoint.yaw);
-				_last_vehicle_local_position_setpoint = vehicle_local_position_setpoint.timestamp;
-			}
-		}
+		// 		_position_control.setPositionSetpoint(Vector3f(vehicle_local_position_setpoint.x, vehicle_local_position_setpoint.y, vehicle_local_position_setpoint.z));
+		// 		_position_control.setLinearVelocitySetpoint(Vector3f(vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy, vehicle_local_position_setpoint.vz));
+		// 		_position_control.setLinearAccelerationSetpoint(Vector3f(vehicle_local_position_setpoint.acceleration[0], vehicle_local_position_setpoint.acceleration[1], vehicle_local_position_setpoint.acceleration[2]));
+		// 		_position_control.setYawSetpoint(vehicle_local_position_setpoint.yaw);
+		// 		_last_vehicle_local_position_setpoint = vehicle_local_position_setpoint.timestamp;
+		// 	}
+		// }
 
 		/* check for updates in other topics */
 		//_manual_control_setpoint_sub.update(&_manual_control_setpoint);
@@ -234,19 +234,18 @@ MulticopterSMControl::Run()
 				_manual_pitch = -manual_control_setpoint.pitch;
 				_manual_yaw = manual_control_setpoint.yaw;
 
-				PX4_INFO("RC aux: %f %f %f %f %f %f", double(manual_control_setpoint.aux1), double(manual_control_setpoint.aux2), double(manual_control_setpoint.aux3), double(manual_control_setpoint.aux4), double(manual_control_setpoint.aux5), double(manual_control_setpoint.aux6));
+				// PX4_INFO("RC aux: %f %f %f %f %f %f", double(manual_control_setpoint.aux1), double(manual_control_setpoint.aux2), double(manual_control_setpoint.aux3), double(manual_control_setpoint.aux4), double(manual_control_setpoint.aux5), double(manual_control_setpoint.aux6));
 			}
 		}
 
 		if (_trajectory_setpoint_sub.updated()){
 			trajectory_setpoint_s trajectory_setpoint;
 			if (_trajectory_setpoint_sub.copy(&trajectory_setpoint)){
-        const auto position =
-            Vector3f(trajectory_setpoint.position[0], trajectory_setpoint.position[1], trajectory_setpoint.position[2]);
-        _position_control.setPositionSetpoint(position);
+				const auto position = Vector3f(trajectory_setpoint.position[0], trajectory_setpoint.position[1], trajectory_setpoint.position[2]);
+        			_position_control.setPositionSetpoint(position);
 				// position.print();
 			}
-    }
+    		}
 
 		if (_trajectory_setpoint_sub.updated()){
 			trajectory_setpoint_s trajectory_setpoint;
