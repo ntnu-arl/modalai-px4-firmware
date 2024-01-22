@@ -264,7 +264,7 @@ MulticopterSMControl::Run()
 				float thrust_setpoint;
 				Quatf attitude_setpoint;
 
-				attitude_setpoint.print();
+				//attitude_setpoint.print();
 
 				// ====================================
 				// manual attitude setpoint feedthrough
@@ -316,9 +316,9 @@ MulticopterSMControl::Run()
 				}
 
 				// run attitude controller
-				attitude_setpoint.print();
+				//attitude_setpoint.print();
 				Vector3f torque_setpoint = _attitude_control.update();
-				// PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1), (double)torque_setpoint(2));
+				PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1), (double)torque_setpoint(2));
 
 				// publish thrust and attitude setpoints
 				vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
@@ -329,7 +329,7 @@ MulticopterSMControl::Run()
 					vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
 				}
 
-				// PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
+				PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
 				vehicle_thrust_setpoint.xyz[0] = 0.0f;
 				vehicle_thrust_setpoint.xyz[1] = 0.0f;
 				vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
