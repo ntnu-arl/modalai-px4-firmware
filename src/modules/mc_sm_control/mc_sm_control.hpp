@@ -141,6 +141,7 @@ private:
 	bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
 	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::SM_MANUAL_CTRL>)	_param_manual_ctrl,
 		(ParamFloat<px4::params::SM_POS_LAM_X>)		_param_pos_lam_x,
 		(ParamFloat<px4::params::SM_POS_LAM_Y>)		_param_pos_lam_y,
 		(ParamFloat<px4::params::SM_POS_LAM_Z>)		_param_pos_lam_z,

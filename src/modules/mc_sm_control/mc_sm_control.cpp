@@ -268,7 +268,7 @@ MulticopterSMControl::Run()
 				// ====================================
 				// manual attitude setpoint feedthrough
 				// ====================================
-				if (true){
+				if (_param_manual_ctrl.get()){
 					// get an attitude setpoint from the current manual inputs
 					float roll_ref = 1.f * _manual_roll * M_PI_4_F;
 					float pitch_ref = 1.f * _manual_pitch * M_PI_4_F;
