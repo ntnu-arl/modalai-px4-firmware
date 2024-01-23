@@ -183,7 +183,7 @@ void MulticopterSMControl::Run()
         else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled)
         {
           PX4_INFO("implement empty setpoint");
-          _trajectory_setpoint = trajectory_setpoint_s();
+          _trajectory_setpoint = empty_trajectory_setpoint;
         }
         /* PX4_INFO("%lu", _vehicle_control_mode.timestamp);
         PX4_INFO("offboard %d", _vehicle_control_mode.flag_control_offboard_enabled);
