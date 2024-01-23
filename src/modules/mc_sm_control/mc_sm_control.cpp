@@ -160,6 +160,9 @@ void MulticopterSMControl::Run()
     vehicle_local_position_s vehicle_local_position;
     if (_vehicle_local_position_sub.update(&vehicle_local_position))
     {
+        // PX4_INFO("vehicle_local_position: %f | %f | %f", (double)vehicle_local_position.x,
+        // (double)vehicle_local_position.y, (double)vehicle_local_position.z);
+
       _position_control.setPosition(
           Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z));
       _position_control.setLinearVelocity(
@@ -196,6 +199,7 @@ void MulticopterSMControl::Run()
         PX4_INFO("attitude %d", _vehicle_control_mode.flag_control_attitude_enabled);
         PX4_INFO("rates %d", _vehicle_control_mode.flag_control_rates_enabled); */
       }
+
     }
 
     if (_manual_control_setpoint_sub.updated())
@@ -207,15 +211,19 @@ void MulticopterSMControl::Run()
         _manual_roll = manual_control_setpoint.roll;
         _manual_pitch = -manual_control_setpoint.pitch;
         _manual_yaw = manual_control_setpoint.yaw;
-
-        // PX4_INFO("RC aux: %f %f %f %f %f %f", double(manual_control_setpoint.aux1),
-        // double(manual_control_setpoint.aux2), double(manual_control_setpoint.aux3),
-        // double(manual_control_setpoint.aux4), double(manual_control_setpoint.aux5),
-        // double(manual_control_setpoint.aux6));
       }
     }
 
-    _trajectory_setpoint_sub.update(&_trajectory_setpoint);
+    if (_trajectory_setpoint_sub.updated()){
+      // trajectory_setpoint_s trajectory_setpoint;
+      _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
+      // if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
+      // {
+        // PX4_INFO("setpoint received: %f %f %f", double(_trajectory_setpoint.position[0]),
+        //       double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+      // }
+    }
+    // _trajectory_setpoint_sub.update(&_trajectory_setpoint);
     if (_vehicle_control_mode.flag_control_offboard_enabled)
     {
       // set failsafe setpoint if there hasn't been a new
@@ -227,6 +235,15 @@ void MulticopterSMControl::Run()
                  double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
         _trajectory_setpoint = empty_trajectory_setpoint;
         _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
+      }
+      else {
+        PX4_INFO("setpoint: %f %f %f", double(_trajectory_setpoint.position[0]),
+                double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+        // PX4_INFO("vel: %f %f %f", double(_trajectory_setpoint.velocity[0]),
+        //         double(_trajectory_setpoint.velocity[1]), double(_trajectory_setpoint.velocity[2]));
+        // PX4_INFO("acc: %f %f %f", double(_trajectory_setpoint.acceleration[0]),
+        //         double(_trajectory_setpoint.acceleration[1]), double(_trajectory_setpoint.acceleration[2]));
+        //         PX4_INFO("yaw yawspeed: %f %f", double(_trajectory_setpoint.yaw), double(_trajectory_setpoint.yawspeed));
       }
     }
 
@@ -302,13 +319,11 @@ void MulticopterSMControl::Run()
         _attitude_control.setAttitudeSetpoint(attitude_setpoint);
 
         PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
-        thrust_setpoint = -constrain(thrust_setpoint, 0.0f, _param_thrust_max.get()) / _param_thrust_max.get();
+        thrust_setpoint /= _param_thrust_max.get();
       }
 
       // run attitude controller
       Vector3f torque_setpoint = _attitude_control.update();
-      // PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
-      // (double)torque_setpoint(2));
 
       // publish thrust and attitude setpoints
       vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
@@ -316,6 +331,7 @@ void MulticopterSMControl::Run()
 
       // set default thrust to hover percentage
       thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover.get();
+      thrust_setpoint = -constrain(thrust_setpoint, 0.0f, 1.0f);
       for (int i = 0; i < 3; i++)
       {
         torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
@@ -323,6 +339,8 @@ void MulticopterSMControl::Run()
       }
 
       // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
+      PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
+        (double)torque_setpoint(2));
       vehicle_thrust_setpoint.xyz[0] = 0.0f;
       vehicle_thrust_setpoint.xyz[1] = 0.0f;
       vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
