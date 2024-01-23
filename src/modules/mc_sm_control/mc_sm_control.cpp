@@ -112,6 +112,20 @@ float MulticopterSMControl::throttle_curve(float throttle_stick_input)
   return (throttle_stick_input + 1.0f) / 2.0f;
 }
 
+void MulticopterSMControl::generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp, const Vector3f& position,
+                                                      const Quatf& attitude)
+{
+  // set position/yaw to current position/yaw
+  position.copyTo(traj_sp.position);
+  traj_sp.yaw = Eulerf(attitude).psi();
+
+  // set derivatives to zero
+  const Vector3f zero(0.0f, 0.0f, 0.0f);
+  zero.copyTo(traj_sp.velocity);
+  zero.copyTo(traj_sp.acceleration);
+  traj_sp.yawspeed = 0.0f;
+}
+
 void MulticopterSMControl::Run()
 {
   if (should_exit())
@@ -186,7 +200,8 @@ void MulticopterSMControl::Run()
         else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled)
         {
           PX4_INFO("implement empty setpoint");
-          _trajectory_setpoint = empty_trajectory_setpoint;
+          generateFailsafeTrajectory(_trajectory_setpoint, _position_control.getPosition(),
+                                     _position_control.getAttitude());
         }
         /* PX4_INFO("%lu", _vehicle_control_mode.timestamp);
         PX4_INFO("offboard %d", _vehicle_control_mode.flag_control_offboard_enabled);
@@ -233,7 +248,8 @@ void MulticopterSMControl::Run()
       {
         PX4_WARN("invalid setpoint, impl failsafe: %f %f %f", double(_trajectory_setpoint.position[0]),
                  double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
-        _trajectory_setpoint = empty_trajectory_setpoint;
+        generateFailsafeTrajectory(_trajectory_setpoint, _position_control.getPosition(),
+                                   _position_control.getAttitude());
         _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
       }
       else {

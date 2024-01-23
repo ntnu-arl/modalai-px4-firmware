@@ -96,6 +96,8 @@ private:
 
 	float throttle_curve(float throttle_stick_input);
 
+	void generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp, const Vector3f& position, const Quatf& attitude);
+
 	SMPositionControl _position_control; /**< class for position control calculations */
 	SMAttitudeControl _attitude_control;
 
@@ -118,11 +120,6 @@ private:
 	uORB::Publication<vehicle_attitude_setpoint_s> _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _vehicle_local_position_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
 	// =================================================
-	// set measurements instead of nan
-	void generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp);
-  const trajectory_setpoint_s empty_trajectory_setpoint = {
-    0, { NAN, NAN, NAN }, { 0.0f, 0.0f, 0.0f }, { NAN, NAN, NAN }, { NAN, NAN, NAN }, NAN, NAN
-  };
 
   // manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
   vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
