@@ -126,6 +126,23 @@ void MulticopterSMControl::generateFailsafeTrajectory(trajectory_setpoint_s& tra
   traj_sp.yawspeed = 0.0f;
 }
 
+void MulticopterSMControl::normalizeThrust(float& thrust){
+  // magic numbers, do not change
+
+  // aerodynamics constant at hover: 0.276*9.80665 / 13391.25**2
+  const float c_f = 1.509341529459219e-08f;
+  // 2d poly fit on rpm x pwm curve
+  const float a0 = 3.9213f;
+  const float a1 = 1.9863e-3f;
+  const float a2 = 1.1790f;
+
+  const float temp = sqrtf(thrust / c_f);
+  thrust = a0 + a1 * temp + a2 * temp * temp;
+
+  // scale from 0->1
+  thrust /= 100.0f;
+}
+
 void MulticopterSMControl::Run()
 {
   if (should_exit())

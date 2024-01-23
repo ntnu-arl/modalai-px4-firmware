@@ -98,6 +98,8 @@ private:
 
 	void generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp, const Vector3f& position, const Quatf& attitude);
 
+	void normalizeThrust(float& thrust);
+
 	SMPositionControl _position_control; /**< class for position control calculations */
 	SMAttitudeControl _attitude_control;
 
