@@ -118,7 +118,7 @@ private:
 	uORB::Publication<vehicle_attitude_setpoint_s> _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _vehicle_local_position_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
 	// =================================================
-
+	// set measurements instead of nan
   const trajectory_setpoint_s empty_trajectory_setpoint = {
     0, { NAN, NAN, NAN }, { 0.0f, 0.0f, 0.0f }, { NAN, NAN, NAN }, { NAN, NAN, NAN }, NAN, NAN
   };

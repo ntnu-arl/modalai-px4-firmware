@@ -301,7 +301,7 @@ void MulticopterSMControl::Run()
         _attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
         _attitude_control.setAttitudeSetpoint(attitude_setpoint);
 
-        // PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+        PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
         thrust_setpoint = -constrain(thrust_setpoint, 0.0f, _param_thrust_max.get()) / _param_thrust_max.get();
       }
 
@@ -314,6 +314,7 @@ void MulticopterSMControl::Run()
       vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
       vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 
+      // TODO: is finite for thrust
       for (int i = 0; i < 3; i++)
       {
         torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
