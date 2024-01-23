@@ -155,7 +155,7 @@ private:
 		(ParamFloat<px4::params::SM_POS_TANH>)		_param_pos_tanh_factor,
 		(ParamFloat<px4::params::SM_POS_MASS>)		_param_mass,
 		(ParamFloat<px4::params::SM_POS_T_MAX>)		_param_thrust_max,
-		(ParamFloat<px4::params::SM_HOVER>)			_param_hover,
+		(ParamFloat<px4::params::SM_HOVER>)		_param_hover,
 		(ParamFloat<px4::params::SM_ATT_LAM_X>)		_param_att_lam_x,
 		(ParamFloat<px4::params::SM_ATT_LAM_Y>)		_param_att_lam_y,
 		(ParamFloat<px4::params::SM_ATT_LAM_Z>)		_param_att_lam_z,

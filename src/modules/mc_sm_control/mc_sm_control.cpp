@@ -315,7 +315,7 @@ void MulticopterSMControl::Run()
       vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 
       // set default thrust to hover percentage
-      thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover;
+      thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover.get();
       for (int i = 0; i < 3; i++)
       {
         torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
