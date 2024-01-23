@@ -315,6 +315,8 @@ void MulticopterSMControl::Run()
       vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 
       // TODO: is finite for thrust
+      // TODO: if thrust_setpoint not finite set better default than 0
+      thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : 0.0f;
       for (int i = 0; i < 3; i++)
       {
         torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
@@ -328,12 +330,14 @@ void MulticopterSMControl::Run()
 
       vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
       vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
-//       vehicle_attitude_setpoint.thrust_body = vehicle_thrust_setpoint.xyz;
       vehicle_attitude_setpoint.thrust_body[0] = vehicle_thrust_setpoint.xyz[0];
       vehicle_attitude_setpoint.thrust_body[1] = vehicle_thrust_setpoint.xyz[1];
       vehicle_attitude_setpoint.thrust_body[2] = vehicle_thrust_setpoint.xyz[2];
-
       attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
+      const Eulerf euler{ attitude_setpoint };
+      vehicle_attitude_setpoint.roll_body = euler.phi();
+      vehicle_attitude_setpoint.pitch_body = euler.theta();
+      vehicle_attitude_setpoint.yaw_body = euler.psi();
       _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
 
       vehicle_thrust_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
