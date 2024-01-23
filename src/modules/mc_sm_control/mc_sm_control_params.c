@@ -164,6 +164,20 @@ PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
  * @group Multicopter SM Control
  */
 PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 14.0f);
+
+/**
+ * Hover percentage
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_HOVER, 0.5f);
+
 /**
  * Roll sliding surface dynamics
  *

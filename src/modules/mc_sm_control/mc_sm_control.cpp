@@ -314,9 +314,8 @@ void MulticopterSMControl::Run()
       vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
       vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 
-      // TODO: is finite for thrust
-      // TODO: if thrust_setpoint not finite set better default than 0
-      thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : 0.0f;
+      // set default thrust to hover percentage
+      thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover;
       for (int i = 0; i < 3; i++)
       {
         torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
