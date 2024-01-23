@@ -237,8 +237,8 @@ void MulticopterSMControl::Run()
         _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
       }
       else {
-        PX4_INFO("setpoint: %f %f %f", double(_trajectory_setpoint.position[0]),
-                double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+        // PX4_INFO("setpoint: %f %f %f", double(_trajectory_setpoint.position[0]),
+        //         double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
         // PX4_INFO("vel: %f %f %f", double(_trajectory_setpoint.velocity[0]),
         //         double(_trajectory_setpoint.velocity[1]), double(_trajectory_setpoint.velocity[2]));
         // PX4_INFO("acc: %f %f %f", double(_trajectory_setpoint.acceleration[0]),
@@ -299,7 +299,7 @@ void MulticopterSMControl::Run()
         _attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, yawspeed_ref));
         _attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
         _attitude_control.setAttitudeSetpoint(q_sp);
-        thrust_setpoint = -throttle_curve(_manual_thrust);
+        thrust_setpoint = throttle_curve(_manual_thrust);
       }
       // TODO: setpoint from mocap
       else
@@ -318,7 +318,7 @@ void MulticopterSMControl::Run()
         _attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
         _attitude_control.setAttitudeSetpoint(attitude_setpoint);
 
-        PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+        // PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
         thrust_setpoint /= _param_thrust_max.get();
       }
 
@@ -339,8 +339,8 @@ void MulticopterSMControl::Run()
       }
 
       // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
-      PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
-        (double)torque_setpoint(2));
+      // PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
+      //   (double)torque_setpoint(2));
       vehicle_thrust_setpoint.xyz[0] = 0.0f;
       vehicle_thrust_setpoint.xyz[1] = 0.0f;
       vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
