@@ -140,6 +140,7 @@ private:
 	hrt_abstime _last_run{ 0 };
 	// hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
 	hrt_abstime _time_offboard_enabled{ 0 };
+	float _battery_status_scale{0.0f};
 
 	// bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
@@ -165,7 +166,7 @@ private:
 		(ParamFloat<px4::params::SM_ATT_I_XX>)		_param_inertia_xx,
 		(ParamFloat<px4::params::SM_ATT_I_YY>)		_param_inertia_yy,
 		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz,
-		(ParamBool<px4::params::SM_BAT_SCALE_EN>) _param_bat_scale_en
+		(ParamBool<px4::params::SM_BAT_SCALE_EN>) 	_param_bat_scale_en
 	)
 };
 
