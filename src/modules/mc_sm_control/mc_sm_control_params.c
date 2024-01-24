@@ -165,6 +165,32 @@ PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
 PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 14.0f);
 
 /**
+ * Moment max roll/pitch
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_M_RP_MAX, 0.26f);
+
+/**
+ * Moment max yaw
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_M_Y_MAX, 1.0f);
+
+/**
  * Hover percentage
  *
  * ...
