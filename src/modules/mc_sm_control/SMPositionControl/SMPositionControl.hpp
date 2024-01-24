@@ -51,9 +51,9 @@ public:
 		linear_acceleration.print();
 	}
 
-	void getAttitude() { return Quatf(_attitude); }
+	Quatf getAttitude() { return Quatf(_attitude); }
 
-	void getPosition() { return _position; }
+	Vector3f getPosition() { return _position; }
 
 	/**
 	 * Run one control loop cycle calculation
