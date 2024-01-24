@@ -361,6 +361,24 @@ void MulticopterSMControl::Run()
       vehicle_thrust_setpoint.xyz[1] = 0.0f;
       vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
 
+			// scale setpoints by battery status if enabled
+			if (_param_bat_scale_en.get()) {
+				if (_battery_status_sub.updated()) {
+					battery_status_s battery_status;
+
+					if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+						_battery_status_scale = battery_status.scale;
+					}
+				}
+
+				if (_battery_status_scale > 0.f) {
+					for (int i = 0; i < 3; i++) {
+						vehicle_thrust_setpoint.xyz[i] = math::constrain(vehicle_thrust_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
+						vehicle_torque_setpoint.xyz[i] = math::constrain(vehicle_torque_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
+					}
+				}
+			}
+
       vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
       vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
       vehicle_attitude_setpoint.thrust_body[0] = vehicle_thrust_setpoint.xyz[0];

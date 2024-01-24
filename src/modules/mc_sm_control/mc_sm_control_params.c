@@ -42,8 +42,7 @@
 /**
  * Toggle for manual control
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Multicopter SM Control
  */
 PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 0);
@@ -307,3 +306,17 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.00087f);
  * @group Multicopter SM Attitude Control
  */
 PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.00162f);
+
+/**
+ * Battery power level scaler
+ *
+ * This compensates for voltage drop of the battery over time by attempting to
+ * normalize performance across the operating range of the battery. The copter
+ * should constantly behave as if it was fully charged with reduced max acceleration
+ * at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
+ * it will still be 0.5 at 60% battery.
+ *
+ * @boolean
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_INT32(SM_BAT_SCALE_EN, 0);

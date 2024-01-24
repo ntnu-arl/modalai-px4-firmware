@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/battery_status.h>
 
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -103,7 +104,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
@@ -163,7 +164,8 @@ private:
 		(ParamFloat<px4::params::SM_ATT_TANH>)		_param_att_tanh_factor,
 		(ParamFloat<px4::params::SM_ATT_I_XX>)		_param_inertia_xx,
 		(ParamFloat<px4::params::SM_ATT_I_YY>)		_param_inertia_yy,
-		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz
+		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz,
+		(ParamBool<px4::params::SM_BAT_SCALE_EN>) _param_bat_scale_en
 	)
 };
 
