@@ -336,13 +336,13 @@ void MulticopterSMControl::Run()
 
         // PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
         thrust_setpoint /= _param_thrust_max.get();
-        attitude_setpoint(0) /= _param_moment_rp_max.get();
-        attitude_setpoint(1) /= _param_moment_rp_max.get();
-        attitude_setpoint(2) /= _param_moment_y_max.get();
       }
 
       // run attitude controller
       Vector3f torque_setpoint = _attitude_control.update();
+      torque_setpoint(0) /= _param_moment_rp_max.get();
+      torque_setpoint(1) /= _param_moment_rp_max.get();
+      torque_setpoint(2) /= _param_moment_y_max.get();
 
       // publish thrust and attitude setpoints
       vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
