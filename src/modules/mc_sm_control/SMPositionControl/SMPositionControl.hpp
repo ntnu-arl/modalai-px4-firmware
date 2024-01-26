@@ -11,13 +11,16 @@ public:
 	SMPositionControl() = default;
 	~SMPositionControl() = default;
 
+	// PD
+	void setKp(const Matrix3f &K_p) { _K_p = K_p; }
+	void setKd(const Matrix3f &K_d) { _K_d = K_d; }
+	// SMC
 	void setSwitchingGain(const Matrix3f &switching_gain) { _switching_gain = switching_gain; }
-
 	void setLambda(const Matrix3f &lambda) { _lambda = lambda; }
+	void setTanhFactor(const float& tanh_factor) { _tanh_factor = tanh_factor; }
+	// STSMC
 
 	void setMass(const float &mass) { _mass = mass; }
-
-	void setTanhFactor(const float& tanh_factor) { _tanh_factor = tanh_factor; }
 
 	void setYawSetpoint(const float& yaw) { _yaw_setpoint = yaw; }
 
@@ -27,13 +30,13 @@ public:
 
 	void setLinearAccelerationSetpoint(const Vector3f &linear_acceleration_setpoint) { _linear_acceleration_setpoint = linear_acceleration_setpoint; }
 
-	void setAttitude(const Quatf &quaternion) { _attitude = Dcmf(quaternion); }
+	void setAttitude(const Quatf &quaternion) {_attitude = Dcmf(quaternion);	}
 
-	void setPosition(const Vector3f &position) { _position = position; }
+	void setPosition(const Vector3f &position) {_position = position;	}
 
-	void setLinearVelocity(const Vector3f &linear_velocity) { _linear_velocity = linear_velocity; }
+	void setLinearVelocity(const Vector3f &linear_velocity) {_linear_velocity = linear_velocity;	}
 
-	void setLinearAcceleration(const Vector3f &linear_acceleration) { _linear_acceleration = linear_acceleration; }
+	void setLinearAcceleration(const Vector3f &linear_acceleration) {_linear_acceleration = linear_acceleration;	}
 
 	Quatf getAttitude() { return Quatf(_attitude); }
 
@@ -43,6 +46,8 @@ public:
 	 * Run one control loop cycle calculation
 	 */
 	void update(float &thrust_setpoint, Quatf &quaternion_setpoint) const;
+  void updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint) const;
+  void updateSM(float& thrust_setpoint, Quatf& quaternion_setpoint) const;
 
 private:
   Vector3f signum(const Vector3f& input) const {
@@ -56,26 +61,33 @@ private:
   }
 
 	Vector3f calculateAcceleration() const;
+	Vector3f calculateAccelerationPD() const;
+	Vector3f calculateAccelerationSM() const;
 
 	float calculateThrust(const Vector3f &acceleration) const;
 
 	Dcmf calculateAttitude(const Vector3f &acceleration) const;
 
   // controller parameters
+  float _mass;
+  // PD
+  Matrix3f _K_p;
+  Matrix3f _K_d;
+  // SMC
   Matrix3f _switching_gain;
-	Matrix3f _lambda;
-	float _mass;
-	float _tanh_factor;
+  Matrix3f _lambda;
+  float _tanh_factor;
+  // STSMC
 
-	// setpoints
-	float _yaw_setpoint;
-	Vector3f _position_setpoint{};
-	Vector3f _linear_velocity_setpoint{};
-	Vector3f _linear_acceleration_setpoint{};
+  // setpoints
+  float _yaw_setpoint;
+  Vector3f _position_setpoint{};
+  Vector3f _linear_velocity_setpoint{};
+  Vector3f _linear_acceleration_setpoint{};
 
-	// measurments
-	Dcmf _attitude{};
-	Vector3f _position{};
-	Vector3f _linear_velocity{};
-	Vector3f _linear_acceleration{};
+  // measurments
+  Dcmf _attitude{};
+  Vector3f _position{};
+  Vector3f _linear_velocity{};
+  Vector3f _linear_acceleration{};
 };

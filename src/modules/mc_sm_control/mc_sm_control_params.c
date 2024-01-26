@@ -346,3 +346,92 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.02);
  * @group Multicopter SM Control
  */
 PARAM_DEFINE_INT32(SM_BAT_SCALE_EN, 0);
+
+/**
+ * XYZ Kp
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KP_XYZ, 1.6f);
+
+/**
+ * XYZ Kd
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KD_XYZ, 2.26f);
+
+/**
+ * RP Kp
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KP_RP, 2.0f);
+
+/**
+ * Y Kp
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KP_Y, 0.2f);
+
+/**
+ * RP Kd
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KD_RP, 0.28f);
+
+/**
+ * Y Kd
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KD_Y, 0.13f);
+
+/**
+ * Control Selector (0: NL-PD, 1: SMC, etc)
+ *
+ * ...
+ *
+ * @min 0
+ * @max 1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_INT32(SM_CONTROLLER, 0);
