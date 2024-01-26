@@ -149,7 +149,7 @@ PARAM_DEFINE_FLOAT(SM_POS_TANH, 10.0f);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
+PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.8f);
 
 /**
  * Thrust max
@@ -162,7 +162,7 @@ PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
  * @increment 0.01
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 14.0f);
+PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 16.0f);
 
 /**
  * Moment max roll/pitch
@@ -175,7 +175,7 @@ PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 14.0f);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_M_RP_MAX, 0.26f);
+PARAM_DEFINE_FLOAT(SM_M_RP_MAX, 1.0f);
 
 /**
  * Moment max yaw
@@ -305,7 +305,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_TANH, 1.0f);
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.00085f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.01);
 
 /**
  * inertia yy
@@ -318,7 +318,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.00085f);
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.00087f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.01);
 
 /**
  * inertia zz
@@ -331,7 +331,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.00087f);
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.00162f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.02);
 
 /**
  * Battery power level scaler
