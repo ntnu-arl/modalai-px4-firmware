@@ -27,21 +27,11 @@ public:
 	 * Set a new attitude setpoint replacing the one tracked before
 	 * @param qd desired vehicle attitude setpoint
 	 */
-	void setAttitudeSetpoint(const matrix::Quatf &quaternion_setpoint)
-	{
-		_attitude_setpoint = matrix::Dcmf(quaternion_setpoint);
-		//printf("quaternion_setpoint: %f %f %f %f\n", (double)quaternion_setpoint(1),(double)quaternion_setpoint(2),(double)quaternion_setpoint(3),(double)quaternion_setpoint(0));
-	}
+	void setAttitudeSetpoint(const matrix::Quatf &quaternion_setpoint) { _attitude_setpoint = matrix::Dcmf(quaternion_setpoint);	}
 
-	void setAngularVelocitySetpoint(const matrix::Vector3f &angular_velocity_setpoint) {
-		_angular_velocity_setpoint = angular_velocity_setpoint;
-		//printf("angular_velocity_setpoint: %f %f %f\n", (double)angular_velocity_setpoint(0),(double)angular_velocity_setpoint(1),(double)angular_velocity_setpoint(2));
-	}
+	void setAngularVelocitySetpoint(const matrix::Vector3f &angular_velocity_setpoint) { _angular_velocity_setpoint = angular_velocity_setpoint;	}
 
-	void setAngularAccelerationSetpoint(const matrix::Vector3f &angular_acceleration_setpoint) {
-		_angular_acceleration_setpoint = angular_acceleration_setpoint;
-		//printf("_angular_acceleration_setpoint: %f %f %f\n", (double)_angular_acceleration_setpoint(0),(double)_angular_acceleration_setpoint(1),(double)_angular_acceleration_setpoint(2));
-	}
+	void setAngularAccelerationSetpoint(const matrix::Vector3f &angular_acceleration_setpoint) { _angular_acceleration_setpoint = angular_acceleration_setpoint; }
 
 	void setAttitude(const matrix::Quatf &quaternion) { _attitude = matrix::Dcmf(quaternion); }
 
