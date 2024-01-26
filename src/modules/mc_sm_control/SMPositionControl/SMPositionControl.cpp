@@ -6,10 +6,10 @@ Vector3f SMPositionControl::calculateAcceleration() const {
 	const Vector3f error_position = _position - _position_setpoint;
 	const Vector3f error_velocity = _linear_velocity - _linear_velocity_setpoint;
 
-	// printf("error_position ");
-	// error_position.print();
-	// printf("error_velocity ");
-	// error_velocity.print();
+	printf("error_position ");
+	error_position.print();
+	printf("error_velocity ");
+	error_velocity.print();
 
 	// TODO: make _lambda a vector
 	const Vector3f sigma = error_velocity + _lambda * error_position;
@@ -52,8 +52,8 @@ void SMPositionControl::update(float &thrust_setpoint, Quatf &quaternion_setpoin
 {
 	const Vector3f acceleration = calculateAcceleration();
 
-	// printf("acceleration: ");
-	// acceleration.print();
+	printf("acceleration: ");
+	acceleration.print();
 
 	thrust_setpoint = calculateThrust(acceleration);
 	const Dcmf attitude_setpoint = calculateAttitude(acceleration);

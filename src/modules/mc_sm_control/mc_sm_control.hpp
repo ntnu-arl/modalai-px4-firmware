@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/battery_status.h>
 
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -96,12 +97,14 @@ private:
 
 	float throttle_curve(float throttle_stick_input);
 
+	void generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp, const Vector3f& position, const Quatf& attitude);
+
 	SMPositionControl _position_control; /**< class for position control calculations */
 	SMAttitudeControl _attitude_control;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
@@ -111,36 +114,35 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-
-
 	//uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<vehicle_attitude_setpoint_s> _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vehicle_local_position_setpoint_s> _vehicle_local_position_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
 	// =================================================
 
-
-
-
-	//manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
-	vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
+  // manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
+  vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
 
 	perf_counter_t  _loop_perf;             /**< loop duration performance counter */
 
 	Quatf _attitude;
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
+	trajectory_setpoint_s _trajectory_setpoint{};
 
-	float _manual_thrust{0.f};
-	float _manual_roll{0.f};
-	float _manual_pitch{0.f};
-	float _manual_yaw{0.f};
+	float _manual_thrust{ 0.f };
+	float _manual_roll{ 0.f };
+	float _manual_pitch{ 0.f };
+	float _manual_yaw{ 0.f };
 
-	hrt_abstime _last_run{0};
-	hrt_abstime _last_vehicle_local_position_setpoint{0};
+	hrt_abstime _last_run{ 0 };
+	// hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
+	hrt_abstime _time_offboard_enabled{ 0 };
+	float _battery_status_scale{0.0f};
 
-	bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
+	// bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SM_MANUAL_CTRL>)	_param_manual_ctrl,
@@ -153,6 +155,9 @@ private:
 		(ParamFloat<px4::params::SM_POS_TANH>)		_param_pos_tanh_factor,
 		(ParamFloat<px4::params::SM_POS_MASS>)		_param_mass,
 		(ParamFloat<px4::params::SM_POS_T_MAX>)		_param_thrust_max,
+		(ParamFloat<px4::params::SM_HOVER>)		_param_hover,
+		(ParamFloat<px4::params::SM_M_RP_MAX>)		_param_moment_rp_max,
+		(ParamFloat<px4::params::SM_M_Y_MAX>)		_param_moment_y_max,
 		(ParamFloat<px4::params::SM_ATT_LAM_X>)		_param_att_lam_x,
 		(ParamFloat<px4::params::SM_ATT_LAM_Y>)		_param_att_lam_y,
 		(ParamFloat<px4::params::SM_ATT_LAM_Z>)		_param_att_lam_z,
@@ -162,7 +167,8 @@ private:
 		(ParamFloat<px4::params::SM_ATT_TANH>)		_param_att_tanh_factor,
 		(ParamFloat<px4::params::SM_ATT_I_XX>)		_param_inertia_xx,
 		(ParamFloat<px4::params::SM_ATT_I_YY>)		_param_inertia_yy,
-		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz
+		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz,
+		(ParamBool<px4::params::SM_BAT_SCALE_EN>) 	_param_bat_scale_en
 	)
 };
 

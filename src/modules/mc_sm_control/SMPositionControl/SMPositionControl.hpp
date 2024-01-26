@@ -27,13 +27,33 @@ public:
 
 	void setLinearAccelerationSetpoint(const Vector3f &linear_acceleration_setpoint) { _linear_acceleration_setpoint = linear_acceleration_setpoint; }
 
-	void setAttitude(const Quatf &quaternion) { _attitude = Dcmf(quaternion); }
+	void setAttitude(const Quatf &quaternion) {
+		_attitude = Dcmf(quaternion);
+		printf("quaternion ");
+		quaternion.print();
+	}
 
-	void setPosition(const Vector3f &position) { _position = position; }
+	void setPosition(const Vector3f &position) {
+		_position = position;
+		printf("position ");
+		position.print();
+	}
 
-	void setLinearVelocity(const Vector3f &linear_velocity) {_linear_velocity = linear_velocity; }
+	void setLinearVelocity(const Vector3f &linear_velocity) {
+		_linear_velocity = linear_velocity;
+		printf("linear_velocity ");
+		linear_velocity.print();
+	}
 
-	void setLinearAcceleration(const Vector3f &linear_acceleration) { _linear_acceleration = linear_acceleration; }
+	void setLinearAcceleration(const Vector3f &linear_acceleration) {
+		_linear_acceleration = linear_acceleration;
+		printf("linear_acceleraton ");
+		linear_acceleration.print();
+	}
+
+	Quatf getAttitude() { return Quatf(_attitude); }
+
+	Vector3f getPosition() { return _position; }
 
 	/**
 	 * Run one control loop cycle calculation

@@ -42,8 +42,7 @@
 /**
  * Toggle for manual control
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Multicopter SM Control
  */
 PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 0);
@@ -150,7 +149,7 @@ PARAM_DEFINE_FLOAT(SM_POS_TANH, 10.0f);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.8f);
+PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
 
 /**
  * Thrust max
@@ -163,7 +162,47 @@ PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.8f);
  * @increment 0.01
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 16.0f);
+PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 14.0f);
+
+/**
+ * Moment max roll/pitch
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_M_RP_MAX, 0.26f);
+
+/**
+ * Moment max yaw
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_M_Y_MAX, 1.0f);
+
+/**
+ * Hover percentage
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_HOVER, 0.5f);
+
 /**
  * Roll sliding surface dynamics
  *
@@ -261,12 +300,12 @@ PARAM_DEFINE_FLOAT(SM_ATT_TANH, 1.0f);
  * ...
  *
  * @min 0.0
- * @max 100
- * @decimal 2
- * @increment 0.001
+ * @max 1
+ * @decimal 5
+ * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.01f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.00085f);
 
 /**
  * inertia yy
@@ -274,12 +313,12 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.01f);
  * ...
  *
  * @min 0.0
- * @max 100
- * @decimal 2
- * @increment 0.001
+ * @max 1
+ * @decimal 5
+ * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.01f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.00087f);
 
 /**
  * inertia zz
@@ -287,9 +326,23 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.01f);
  * ...
  *
  * @min 0.0
- * @max 100
- * @decimal 2
- * @increment 0.001
+ * @max 1
+ * @decimal 5
+ * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.02f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.00162f);
+
+/**
+ * Battery power level scaler
+ *
+ * This compensates for voltage drop of the battery over time by attempting to
+ * normalize performance across the operating range of the battery. The copter
+ * should constantly behave as if it was fully charged with reduced max acceleration
+ * at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
+ * it will still be 0.5 at 60% battery.
+ *
+ * @boolean
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_INT32(SM_BAT_SCALE_EN, 0);
