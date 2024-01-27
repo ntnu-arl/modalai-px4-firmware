@@ -45,7 +45,6 @@ public:
 	/**
 	 * Run one control loop cycle calculation
 	 */
-	void update(float &thrust_setpoint, Quatf &quaternion_setpoint) const;
   void updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint) const;
   void updateSM(float& thrust_setpoint, Quatf& quaternion_setpoint) const;
 
@@ -60,7 +59,6 @@ private:
 		return result;
   }
 
-	Vector3f calculateAcceleration() const;
 	Vector3f calculateAccelerationPD() const;
 	Vector3f calculateAccelerationSM() const;
 
