@@ -73,6 +73,9 @@ class MulticopterSMControl : public ModuleBase<MulticopterSMControl>, public Mod
 	public px4::WorkItem
 {
 public:
+	#define NONLINEAR_PD 0
+	#define SLIDING_MODE 1
+
 	MulticopterSMControl(bool vtol = false);
 	~MulticopterSMControl() override;
 
@@ -168,7 +171,14 @@ private:
 		(ParamFloat<px4::params::SM_ATT_I_XX>)		_param_inertia_xx,
 		(ParamFloat<px4::params::SM_ATT_I_YY>)		_param_inertia_yy,
 		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz,
-		(ParamBool<px4::params::SM_BAT_SCALE_EN>) 	_param_bat_scale_en
+		(ParamBool<px4::params::SM_BAT_SCALE_EN>) 	_param_bat_scale_en,
+		(ParamFloat<px4::params::SM_PD_KP_XYZ>)		_param_pd_kp_xyz,
+		(ParamFloat<px4::params::SM_PD_KD_XYZ>)		_param_pd_kd_xyz,
+		(ParamFloat<px4::params::SM_PD_KP_RP>)		_param_pd_kp_rp,
+		(ParamFloat<px4::params::SM_PD_KP_Y>)		_param_pd_kp_y,
+		(ParamFloat<px4::params::SM_PD_KD_RP>)		_param_pd_kd_rp,
+		(ParamFloat<px4::params::SM_PD_KD_Y>)		_param_pd_kd_y,
+		(ParamInt<px4::params::SM_CONTROLLER>)	_param_controller
 	)
 };
 

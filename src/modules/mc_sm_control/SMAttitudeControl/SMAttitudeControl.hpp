@@ -3,19 +3,24 @@
 #include <matrix/matrix/math.hpp>
 #include <mathlib/math/Limits.hpp>
 
+using namespace matrix;
+
 class SMAttitudeControl
 {
 public:
 	SMAttitudeControl() = default;
 	~SMAttitudeControl() = default;
 
+	// PD
+	void setKp(const Matrix3f &K_p) { _K_p = K_p; }
+	void setKd(const Matrix3f &K_d) { _K_d = K_d; }
+	// SMC
 	void setSwitchingGain(const matrix::Matrix3f &switching_gain) { _switching_gain = switching_gain; }
-
 	void setLambda(const matrix::Matrix3f &lambda) { _lambda = lambda; }
+	void setTanhFactor(const float& tanh_factor) { _tanh_factor = tanh_factor; }
+	// STSMC
 
 	void setInertia(const matrix::Matrix3f &inertia) { _inertia = inertia; }
-
-	void setTanhFactor(const float& tanh_factor) { _tanh_factor = tanh_factor; }
 
 	/**
 	 * Set hard limit for output rate setpoints
@@ -65,7 +70,8 @@ public:
 	 * @param q estimation of the current vehicle attitude unit quaternion
 	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
 	 */
-	matrix::Vector3f update() const;
+	Vector3f updatePD() const;
+	Vector3f updateSM() const;
 
 private:
   matrix::Vector3f signum(const matrix::Vector3f& input) const {
@@ -79,19 +85,24 @@ private:
   }
 
   // controller parameters
-  matrix::Vector3f _rate_limit;
+  // PD
+  Matrix3f _K_p;
+  Matrix3f _K_d;
+  // SMC
   matrix::Matrix3f _switching_gain;
-	matrix::Matrix3f _lambda;
-	matrix::Matrix3f _inertia;
-	float _tanh_factor;
+  matrix::Matrix3f _lambda;
+  float _tanh_factor;
+  // STSMC
+  matrix::Vector3f _rate_limit;
+  matrix::Matrix3f _inertia;
 
-	// setpoints
-	matrix::Dcmf _attitude_setpoint;
-	matrix::Vector3f _angular_velocity_setpoint;
-	matrix::Vector3f _angular_acceleration_setpoint;
+  // setpoints
+  matrix::Dcmf _attitude_setpoint;
+  matrix::Vector3f _angular_velocity_setpoint;
+  matrix::Vector3f _angular_acceleration_setpoint;
 
-	// measurments
-	matrix::Dcmf _attitude;
-	matrix::Vector3f _angular_velocity;
-	matrix::Vector3f _angular_acceleration;
+  // measurments
+  matrix::Dcmf _attitude;
+  matrix::Vector3f _angular_velocity;
+  matrix::Vector3f _angular_acceleration;
 };
