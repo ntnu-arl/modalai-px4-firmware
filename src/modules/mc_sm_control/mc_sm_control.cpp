@@ -244,6 +244,7 @@ void MulticopterSMControl::Run()
     }
 
     if (_trajectory_setpoint_sub.updated()){
+
       // trajectory_setpoint_s trajectory_setpoint;
       _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
       // if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
