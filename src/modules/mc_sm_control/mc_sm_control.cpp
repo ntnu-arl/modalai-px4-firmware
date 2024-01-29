@@ -358,14 +358,16 @@ void MulticopterSMControl::Run()
             PX4_ERR("Invalid controller selected: %i", _param_controller.get());
             break;
         }
+        if (_param_verbose.get())
+        {
+          PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+        }
+        thrust_setpoint /= _param_thrust_max.get();
 
         // run attitude controller
         _attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, _trajectory_setpoint.yawspeed));
         _attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
         _attitude_control.setAttitudeSetpoint(attitude_setpoint);
-
-        // PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
-        thrust_setpoint /= _param_thrust_max.get();
       }
 
       // run attitude controller
@@ -373,18 +375,21 @@ void MulticopterSMControl::Run()
       switch (_param_controller.get())
       {
         case NONLINEAR_PD:
-					printf("nonlinear pd\n");
           torque_setpoint = _attitude_control.updatePD();
           break;
 
         case SLIDING_MODE:
-					printf("smc\n");
           torque_setpoint = _attitude_control.updateSM();
           break;
 
         default:
           PX4_ERR("Invalid controller selected: %i", _param_controller.get());
           break;
+      }
+      if (_param_verbose.get())
+      {
+        PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
+                 (double)torque_setpoint(2));
       }
       torque_setpoint(0) /= _param_moment_rp_max.get();
       torque_setpoint(1) /= _param_moment_rp_max.get();
@@ -404,8 +409,6 @@ void MulticopterSMControl::Run()
       }
 
       // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
-      // PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
-      //   (double)torque_setpoint(2));
       vehicle_thrust_setpoint.xyz[0] = 0.0f;
       vehicle_thrust_setpoint.xyz[1] = 0.0f;
       vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;

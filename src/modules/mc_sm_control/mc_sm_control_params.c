@@ -435,3 +435,11 @@ PARAM_DEFINE_FLOAT(SM_PD_KD_Y, 0.13f);
  * @group Multicopter PD Position Control
  */
 PARAM_DEFINE_INT32(SM_CONTROLLER, 0);
+
+/**
+ * Verbosity (printing commanded torque and thrust)
+ *
+ * @boolean
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_INT32(SM_VERBOSE, 0);

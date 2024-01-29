@@ -178,7 +178,8 @@ private:
 		(ParamFloat<px4::params::SM_PD_KP_Y>)		_param_pd_kp_y,
 		(ParamFloat<px4::params::SM_PD_KD_RP>)		_param_pd_kd_rp,
 		(ParamFloat<px4::params::SM_PD_KD_Y>)		_param_pd_kd_y,
-		(ParamInt<px4::params::SM_CONTROLLER>)	_param_controller
+		(ParamInt<px4::params::SM_CONTROLLER>) 		_param_controller,
+		(ParamBool<px4::params::SM_VERBOSE>)		_param_verbose
 	)
 };
 
