@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/battery_status.h>
 
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -72,6 +73,9 @@ class MulticopterSMControl : public ModuleBase<MulticopterSMControl>, public Mod
 	public px4::WorkItem
 {
 public:
+	#define NONLINEAR_PD 0
+	#define SLIDING_MODE 1
+
 	MulticopterSMControl(bool vtol = false);
 	~MulticopterSMControl() override;
 
@@ -105,7 +109,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
@@ -141,6 +145,7 @@ private:
 	hrt_abstime _last_run{ 0 };
 	// hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
 	hrt_abstime _time_offboard_enabled{ 0 };
+	float _battery_status_scale{0.0f};
 
 	// bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 
@@ -156,6 +161,8 @@ private:
 		(ParamFloat<px4::params::SM_POS_MASS>)		_param_mass,
 		(ParamFloat<px4::params::SM_POS_T_MAX>)		_param_thrust_max,
 		(ParamFloat<px4::params::SM_HOVER>)		_param_hover,
+		(ParamFloat<px4::params::SM_M_RP_MAX>)		_param_moment_rp_max,
+		(ParamFloat<px4::params::SM_M_Y_MAX>)		_param_moment_y_max,
 		(ParamFloat<px4::params::SM_ATT_LAM_X>)		_param_att_lam_x,
 		(ParamFloat<px4::params::SM_ATT_LAM_Y>)		_param_att_lam_y,
 		(ParamFloat<px4::params::SM_ATT_LAM_Z>)		_param_att_lam_z,
@@ -165,7 +172,16 @@ private:
 		(ParamFloat<px4::params::SM_ATT_TANH>)		_param_att_tanh_factor,
 		(ParamFloat<px4::params::SM_ATT_I_XX>)		_param_inertia_xx,
 		(ParamFloat<px4::params::SM_ATT_I_YY>)		_param_inertia_yy,
-		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz
+		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz,
+		(ParamBool<px4::params::SM_BAT_SCALE_EN>) 	_param_bat_scale_en,
+		(ParamFloat<px4::params::SM_PD_KP_XYZ>)		_param_pd_kp_xyz,
+		(ParamFloat<px4::params::SM_PD_KD_XYZ>)		_param_pd_kd_xyz,
+		(ParamFloat<px4::params::SM_PD_KP_RP>)		_param_pd_kp_rp,
+		(ParamFloat<px4::params::SM_PD_KP_Y>)		_param_pd_kp_y,
+		(ParamFloat<px4::params::SM_PD_KD_RP>)		_param_pd_kd_rp,
+		(ParamFloat<px4::params::SM_PD_KD_Y>)		_param_pd_kd_y,
+		(ParamInt<px4::params::SM_CONTROLLER>) 		_param_controller,
+		(ParamBool<px4::params::SM_VERBOSE>)		_param_verbose
 	)
 };
 

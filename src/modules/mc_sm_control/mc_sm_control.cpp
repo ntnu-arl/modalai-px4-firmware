@@ -83,28 +83,42 @@ bool MulticopterSMControl::init()
 void MulticopterSMControl::parameters_updated()
 {
   // Store some of the parameters in a more convenient way & precompute often-used values
+  // PD
+  const float posKp3x3[] = { _param_pd_kp_xyz.get(), 0, 0, 0, _param_pd_kp_xyz.get(), 0, 0, 0, _param_pd_kp_xyz.get() };
+  _position_control.setKp(Matrix3f(posKp3x3));
+
+  const float posKd3x3[] = { _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get() };
+  _position_control.setKd(Matrix3f(posKd3x3));
+
+  const float attKp3x3[] = { _param_pd_kp_rp.get(), 0, 0, 0, _param_pd_kp_rp.get(), 0, 0, 0, _param_pd_kp_y.get() };
+  _attitude_control.setKp(Matrix3f(attKp3x3));
+
+  const float attKd3x3[] = { _param_pd_kd_rp.get(), 0, 0, 0, _param_pd_kd_rp.get(), 0, 0, 0, _param_pd_kd_y.get() };
+  _attitude_control.setKd(Matrix3f(attKd3x3));
+
+  // SMC
   const float posLambda3x3[] = { _param_pos_lam_x.get(), 0, 0, 0, _param_pos_lam_y.get(), 0, 0, 0,
                                  _param_pos_lam_z.get() };
-  _position_control.setLambda(matrix::Matrix3f(posLambda3x3));
+  _position_control.setLambda(Matrix3f(posLambda3x3));
 
   const float posGain3x3[] = { _param_pos_gain_x.get(), 0, 0, 0, _param_pos_gain_y.get(), 0, 0, 0,
                                _param_pos_gain_z.get() };
-  _position_control.setSwitchingGain(matrix::Matrix3f(posGain3x3));
+  _position_control.setSwitchingGain(Matrix3f(posGain3x3));
 
   const float attLambda3x3[] = { _param_att_lam_x.get(), 0, 0, 0, _param_att_lam_y.get(), 0, 0, 0,
                                  _param_att_lam_z.get() };
-  _attitude_control.setLambda(matrix::Matrix3f(attLambda3x3));
+  _attitude_control.setLambda(Matrix3f(attLambda3x3));
 
   const float attGain3x3[] = { _param_att_gain_x.get(), 0, 0, 0, _param_att_gain_y.get(), 0, 0, 0,
                                _param_att_gain_z.get() };
-  _attitude_control.setSwitchingGain(matrix::Matrix3f(attGain3x3));
+  _attitude_control.setSwitchingGain(Matrix3f(attGain3x3));
   _position_control.setTanhFactor(_param_pos_tanh_factor.get());
   _attitude_control.setTanhFactor(_param_att_tanh_factor.get());
-  _position_control.setMass(_param_mass.get());
 
+  _position_control.setMass(_param_mass.get());
   const float inertia3x3[] = { _param_inertia_xx.get(), 0, 0, 0, _param_inertia_yy.get(), 0, 0, 0,
                                _param_inertia_zz.get() };
-  _attitude_control.setInertia(matrix::Matrix3f(inertia3x3));
+  _attitude_control.setInertia(Matrix3f(inertia3x3));
 }
 
 float MulticopterSMControl::throttle_curve(float throttle_stick_input)
@@ -247,6 +261,7 @@ void MulticopterSMControl::Run()
     }
 
     if (_trajectory_setpoint_sub.updated()){
+
       // trajectory_setpoint_s trajectory_setpoint;
       _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
       // if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
@@ -299,8 +314,8 @@ void MulticopterSMControl::Run()
     if (_vehicle_control_mode.flag_control_offboard_enabled &&
         (_param_manual_ctrl.get() || (_trajectory_setpoint.timestamp >= _time_offboard_enabled)))
     {
-      float thrust_setpoint;
-      Quatf attitude_setpoint;
+      float thrust_setpoint = 0.0f;
+      Quatf attitude_setpoint{};
 
       // attitude_setpoint.print();
 
@@ -345,18 +360,57 @@ void MulticopterSMControl::Run()
         _position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
         _position_control.setLinearAcceleration(Vector3f(_trajectory_setpoint.acceleration));
         _position_control.setYawSetpoint(_trajectory_setpoint.yaw);
-        _position_control.update(thrust_setpoint, attitude_setpoint);
+
+        switch (_param_controller.get())
+        {
+          case NONLINEAR_PD:
+            _position_control.updatePD(thrust_setpoint, attitude_setpoint);
+            break;
+
+          case SLIDING_MODE:
+            _position_control.updateSM(thrust_setpoint, attitude_setpoint);
+            break;
+
+          default:
+            PX4_ERR("Invalid controller selected: %i", _param_controller.get());
+            break;
+        }
+        if (_param_verbose.get())
+        {
+          PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+        }
+        thrust_setpoint /= _param_thrust_max.get();
+
         // run attitude controller
         _attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, _trajectory_setpoint.yawspeed));
         _attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
         _attitude_control.setAttitudeSetpoint(attitude_setpoint);
-
-        // PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
-        thrust_setpoint /= _param_thrust_max.get();
       }
 
       // run attitude controller
-      Vector3f torque_setpoint = _attitude_control.update();
+      Vector3f torque_setpoint;
+      switch (_param_controller.get())
+      {
+        case NONLINEAR_PD:
+          torque_setpoint = _attitude_control.updatePD();
+          break;
+
+        case SLIDING_MODE:
+          torque_setpoint = _attitude_control.updateSM();
+          break;
+
+        default:
+          PX4_ERR("Invalid controller selected: %i", _param_controller.get());
+          break;
+      }
+      if (_param_verbose.get())
+      {
+        PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
+                 (double)torque_setpoint(2));
+      }
+      torque_setpoint(0) /= _param_moment_rp_max.get();
+      torque_setpoint(1) /= _param_moment_rp_max.get();
+      torque_setpoint(2) /= _param_moment_y_max.get();
 
       // publish thrust and attitude setpoints
       vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
@@ -372,11 +426,27 @@ void MulticopterSMControl::Run()
       }
 
       // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
-      // PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
-      //   (double)torque_setpoint(2));
       vehicle_thrust_setpoint.xyz[0] = 0.0f;
       vehicle_thrust_setpoint.xyz[1] = 0.0f;
       vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
+
+			// scale setpoints by battery status if enabled
+			if (_param_bat_scale_en.get()) {
+				if (_battery_status_sub.updated()) {
+					battery_status_s battery_status;
+
+					if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+						_battery_status_scale = battery_status.scale;
+					}
+				}
+
+				if (_battery_status_scale > 0.f) {
+					for (int i = 0; i < 3; i++) {
+						vehicle_thrust_setpoint.xyz[i] = math::constrain(vehicle_thrust_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
+						vehicle_torque_setpoint.xyz[i] = math::constrain(vehicle_torque_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
+					}
+				}
+			}
 
       vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
       vehicle_attitude_setpoint.timestamp = hrt_absolute_time();

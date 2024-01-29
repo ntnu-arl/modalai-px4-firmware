@@ -42,8 +42,7 @@
 /**
  * Toggle for manual control
  *
- * @min 0
- * @max 1
+ * @boolean
  * @group Multicopter SM Control
  */
 PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 0);
@@ -164,6 +163,32 @@ PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
  * @group Multicopter SM Control
  */
 PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 14.0f);
+
+/**
+ * Moment max roll/pitch
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_M_RP_MAX, 0.26f);
+
+/**
+ * Moment max yaw
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_M_Y_MAX, 1.0f);
 
 /**
  * Hover percentage
@@ -307,3 +332,114 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.00087f);
  * @group Multicopter SM Attitude Control
  */
 PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.00162f);
+
+/**
+ * Battery power level scaler
+ *
+ * This compensates for voltage drop of the battery over time by attempting to
+ * normalize performance across the operating range of the battery. The copter
+ * should constantly behave as if it was fully charged with reduced max acceleration
+ * at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
+ * it will still be 0.5 at 60% battery.
+ *
+ * @boolean
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_INT32(SM_BAT_SCALE_EN, 0);
+
+/**
+ * XYZ Kp
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KP_XYZ, 1.6f);
+
+/**
+ * XYZ Kd
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KD_XYZ, 2.26f);
+
+/**
+ * RP Kp
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KP_RP, 2.0f);
+
+/**
+ * Y Kp
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KP_Y, 0.2f);
+
+/**
+ * RP Kd
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KD_RP, 0.28f);
+
+/**
+ * Y Kd
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_PD_KD_Y, 0.13f);
+
+/**
+ * Control Selector (0: NL-PD, 1: SMC, etc)
+ *
+ * ...
+ *
+ * @min 0
+ * @max 1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_INT32(SM_CONTROLLER, 0);
+
+/**
+ * Verbosity (printing commanded torque and thrust)
+ *
+ * @boolean
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_INT32(SM_VERBOSE, 0);
