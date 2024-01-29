@@ -354,8 +354,8 @@ PARAM_DEFINE_INT32(SM_BAT_SCALE_EN, 0);
  *
  * @min 0.0
  * @max 10000
- * @decimal 1
- * @increment 0.1
+ * @decimal 3
+ * @increment 0.001
  * @group Multicopter PD Position Control
  */
 PARAM_DEFINE_FLOAT(SM_PD_KP_XYZ, 1.6f);
@@ -367,8 +367,8 @@ PARAM_DEFINE_FLOAT(SM_PD_KP_XYZ, 1.6f);
  *
  * @min 0.0
  * @max 10000
- * @decimal 1
- * @increment 0.1
+ * @decimal 3
+ * @increment 0.001
  * @group Multicopter PD Position Control
  */
 PARAM_DEFINE_FLOAT(SM_PD_KD_XYZ, 2.26f);
@@ -380,8 +380,8 @@ PARAM_DEFINE_FLOAT(SM_PD_KD_XYZ, 2.26f);
  *
  * @min 0.0
  * @max 10000
- * @decimal 1
- * @increment 0.1
+ * @decimal 3
+ * @increment 0.001
  * @group Multicopter PD Position Control
  */
 PARAM_DEFINE_FLOAT(SM_PD_KP_RP, 2.0f);
@@ -393,8 +393,8 @@ PARAM_DEFINE_FLOAT(SM_PD_KP_RP, 2.0f);
  *
  * @min 0.0
  * @max 10000
- * @decimal 1
- * @increment 0.1
+ * @decimal 3
+ * @increment 0.001
  * @group Multicopter PD Position Control
  */
 PARAM_DEFINE_FLOAT(SM_PD_KP_Y, 0.2f);
@@ -406,8 +406,8 @@ PARAM_DEFINE_FLOAT(SM_PD_KP_Y, 0.2f);
  *
  * @min 0.0
  * @max 10000
- * @decimal 1
- * @increment 0.1
+ * @decimal 3
+ * @increment 0.001
  * @group Multicopter PD Position Control
  */
 PARAM_DEFINE_FLOAT(SM_PD_KD_RP, 0.28f);
@@ -419,8 +419,8 @@ PARAM_DEFINE_FLOAT(SM_PD_KD_RP, 0.28f);
  *
  * @min 0.0
  * @max 10000
- * @decimal 1
- * @increment 0.1
+ * @decimal 3
+ * @increment 0.001
  * @group Multicopter PD Position Control
  */
 PARAM_DEFINE_FLOAT(SM_PD_KD_Y, 0.13f);
