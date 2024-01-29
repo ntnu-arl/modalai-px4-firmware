@@ -143,15 +143,14 @@ void MulticopterSMControl::generateFailsafeTrajectory(trajectory_setpoint_s& tra
 void MulticopterSMControl::normalizeThrust(float& thrust){
   // magic numbers, do not change
 
-  // aerodynamics constant at hover: 0.276*9.80665 / 4 * 13391.25**2
-  const float c_f = 1.509341529459219e-08f;
+  // constant from IMG_1073
+  const float c_f = 4.125325755262921e-06f;
+  const float rpm = sqrtf(thrust / 4.0f / c_f);
   // 2d poly fit on rpm x pwm curve
   const float a0 = 3.921399372429562f;
   const float a1 = 0.0019863109421646465f;
   const float a2 = 1.178993064702278e-07f;
-
-  const float average_rpm = sqrtf(thrust / c_f);
-  const float pwm = a0 + a1 * average_rpm + a2 * average_rpm * average_rpm;
+  const float pwm = a0 + a1 * rpm + a2 * rpm * rpm;
 
   // scale from 0->1
   thrust = pwm / 100.0f;
@@ -379,7 +378,7 @@ void MulticopterSMControl::Run()
         {
           PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
         }
-        thrust_setpoint /= _param_thrust_max.get();
+        normalizeThrust(thrust_setpoint);
 
         // run attitude controller
         _attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, _trajectory_setpoint.yawspeed));
