@@ -297,8 +297,8 @@ void MulticopterSMControl::Run()
     if (_vehicle_control_mode.flag_control_offboard_enabled &&
         (_param_manual_ctrl.get() || (_trajectory_setpoint.timestamp >= _time_offboard_enabled)))
     {
-      float thrust_setpoint;
-      Quatf attitude_setpoint;
+      float thrust_setpoint = 0.0f;
+      Quatf attitude_setpoint{};
 
       // attitude_setpoint.print();
 
