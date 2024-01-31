@@ -190,7 +190,7 @@ private:
 		(ParamFloat<px4::params::SM_INDI_FF_POS>)	_param_indi_ff_pos,
 		(ParamInt<px4::params::SM_APPLY_FILTER>)	_param_apply_filter,
 		(ParamInt<px4::params::SM_FILT_FREQ_POS>)	_param_filt_freq_pos,
-		(ParamInt<px4::params::SM_FILT_FREQ_INDI>)	_param_filt_freq_indi,
+		(ParamInt<px4::params::SM_FILT_FREQ_NDI>)	_param_filt_freq_indi,
 		(ParamInt<px4::params::SM_CONTROLLER>)	_param_controller
 	)
 };
