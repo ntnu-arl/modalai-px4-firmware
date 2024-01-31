@@ -452,7 +452,40 @@ PARAM_DEFINE_FLOAT(SM_INDI_K_POS, 2.0f);
 PARAM_DEFINE_FLOAT(SM_INDI_FF_POS, 0.5f);
 
 /**
- * Control Selector (0: NL-PD, 1: SMC, etc)
+ * Filter selector: shall the position control command be LP filtered?
+ *
+ * ...
+ *
+ * @min 10
+ * @max 1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_INT32(SM_APPLY_FILTER, 0);
+
+/**
+ * cutoff frequency of the position controller LP filter, in Hz
+ *
+ * ...
+ *
+ * @min 10
+ * @max 100
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_INT32(SM_FILT_FREQ_POS, 20);
+
+/**
+ * cutoff frequency of the INDI controller LP filter, in Hz
+ *
+ * ...
+ *
+ * @min 0
+ * @max 100
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_INT32(SM_FILT_FREQ_INDI, 20);
+
+/**
+ * Control Selector (0: NL-PD, 1: SMC, 2: INDI, etc)
  *
  * ...
  *
