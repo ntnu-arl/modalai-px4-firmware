@@ -129,6 +129,8 @@ void MulticopterSMControl::parameters_updated()
   const float posKff3x3indi[] = { _param_indi_ff_pos.get(), 0, 0, 0, _param_indi_ff_pos.get(), 0, 0, 0, _param_indi_ff_pos.get() };
   _position_control.setKffIndi(Matrix3f(posKff3x3indi));
 
+  _position_control.setThrustCoeff(double(_param_thrust_coeff.get()));
+
 
   const int apply_filter = _param_apply_filter.get();
   _position_control.setFilterPos(apply_filter);
@@ -370,7 +372,7 @@ void MulticopterSMControl::Run()
 
         _position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
         _position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
-        _position_control.setLinearAcceleration(Vector3f(_trajectory_setpoint.acceleration));
+        _position_control.setLinearAccelerationSetpoint(Vector3f(_trajectory_setpoint.acceleration));
         _position_control.setYawSetpoint(_trajectory_setpoint.yaw);
 
         switch (_param_controller.get())

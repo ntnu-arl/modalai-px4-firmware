@@ -38,17 +38,13 @@ Vector3f SMPositionControl::calculateAccelerationINDI()
 
   const Vector3f gravity(0, 0, 9.80665);
 
-  const Vector3f acceleration_cmd = (-_K_p_indi * error_position - _K_d_indi * error_velocity - _K_ff_indi * error_acceleration + _linear_acceleration_setpoint - gravity);
-  //const Vector3f force_cmd = _mass * acceleration_cmd;
+  const Vector3f acceleration_cmd = (-_K_p_indi * error_position - _K_d_indi * error_velocity - _K_ff_indi * error_acceleration + _linear_acceleration_setpoint);
 
-  // compute filtered acceleration
-  Vector3f a_current_lp(_lp_filter_accel[0].apply(_linear_acceleration(0)),
-                        _lp_filter_accel[1].apply(_linear_acceleration(1)),
-                        _lp_filter_accel[2].apply(_linear_acceleration(2)));
   // compute nominal force
   const Vector3f e3(0, 0, 1);
-  const float thrust_current = _thrust_coeff * (powf(_rpm1, 2.f) + powf(_rpm2, 2.f) + powf(_rpm3, 2.f) + powf(_rpm4, 2.f));
+  const float thrust_current = float(_thrust_coeff * double(powf(_rpm1, 2.f) + powf(_rpm2, 2.f) + powf(_rpm3, 2.f) + powf(_rpm4, 2.f)));
   const Vector3f f_current = -thrust_current * _attitude * e3;
+  // const Vector3f f_current = -_prev_thrust * _attitude * e3;
 
   // apply low pass filter
   const Vector3f f_current_lp(_lp_filter_force[0].apply(f_current(0)),
@@ -56,7 +52,25 @@ Vector3f SMPositionControl::calculateAccelerationINDI()
                               _lp_filter_force[2].apply(f_current(2)));
 
   // compute incremental update
-  const Vector3f f_command = _mass*(acceleration_cmd - a_current_lp) + f_current_lp;
+  const Vector3f f_command = _mass * (acceleration_cmd - _linear_acceleration) + f_current_lp;
+
+  _position.print();
+  _position_setpoint.print();
+  _linear_velocity.print();
+  _linear_velocity_setpoint.print();
+  _linear_acceleration.print();
+  _linear_acceleration_setpoint.print();
+  _K_p_indi.print();
+  _K_d_indi.print();
+  _K_ff_indi.print();
+
+  printf("rpm: %f %f %f %f", double(_rpm1), double(_rpm2), double(_rpm3), double(_rpm4));
+  printf("specific thrust: %f\tf_current f_current_lp f_command: ", double(thrust_current));
+  f_current.print();
+  f_current_lp.print();
+  f_command.print();
+  _prev_thrust = f_command.norm();
+
   return f_command;
 }
 

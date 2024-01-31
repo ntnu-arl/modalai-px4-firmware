@@ -426,6 +426,19 @@ PARAM_DEFINE_FLOAT(SM_PD_KD_RP, 0.28f);
 PARAM_DEFINE_FLOAT(SM_PD_KD_Y, 0.13f);
 
 /**
+ * thrust coefficient - assuming 1e-9
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 100000.0
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter SM Control
+ */
+PARAM_DEFINE_FLOAT(SM_THRUST_COEFF, 217.925f);
+
+/**
  * Position P gain
  *
  * ...
@@ -467,7 +480,7 @@ PARAM_DEFINE_INT32(SM_APPLY_FILTER, 0);
  *
  * ...
  *
- * @min 10
+ * @min 1
  * @max 100
  * @group Multicopter PD Position Control
  */
@@ -478,7 +491,7 @@ PARAM_DEFINE_INT32(SM_FILT_FREQ_POS, 20);
  *
  * ...
  *
- * @min 10
+ * @min 1
  * @max 100
  * @group Multicopter PD Position Control
  */

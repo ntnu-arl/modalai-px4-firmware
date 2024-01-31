@@ -26,7 +26,7 @@ public:
 	void setKpIndi(const Matrix3f &K_p) { _K_p_indi = K_p; }
 	void setKdIndi(const Matrix3f &K_d) { _K_d_indi = K_d; }
   void setKffIndi(const Matrix3f &K_ff) { _K_ff_indi = K_ff; }
-	void setThrustCoeff(const float& thrust_coeff) { _thrust_coeff = thrust_coeff; }
+	void setThrustCoeff(const double& thrust_coeff) { _thrust_coeff = thrust_coeff * 1e-9; }
   void setCutoffIndi(const int& frequency) {
     _cutoff_frequency_indi = frequency;
     _lp_filter_accel[0].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
@@ -69,9 +69,18 @@ public:
 
 	void setLinearVelocity(const Vector3f &linear_velocity) {_linear_velocity = linear_velocity;	}
 
-	void setLinearAcceleration(const Vector3f &linear_acceleration) {_linear_acceleration = linear_acceleration;	}
+	void setLinearAcceleration(const Vector3f &linear_acceleration) {
+    // // compute filtered acceleration
+    // const Vector3f a_current_lp(_lp_filter_accel[0].apply(_linear_acceleration(0)),
+    //                             _lp_filter_accel[1].apply(_linear_acceleration(1)),
+    //                             _lp_filter_accel[2].apply(_linear_acceleration(2)));
+    for (auto i=0; i<3; i++){
+      _linear_acceleration(i) = _lp_filter_accel[i].apply(linear_acceleration(i));
+    }
+    // _linear_acceleration = linear_acceleration;
+  }
 
-	Quatf getAttitude() { return Quatf(_attitude); }
+  Quatf getAttitude() { return Quatf(_attitude); }
 
 	Vector3f getPosition() { return _position; }
 
@@ -122,10 +131,11 @@ private:
   float _rpm2;
   float _rpm3;
   float _rpm4;
-  float _thrust_coeff;
-  const float _sample_frequency = 800.f;
-  float _cutoff_frequency_position = 50.f;
-  float _cutoff_frequency_indi = 50.f;
+  double _thrust_coeff;
+  float _prev_thrust{0.0};
+  const float _sample_frequency = 250.f; //800.f;
+  float _cutoff_frequency_position = 20.f;
+  float _cutoff_frequency_indi = 20.f;
   math::LowPassFilter2p<float> _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};	// linear acceleration
   math::LowPassFilter2p<float> _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};
 
