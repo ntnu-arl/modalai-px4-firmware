@@ -1,5 +1,4 @@
 #include <SMPositionControl.hpp>
-
 #include <mathlib/math/Functions.hpp>
 
 Vector3f SMPositionControl::calculateAccelerationPD() const
@@ -29,6 +28,49 @@ Vector3f SMPositionControl::calculateAccelerationSM() const
       _mass * (_linear_acceleration_setpoint - gravity - _lambda * error_velocity - _switching_gain * signum(sigma));
 
   return acceleration;
+}
+
+Vector3f SMPositionControl::calculateAccelerationINDI() const
+{
+  const Vector3f error_position = _position - _position_setpoint;
+  const Vector3f error_velocity = _linear_velocity - _linear_velocity_setpoint;
+  const Vector3f error_acceleration = _linear_acceleration - _linear_acceleration_setpoint;
+
+  const Vector3f gravity(0, 0, 9.80665);
+
+  const Vector3f acceleration_cmd = (-_K_p_indi * error_position - _K_d_indi * error_velocity - _K_ff_indi * error_acceleration + _linear_acceleration_setpoint - gravity);
+  const Vector3f force_cmd = _mass * acceleration_cmd;
+
+  // compute filtered acceleration
+  const Vector3f a_current_lp(_lp_filter_accel[0].apply(_linear_acceleration(0)),
+                              _lp_filter_accel[1].apply(_linear_acceleration(1)),
+                              _lp_filter_accel[2].apply(_linear_acceleration(2)));
+
+  // compute nominal force
+  const Vector3f e3(0, 0, 1);
+  const float thrust_current = _thrust_coeff * (powf(_rpm1, 2.f) + powf(_rpm2, 2.f) + powf(_rpm3, 2.f) + powf(_rpm4, 2.f));
+  const Vector3f f_current = -thrust_current * _attitude * e3;
+
+  // apply low pass filter
+  const Vector3f f_current_lp(_lp_filter_force1[0].apply(f_current(0)),
+                              _lp_filter_force1[1].apply(f_current(1)),
+                              _lp_filter_force1[2].apply(f_current(2)));
+
+  // compute incremental update
+  const Vector3f f_command = _mass*(acceleration_cmd - a_current_lp) + f_current_lp;
+
+  // OPTIONAL:
+  // ==============================================================================================================
+  // apply low pass filter to the control signal.
+  // This introduces some unwanted time delay but it attenuates high frequency noise fed to the attitude controller
+  const Vector3f f_command_lp(_lp_filter_force2[0].apply(f_command(0)),
+                              _lp_filter_force2[1].apply(f_command(1)),
+                              _lp_filter_force2[2].apply(f_command(2)));
+
+  // ==============================================================================================================
+
+
+  return f_command_lp;
 }
 
 float SMPositionControl::calculateThrust(const Vector3f& acceleration) const
@@ -72,6 +114,16 @@ void SMPositionControl::updatePD(float& thrust_setpoint, Quatf& quaternion_setpo
 void SMPositionControl::updateSM(float& thrust_setpoint, Quatf& quaternion_setpoint) const
 {
   const Vector3f acceleration = calculateAccelerationSM();
+
+  thrust_setpoint = calculateThrust(acceleration);
+  const Dcmf attitude_setpoint = calculateAttitude(acceleration);
+
+  quaternion_setpoint = Quatf(attitude_setpoint);
+}
+
+void SMPositionControl::updateINDI(float& thrust_setpoint, Quatf& quaternion_setpoint) const
+{
+  const Vector3f acceleration = calculateAccelerationINDI();
 
   thrust_setpoint = calculateThrust(acceleration);
   const Dcmf attitude_setpoint = calculateAttitude(acceleration);
