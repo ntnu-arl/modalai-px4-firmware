@@ -129,6 +129,8 @@ void MulticopterSMControl::parameters_updated()
   const float posKff3x3indi[] = { _param_indi_ff_pos.get(), 0, 0, 0, _param_indi_ff_pos.get(), 0, 0, 0, _param_indi_ff_pos.get() };
   _position_control.setKffIndi(Matrix3f(posKff3x3indi));
 
+  _position_control.setThrustCoeff(double(_param_thrust_coeff.get()) * 1e-9);
+
 
   const int apply_filter = _param_apply_filter.get();
   _position_control.setFilterPos(apply_filter);
@@ -417,7 +419,6 @@ void MulticopterSMControl::Run()
           break;
 
         case INDI:
-					printf("indi\n");
           torque_setpoint = _attitude_control.updateSM();
           break;
 

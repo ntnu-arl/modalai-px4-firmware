@@ -26,7 +26,7 @@ public:
 	void setKpIndi(const Matrix3f &K_p) { _K_p_indi = K_p; }
 	void setKdIndi(const Matrix3f &K_d) { _K_d_indi = K_d; }
   void setKffIndi(const Matrix3f &K_ff) { _K_ff_indi = K_ff; }
-	void setThrustCoeff(const float& thrust_coeff) { _thrust_coeff = thrust_coeff; }
+	void setThrustCoeff(const double& thrust_coeff) { _thrust_coeff = thrust_coeff; }
   void setCutoffIndi(const int& frequency) {
     _cutoff_frequency_indi = frequency;
     _lp_filter_accel[0].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
@@ -122,7 +122,7 @@ private:
   float _rpm2;
   float _rpm3;
   float _rpm4;
-  float _thrust_coeff;
+  double _thrust_coeff;
   const float _sample_frequency = 800.f;
   float _cutoff_frequency_position = 50.f;
   float _cutoff_frequency_indi = 50.f;

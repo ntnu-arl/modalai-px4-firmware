@@ -47,7 +47,7 @@ Vector3f SMPositionControl::calculateAccelerationINDI()
                         _lp_filter_accel[2].apply(_linear_acceleration(2)));
   // compute nominal force
   const Vector3f e3(0, 0, 1);
-  const float thrust_current = _thrust_coeff * (powf(_rpm1, 2.f) + powf(_rpm2, 2.f) + powf(_rpm3, 2.f) + powf(_rpm4, 2.f));
+  const float thrust_current = float(_thrust_coeff * double(powf(_rpm1, 2.f) + powf(_rpm2, 2.f) + powf(_rpm3, 2.f) + powf(_rpm4, 2.f)));
   const Vector3f f_current = -thrust_current * _attitude * e3;
 
   // apply low pass filter

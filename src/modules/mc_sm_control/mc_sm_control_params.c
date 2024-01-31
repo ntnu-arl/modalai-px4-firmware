@@ -452,6 +452,19 @@ PARAM_DEFINE_FLOAT(SM_INDI_K_POS, 2.0f);
 PARAM_DEFINE_FLOAT(SM_INDI_FF_POS, 0.5f);
 
 /**
+ * thrust coefficient (assuming e-9)
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_THRUST_COEFF, 3.825f);
+
+/**
  * Filter selector: shall the position control command be LP filtered?
  *
  * ...

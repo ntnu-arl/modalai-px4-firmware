@@ -191,7 +191,8 @@ private:
 		(ParamInt<px4::params::SM_APPLY_FILTER>)	_param_apply_filter,
 		(ParamInt<px4::params::SM_FILT_FREQ_POS>)	_param_filt_freq_pos,
 		(ParamInt<px4::params::SM_FILT_FREQ_NDI>)	_param_filt_freq_indi,
-		(ParamInt<px4::params::SM_CONTROLLER>)	_param_controller
+		(ParamInt<px4::params::SM_CONTROLLER>)	_param_controller,
+		(ParamFloat<px4::params::SM_THRUST_COEFF>)	_param_thrust_coeff,
 		(ParamBool<px4::params::SM_VERBOSE>)		_param_verbose
 	)
 };
