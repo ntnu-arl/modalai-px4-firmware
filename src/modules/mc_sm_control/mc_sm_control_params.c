@@ -456,7 +456,7 @@ PARAM_DEFINE_FLOAT(SM_INDI_FF_POS, 0.5f);
  *
  * ...
  *
- * @min 10
+ * @min 0
  * @max 1
  * @group Multicopter PD Position Control
  */
@@ -478,11 +478,11 @@ PARAM_DEFINE_INT32(SM_FILT_FREQ_POS, 20);
  *
  * ...
  *
- * @min 0
+ * @min 10
  * @max 100
  * @group Multicopter PD Position Control
  */
-PARAM_DEFINE_INT32(SM_FILT_FREQ_INDI, 20);
+PARAM_DEFINE_INT32(SM_FILT_FREQ_NDI, 20);
 
 /**
  * Control Selector (0: NL-PD, 1: SMC, 2: INDI, etc)

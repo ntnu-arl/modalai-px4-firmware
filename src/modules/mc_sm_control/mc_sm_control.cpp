@@ -129,8 +129,6 @@ void MulticopterSMControl::parameters_updated()
   const float posKff3x3indi[] = { _param_indi_ff_pos.get(), 0, 0, 0, _param_indi_ff_pos.get(), 0, 0, 0, _param_indi_ff_pos.get() };
   _position_control.setKffIndi(Matrix3f(posKff3x3indi));
 
-  const float posKd3x3[] = { _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get() };
-  _position_control.setKd(Matrix3f(posKd3x3));
 
   const int apply_filter = _param_apply_filter.get();
   _position_control.setFilterPos(apply_filter);
@@ -209,11 +207,11 @@ void MulticopterSMControl::Run()
     //update motor rpms
     esc_status_s esc_status;
     if (_esc_status_sub.update(&esc_status)) {
-      _rpm1 = _esc_status.esc(0).esc_rpm;
-      _rpm2 = _esc_status.esc(1).esc_rpm;
-      _rpm3 = _esc_status.esc(2).esc_rpm;
-      _rpm4 = _esc_status.esc(3).esc_rpm;
-      _position_control.setRPMVals(_rpm1, rpm2, _rpm3, _rpm4);
+      _rpm1 = esc_status.esc[0].esc_rpm;
+      _rpm2 = esc_status.esc[1].esc_rpm;
+      _rpm3 = esc_status.esc[2].esc_rpm;
+      _rpm4 = esc_status.esc[3].esc_rpm;
+      _position_control.setRPMVals(_rpm1, _rpm2, _rpm3, _rpm4);
     }
 
     // update position
@@ -388,6 +386,7 @@ void MulticopterSMControl::Run()
 
           case INDI:
             _position_control.updateINDI(thrust_setpoint, attitude_setpoint);
+            break;
 
           default:
             PX4_ERR("Invalid controller selected: %i", _param_controller.get());

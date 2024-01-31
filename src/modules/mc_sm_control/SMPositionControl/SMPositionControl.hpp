@@ -25,15 +25,17 @@ public:
 	// INDI
 	void setKpIndi(const Matrix3f &K_p) { _K_p_indi = K_p; }
 	void setKdIndi(const Matrix3f &K_d) { _K_d_indi = K_d; }
-  void setKdIndi(const Matrix3f &K_ff) { _K_ff_indi = K_ff; }
+  void setKffIndi(const Matrix3f &K_ff) { _K_ff_indi = K_ff; }
 	void setThrustCoeff(const float& thrust_coeff) { _thrust_coeff = thrust_coeff; }
   void setCutoffIndi(const int& frequency) {
     _cutoff_frequency_indi = frequency;
-    _lp_filter_accel.set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
-    _lp_filter_force.set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
+    _lp_filter_accel[0].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
+    _lp_filter_accel[1].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
+    _lp_filter_accel[2].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
+    _lp_filter_force[0].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
+    _lp_filter_force[1].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
+    _lp_filter_force[2].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
   }
-  void setCutoffPos(const int& frequency) {
-  void setCutoffindi(const int& frequency) {_lp_filter_accel.set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi)}
 	void setRPMVals (const int& rpm1, const int& rpm2, const int& rpm3, const int& rpm4) {
 		_rpm1 = rpm1;
 		_rpm2 = rpm2;
@@ -42,11 +44,14 @@ public:
 	}
 
 	// general
-  void setFilterPos(const int& apply_filter) {_filter_position = apply_filter}
+  void setFilterPos(const int& apply_filter) {_filter_position = apply_filter;}
   void setCutoffPos(const int& frequency) {
     _cutoff_frequency_position = frequency;
-    _lp_filter_position.set_cutoff_frequency(_sample_frequency, _cutoff_frequency_position);
+    _lp_filter_position[0].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_position);
+    _lp_filter_position[1].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_position);
+    _lp_filter_position[2].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_position);
   }
+
 
 	void setMass(const float &mass) { _mass = mass; }
 
@@ -70,12 +75,12 @@ public:
 
 	Vector3f getPosition() { return _position; }
 
-  /**
-   * Run one control loop cycle calculation
-   */
-  void updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint) const;
-  void updateSM(float& thrust_setpoint, Quatf& quaternion_setpoint) const;
-  void updateINDI(float& thrust_setpoint, Quatf& quaternion_setpoint) const;
+	/**
+	 * Run one control loop cycle calculation
+	 */
+  void updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint);
+  void updateSM(float& thrust_setpoint, Quatf& quaternion_setpoint);
+  void updateINDI(float& thrust_setpoint, Quatf& quaternion_setpoint);
 
 private:
   Vector3f signum(const Vector3f& input) const {
@@ -90,7 +95,7 @@ private:
 
 	Vector3f calculateAccelerationPD() const;
 	Vector3f calculateAccelerationSM() const;
-	Vector3f calculateAccelerationINDI() const;
+	Vector3f calculateAccelerationINDI();
 
   float calculateThrust(const Vector3f& acceleration) const;
 
@@ -119,8 +124,8 @@ private:
   float _rpm4;
   float _thrust_coeff;
   const float _sample_frequency = 800.f;
-  const float _cutoff_frequency_position = 50.f;
-  const float _cutoff_frequency_indi = 50.f;
+  float _cutoff_frequency_position = 50.f;
+  float _cutoff_frequency_indi = 50.f;
   math::LowPassFilter2p<float> _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};	// linear acceleration
   math::LowPassFilter2p<float> _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};
 
