@@ -52,25 +52,15 @@ Vector3f SMPositionControl::calculateAccelerationINDI() const
   const Vector3f f_current = -thrust_current * _attitude * e3;
 
   // apply low pass filter
-  const Vector3f f_current_lp(_lp_filter_force1[0].apply(f_current(0)),
-                              _lp_filter_force1[1].apply(f_current(1)),
-                              _lp_filter_force1[2].apply(f_current(2)));
+  const Vector3f f_current_lp(_lp_filter_force[0].apply(f_current(0)),
+                              _lp_filter_force[1].apply(f_current(1)),
+                              _lp_filter_force[2].apply(f_current(2)));
 
   // compute incremental update
   const Vector3f f_command = _mass*(acceleration_cmd - a_current_lp) + f_current_lp;
 
-  // OPTIONAL:
-  // ==============================================================================================================
-  // apply low pass filter to the control signal.
-  // This introduces some unwanted time delay but it attenuates high frequency noise fed to the attitude controller
-  const Vector3f f_command_lp(_lp_filter_force2[0].apply(f_command(0)),
-                              _lp_filter_force2[1].apply(f_command(1)),
-                              _lp_filter_force2[2].apply(f_command(2)));
 
-  // ==============================================================================================================
-
-
-  return f_command_lp;
+  return f_command;
 }
 
 float SMPositionControl::calculateThrust(const Vector3f& acceleration) const
@@ -101,12 +91,26 @@ Dcmf SMPositionControl::calculateAttitude(const Vector3f& acceleration) const
   return Dcmf(result);
 }
 
+
 void SMPositionControl::updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint) const
 {
   const Vector3f acceleration = calculateAccelerationPD();
 
-  thrust_setpoint = calculateThrust(acceleration);
-  const Dcmf attitude_setpoint = calculateAttitude(acceleration);
+  // ==============================================================================================================
+  // apply low pass filter to the control signal.
+  // This introduces some unwanted time delay but it attenuates high frequency noise fed to the attitude controller
+  if (_filter_position) {
+    const Vector3f acceleration_lp(_lp_filter_position[0].apply(f_command(0)),
+                              _lp_filter_position[1].apply(f_command(1)),
+                              _lp_filter_position[2].apply(f_command(2)));
+  }
+  else {
+    const Vector3f acceleration_lp = acceleration
+  }
+  // ==============================================================================================================
+
+  thrust_setpoint = calculateThrust(acceleration_lp);
+  const Dcmf attitude_setpoint = calculateAttitude(acceleration_lp);
 
   quaternion_setpoint = Quatf(attitude_setpoint);
 }

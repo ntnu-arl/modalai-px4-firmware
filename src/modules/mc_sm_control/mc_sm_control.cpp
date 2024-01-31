@@ -131,6 +131,16 @@ void MulticopterSMControl::parameters_updated()
 
   const float posKd3x3[] = { _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get() };
   _position_control.setKd(Matrix3f(posKd3x3));
+
+  const int apply_filter = _param_apply_filter.get();
+  _position_control.setFilterPos(apply_filter);
+
+  const int filt_freq_pos = _param_filt_freq_pos.get();
+  _position_control.setCutoffPos(filt_freq_pos);
+
+  const int filt_freq_indi = _param_filt_freq_indi.get();
+  _position_control.setCutoffIndi(filt_freq_indi);
+
 }
 
 float MulticopterSMControl::throttle_curve(float throttle_stick_input)

@@ -23,10 +23,17 @@ public:
 	// STSMC
 
 	// INDI
-	void setKpindi(const Matrix3f &K_p) { _K_p_indi = K_p; }
-	void setKdindi(const Matrix3f &K_d) { _K_d_indi = K_d; }
-  void setKdindi(const Matrix3f &K_ff) { _K_ff_indi = K_ff; }
+	void setKpIndi(const Matrix3f &K_p) { _K_p_indi = K_p; }
+	void setKdIndi(const Matrix3f &K_d) { _K_d_indi = K_d; }
+  void setKdIndi(const Matrix3f &K_ff) { _K_ff_indi = K_ff; }
 	void setThrustCoeff(const float& thrust_coeff) { _thrust_coeff = thrust_coeff; }
+  void setCutoffIndi(const int& frequency) {
+    _cutoff_frequency_indi = frequency;
+    _lp_filter_accel.set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
+    _lp_filter_force.set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi);
+  }
+  void setCutoffPos(const int& frequency) {
+  void setCutoffindi(const int& frequency) {_lp_filter_accel.set_cutoff_frequency(_sample_frequency, _cutoff_frequency_indi)}
 	void setRPMVals (const int& rpm1, const int& rpm2, const int& rpm3, const int& rpm4) {
 		_rpm1 = rpm1;
 		_rpm2 = rpm2;
@@ -35,6 +42,11 @@ public:
 	}
 
 	// general
+  void setFilterPos(const int& apply_filter) {_filter_position = apply_filter}
+  void setCutoffPos(const int& frequency) {
+    _cutoff_frequency_position = frequency;
+    _lp_filter_position.set_cutoff_frequency(_sample_frequency, _cutoff_frequency_position);
+  }
 
 	void setMass(const float &mass) { _mass = mass; }
 
@@ -86,8 +98,7 @@ private:
 
   // controller parameters
   float _mass;
-  const float _sample_frequency = 800.f;
-  //const float _cutoff_frequency = 20.f;
+
   //math::LowPassFilter2p _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};
   // PD
   Matrix3f _K_p;
@@ -107,11 +118,16 @@ private:
   float _rpm3;
   float _rpm4;
   float _thrust_coeff;
+  const float _sample_frequency = 800.f;
+  const float _cutoff_frequency_position = 50.f;
   const float _cutoff_frequency_indi = 50.f;
-
   math::LowPassFilter2p<float> _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};	// linear acceleration
-  math::LowPassFilter2p<float> _lp_filter_force1[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};
-  math::LowPassFilter2p<float> _lp_filter_force2[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};	// force command
+  math::LowPassFilter2p<float> _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}, {_sample_frequency, _cutoff_frequency_indi}};
+
+
+  // general
+  int _filter_position;
+  math::LowPassFilter2p<float> _lp_filter_position[3] {{_sample_frequency, _cutoff_frequency_position}, {_sample_frequency, _cutoff_frequency_position}, {_sample_frequency, _cutoff_frequency_position}};	// force command
 
 
   // setpoints
