@@ -119,6 +119,18 @@ void MulticopterSMControl::parameters_updated()
   const float inertia3x3[] = { _param_inertia_xx.get(), 0, 0, 0, _param_inertia_yy.get(), 0, 0, 0,
                                _param_inertia_zz.get() };
   _attitude_control.setInertia(Matrix3f(inertia3x3));
+
+  const float posKp3x3indi[] = { _param_indi_k_pos.get(), 0, 0, 0, _param_indi_k_pos.get(), 0, 0, 0, _param_indi_k_pos.get() };
+  _position_control.setKpIndi(Matrix3f(posKp3x3indi));
+
+  const float posKd3x3indi[] = { 2.f*sqrtf(_param_indi_k_pos.get()), 0, 0, 0, 2.f*sqrtf(_param_indi_k_pos.get()), 0, 0, 0, 2.f*sqrtf(_param_indi_k_pos.get()) };
+  _position_control.setKdIndi(Matrix3f(posKd3x3indi));
+
+  const float posKff3x3indi[] = { _param_indi_ff_pos.get(), 0, 0, 0, _param_indi_ff_pos.get(), 0, 0, 0, _param_indi_ff_pos.get() };
+  _position_control.setKffIndi(Matrix3f(posKff3x3indi));
+
+  const float posKd3x3[] = { _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get() };
+  _position_control.setKd(Matrix3f(posKd3x3));
 }
 
 float MulticopterSMControl::throttle_curve(float throttle_stick_input)
@@ -182,6 +194,16 @@ void MulticopterSMControl::Run()
         _position_control.setAttitude(_attitude);
         _attitude_control.setAttitude(_attitude);
       }
+    }
+
+    //update motor rpms
+    esc_status_s esc_status;
+    if (_esc_status_sub.update(&esc_status)) {
+      _rpm1 = _esc_status.esc(0).esc_rpm;
+      _rpm2 = _esc_status.esc(1).esc_rpm;
+      _rpm3 = _esc_status.esc(2).esc_rpm;
+      _rpm4 = _esc_status.esc(3).esc_rpm;
+      _position_control.setRPMVals(_rpm1, rpm2, _rpm3, _rpm4);
     }
 
     // update position
@@ -353,6 +375,9 @@ void MulticopterSMControl::Run()
             _position_control.updateSM(thrust_setpoint, attitude_setpoint);
             break;
 
+          case INDI:
+            _position_control.updateINDI(thrust_setpoint, attitude_setpoint);
+
           default:
             PX4_ERR("Invalid controller selected: %i", _param_controller.get());
             break;
@@ -378,6 +403,11 @@ void MulticopterSMControl::Run()
 
         case SLIDING_MODE:
 					printf("smc\n");
+          torque_setpoint = _attitude_control.updateSM();
+          break;
+
+        case INDI:
+					printf("indi\n");
           torque_setpoint = _attitude_control.updateSM();
           break;
 

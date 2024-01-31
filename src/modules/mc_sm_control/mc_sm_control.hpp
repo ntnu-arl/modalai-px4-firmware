@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/esc_status.h>
 
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -75,6 +76,7 @@ class MulticopterSMControl : public ModuleBase<MulticopterSMControl>, public Mod
 public:
 	#define NONLINEAR_PD 0
 	#define SLIDING_MODE 1
+	#define INDI 2
 
 	MulticopterSMControl(bool vtol = false);
 	~MulticopterSMControl() override;
@@ -116,6 +118,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 
 	//uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
@@ -139,6 +142,11 @@ private:
 	float _manual_roll{ 0.f };
 	float _manual_pitch{ 0.f };
 	float _manual_yaw{ 0.f };
+
+	int _rpm1{0};
+	int _rpm2{0};
+	int _rpm3{0};
+	int _rpm4{0};
 
 	hrt_abstime _last_run{ 0 };
 	// hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
@@ -178,6 +186,8 @@ private:
 		(ParamFloat<px4::params::SM_PD_KP_Y>)		_param_pd_kp_y,
 		(ParamFloat<px4::params::SM_PD_KD_RP>)		_param_pd_kd_rp,
 		(ParamFloat<px4::params::SM_PD_KD_Y>)		_param_pd_kd_y,
+		(ParamFloat<px4::params::SM_INDI_K_POS>)	_param_indi_k_pos,
+		(ParamFloat<px4::params::SM_INDI_FF_POS>)	_param_indi_ff_pos,
 		(ParamInt<px4::params::SM_CONTROLLER>)	_param_controller
 	)
 };

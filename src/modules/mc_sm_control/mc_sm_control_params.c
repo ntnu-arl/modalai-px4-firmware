@@ -426,12 +426,38 @@ PARAM_DEFINE_FLOAT(SM_PD_KD_RP, 0.28f);
 PARAM_DEFINE_FLOAT(SM_PD_KD_Y, 0.13f);
 
 /**
+ * Position P gain
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_INDI_K_POS, 2.0f);
+
+/**
+ * Position FF gain
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter PD Position Control
+ */
+PARAM_DEFINE_FLOAT(SM_INDI_FF_POS, 0.5f);
+
+/**
  * Control Selector (0: NL-PD, 1: SMC, etc)
  *
  * ...
  *
  * @min 0
- * @max 1
+ * @max 2
  * @group Multicopter PD Position Control
  */
 PARAM_DEFINE_INT32(SM_CONTROLLER, 0);
