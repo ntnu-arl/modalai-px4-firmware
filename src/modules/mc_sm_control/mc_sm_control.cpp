@@ -209,11 +209,8 @@ void MulticopterSMControl::Run()
     //update motor rpms
     esc_status_s esc_status;
     if (_esc_status_sub.update(&esc_status)) {
-      _rpm1 = esc_status.esc[0].esc_rpm;
-      _rpm2 = esc_status.esc[1].esc_rpm;
-      _rpm3 = esc_status.esc[2].esc_rpm;
-      _rpm4 = esc_status.esc[3].esc_rpm;
-      _position_control.setRPMVals(_rpm1, _rpm2, _rpm3, _rpm4);
+      _position_control.setRPMVals(esc_status.esc[0].esc_rpm, esc_status.esc[1].esc_rpm, esc_status.esc[2].esc_rpm,
+                                   esc_status.esc[3].esc_rpm);
     }
 
     // update position
@@ -227,8 +224,15 @@ void MulticopterSMControl::Run()
           Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z));
       _position_control.setLinearVelocity(
           Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
-      _position_control.setLinearAcceleration(
-          Vector3f(vehicle_local_position.ax, vehicle_local_position.ay, vehicle_local_position.az));
+      // _position_control.setLinearAcceleration(
+      //     Vector3f(vehicle_local_position.ax, vehicle_local_position.ay, vehicle_local_position.az));
+    }
+
+    vehicle_acceleration_s vehicle_acceleration;
+    if (_vehicle_acceleration_sub.update(&vehicle_acceleration)){
+      const Vector3f body_acceleration (vehicle_acceleration.xyz);
+      const Vector3f gravity(0, 0, 9.80665);
+      _position_control.setLinearAcceleration(_attitude.rotateVector(body_acceleration) + gravity);
     }
 
     /* check for updates in other topics */
@@ -419,7 +423,7 @@ void MulticopterSMControl::Run()
 
         case INDI:
 					printf("indi\n");
-          torque_setpoint = _attitude_control.updateSM();
+          torque_setpoint = _attitude_control.updatePD();
           break;
 
         default:

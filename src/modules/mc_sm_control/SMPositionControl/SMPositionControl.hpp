@@ -41,7 +41,17 @@ public:
 		_rpm2 = rpm2;
 		_rpm3 = rpm3;
 		_rpm4 = rpm4;
-	}
+
+    // printf("rpm: %i %i %i %i\n", rpm1, rpm2, rpm3, rpm4);
+    _thrust_current =
+        float(_thrust_coeff * double(powf(_rpm1, 2.f) + powf(_rpm2, 2.f) + powf(_rpm3, 2.f) + powf(_rpm4, 2.f)));
+
+    const Vector3f e3(0, 0, 1);
+    _f_current = _thrust_current * _attitude * e3;
+    for (auto i=0; i<3; i++){
+      _f_current_lp(i) = _lp_filter_force[i].apply(_f_current(i));
+    }
+  }
 
 	// general
   void setFilterPos(const int& apply_filter) {_filter_position = apply_filter;}
@@ -70,14 +80,10 @@ public:
 	void setLinearVelocity(const Vector3f &linear_velocity) {_linear_velocity = linear_velocity;	}
 
 	void setLinearAcceleration(const Vector3f &linear_acceleration) {
-    // // compute filtered acceleration
-    // const Vector3f a_current_lp(_lp_filter_accel[0].apply(_linear_acceleration(0)),
-    //                             _lp_filter_accel[1].apply(_linear_acceleration(1)),
-    //                             _lp_filter_accel[2].apply(_linear_acceleration(2)));
+    // compute filtered acceleration
     for (auto i=0; i<3; i++){
       _linear_acceleration(i) = _lp_filter_accel[i].apply(linear_acceleration(i));
     }
-    // _linear_acceleration = linear_acceleration;
   }
 
   Quatf getAttitude() { return Quatf(_attitude); }
@@ -132,7 +138,10 @@ private:
   float _rpm3;
   float _rpm4;
   double _thrust_coeff;
-  float _prev_thrust{0.0};
+  float _thrust_current;
+  float _thrust_current_lp;
+  Vector3f _f_current;
+  Vector3f _f_current_lp;
   const float _sample_frequency = 250.f; //800.f;
   float _cutoff_frequency_position = 20.f;
   float _cutoff_frequency_indi = 20.f;

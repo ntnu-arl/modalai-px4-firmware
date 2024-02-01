@@ -436,7 +436,7 @@ PARAM_DEFINE_FLOAT(SM_PD_KD_Y, 0.13f);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_THRUST_COEFF, 217.925f);
+PARAM_DEFINE_FLOAT(SM_THRUST_COEFF, 223.272);
 
 /**
  * Position P gain

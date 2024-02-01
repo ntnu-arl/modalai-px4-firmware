@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
@@ -116,6 +117,7 @@ private:
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
@@ -142,11 +144,6 @@ private:
 	float _manual_roll{ 0.f };
 	float _manual_pitch{ 0.f };
 	float _manual_yaw{ 0.f };
-
-	int _rpm1{0};
-	int _rpm2{0};
-	int _rpm3{0};
-	int _rpm4{0};
 
 	hrt_abstime _last_run{ 0 };
 	// hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
