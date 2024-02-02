@@ -47,7 +47,7 @@ public:
         float(_thrust_coeff * double(powf(_rpm1, 2.f) + powf(_rpm2, 2.f) + powf(_rpm3, 2.f) + powf(_rpm4, 2.f)));
 
     const Vector3f e3(0, 0, 1);
-    _f_current = _thrust_current * _attitude * e3;
+    _f_current = -_thrust_current * _attitude * e3;
     for (auto i=0; i<3; i++){
       _f_current_lp(i) = _lp_filter_force[i].apply(_f_current(i));
     }
