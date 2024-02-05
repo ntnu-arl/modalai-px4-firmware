@@ -457,7 +457,7 @@ PARAM_DEFINE_FLOAT(SM_INDI_FF_POS, 0.5f);
  * ...
  *
  * @min 0.0
- * @max 1.0
+ * @max 10.0
  * @decimal 3
  * @increment 0.001
  * @group Multicopter PD Position Control
