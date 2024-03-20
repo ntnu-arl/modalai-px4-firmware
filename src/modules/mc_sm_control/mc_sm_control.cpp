@@ -331,6 +331,7 @@ void MulticopterSMControl::Run()
     {
       float thrust_setpoint = 0.0f;
       Quatf attitude_setpoint{};
+      float yawspeed_ref = 0.0f;
 
       // attitude_setpoint.print();
 
@@ -342,35 +343,20 @@ void MulticopterSMControl::Run()
         // get an attitude setpoint from the current manual inputs
         float roll_ref = 1.f * _manual_roll * M_PI_4_F;
         float pitch_ref = 1.f * _manual_pitch * M_PI_4_F;
-        float yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
+        yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
         float yaw_ref = Eulerf(_attitude).psi();
 
-        Quatf q_sp(Eulerf(roll_ref, pitch_ref, yaw_ref));
-
-        vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
-        const Eulerf euler_sp(q_sp);
-        vehicle_attitude_setpoint.roll_body = euler_sp(0);
-        vehicle_attitude_setpoint.pitch_body = euler_sp(1);
-        vehicle_attitude_setpoint.yaw_body = euler_sp(2);
-        q_sp.copyTo(vehicle_attitude_setpoint.q_d);
-        vehicle_attitude_setpoint.yaw_sp_move_rate = yawspeed_ref;
-
-        vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
-        _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
+        attitude_setpoint = Quatf(Eulerf(roll_ref, pitch_ref, yaw_ref));
 
         // run attitude controller
         _attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, yawspeed_ref));
         _attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
-        _attitude_control.setAttitudeSetpoint(q_sp);
+        _attitude_control.setAttitudeSetpoint(attitude_setpoint);
         thrust_setpoint = throttle_curve(_manual_thrust);
       }
       // TODO: setpoint from mocap
       else
       {
-        vehicle_local_position_setpoint_s local_pos_sp{};
-        local_pos_sp.timestamp = hrt_absolute_time();
-        _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
-
         _position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
         _position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
         _position_control.setLinearAcceleration(Vector3f(_trajectory_setpoint.acceleration));
@@ -399,6 +385,12 @@ void MulticopterSMControl::Run()
           PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
         }
         thrust_setpoint /= _param_thrust_max.get();
+
+        // publish local position setpoint
+        vehicle_local_position_setpoint_s local_position_setpoint{};
+        _position_control.getLocalPositionSetpoint(local_position_setpoint);
+        local_position_setpoint.timestamp = hrt_absolute_time();
+        _vehicle_local_position_setpoint_pub.publish(local_position_setpoint);
 
         // run attitude controller
         _attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, _trajectory_setpoint.yawspeed));
@@ -481,6 +473,7 @@ void MulticopterSMControl::Run()
       vehicle_attitude_setpoint.roll_body = euler.phi();
       vehicle_attitude_setpoint.pitch_body = euler.theta();
       vehicle_attitude_setpoint.yaw_body = euler.psi();
+      vehicle_attitude_setpoint.yaw_sp_move_rate = yawspeed_ref;
       _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
 
       vehicle_thrust_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;

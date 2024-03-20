@@ -4,6 +4,7 @@
 #include <mathlib/math/Limits.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 
 using namespace matrix;
 
@@ -44,7 +45,7 @@ public:
 	}
 
 	// general
-  void setFilterPos(const int& apply_filter) {_filter_position = apply_filter;}
+  void setFilterPos(const int& apply_filter) { _filter_position = apply_filter;}
   void setCutoffPos(const int& frequency) {
     _cutoff_frequency_position = frequency;
     _lp_filter_position[0].set_cutoff_frequency(_sample_frequency, _cutoff_frequency_position);
@@ -74,6 +75,17 @@ public:
 	Quatf getAttitude() { return Quatf(_attitude); }
 
 	Vector3f getPosition() { return _position; }
+
+  void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint){
+	local_position_setpoint.x = _position_setpoint(0);
+	local_position_setpoint.y = _position_setpoint(1);
+	local_position_setpoint.z = _position_setpoint(2);
+	local_position_setpoint.yaw = _yaw_setpoint;
+	local_position_setpoint.vx = _linear_velocity_setpoint(0);
+	local_position_setpoint.vy = _linear_velocity_setpoint(1);
+	local_position_setpoint.vz = _linear_velocity_setpoint(2);
+	_linear_acceleration_setpoint.copyTo(local_position_setpoint.acceleration);
+  }
 
 	/**
 	 * Run one control loop cycle calculation

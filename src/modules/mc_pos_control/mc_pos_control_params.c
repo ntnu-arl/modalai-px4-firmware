@@ -263,7 +263,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
  * Proportional gain for horizontal position error
  *
  * @min 0.0
- * @max 2.0
+ * @max 20.0
  * @decimal 2
  * @group Multicopter Position Control
  */
@@ -275,7 +275,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_P, 0.95f);
  * defined as correction acceleration in m/s^2 per m/s velocity error
  *
  * @min 1.2
- * @max 5.0
+ * @max 20.0
  * @decimal 2
  * @group Multicopter Position Control
  */

@@ -473,18 +473,18 @@ PARAM_DEFINE_FLOAT(SM_THRUST_COEFF, 3.825f);
  * @max 1
  * @group Multicopter PD Position Control
  */
-PARAM_DEFINE_INT32(SM_APPLY_FILTER, 0);
+PARAM_DEFINE_INT32(SM_POS_FILT_EN, 0);
 
 /**
  * cutoff frequency of the position controller LP filter, in Hz
  *
  * ...
  *
- * @min 10
+ * @min 1
  * @max 100
  * @group Multicopter PD Position Control
  */
-PARAM_DEFINE_INT32(SM_FILT_FREQ_POS, 20);
+PARAM_DEFINE_INT32(SM_POS_FILT_FREQ, 20);
 
 /**
  * cutoff frequency of the INDI controller LP filter, in Hz

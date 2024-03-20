@@ -115,7 +115,18 @@ void SMPositionControl::updatePD(float& thrust_setpoint, Quatf& quaternion_setpo
 
 void SMPositionControl::updateSM(float& thrust_setpoint, Quatf& quaternion_setpoint)
 {
-  const Vector3f acceleration = calculateAccelerationSM();
+  Vector3f acceleration = calculateAccelerationSM();
+
+  // ==============================================================================================================
+  // apply low pass filter to the control signal.
+  // This introduces some unwanted time delay but it attenuates high frequency noise fed to the attitude controller
+  const Vector3f acceleration_lp = Vector3f(_lp_filter_position[0].apply(acceleration(0)),
+                            _lp_filter_position[1].apply(acceleration(1)),
+                            _lp_filter_position[2].apply(acceleration(2)));
+  if (_filter_position) {
+    acceleration = acceleration_lp;
+  }
+  // ==============================================================================================================
 
   thrust_setpoint = calculateThrust(acceleration);
   const Dcmf attitude_setpoint = calculateAttitude(acceleration);
