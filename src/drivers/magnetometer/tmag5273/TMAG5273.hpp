@@ -83,6 +83,36 @@ private:
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
+	// compatibility
+	uint8_t readRegister(Register regAddress);
+	uint8_t writeRegister(Register regAddress, uint8_t data);
+	// porting from Arduino.h
+	#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+	#define bitSet(value, bit) ((value) |= (1UL << (bit)))
+	#define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
+	#define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
+	// porting from SparkFun driver
+	uint16_t getManufacturerID();
+	int8_t isConnected();
+	int8_t setMagneticChannel(uint8_t channelMode);
+	int8_t setTemperatureEn(bool temperatureEnable);
+	int8_t setOperatingMode(uint8_t opMode);
+	int8_t setXYAxisRange(uint8_t xyAxisRange);
+	int8_t setZAxisRange(uint8_t zAxisRange);
+	uint8_t getDeviceStatus();
+	int8_t getError();
+	uint8_t getLowPower();
+	uint8_t getOperatingMode();
+	uint8_t getMagneticChannel();
+	uint8_t getTemperatureEn();
+	uint8_t getAngleEn();
+
+	float getXData();
+	float getYData();
+	float getZData();
+	uint8_t getXYAxisRange();
+	uint8_t getZAxisRange();
+
 	PX4Magnetometer _px4_mag;
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
@@ -102,12 +132,4 @@ private:
 	} _state{STATE::RESET};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{4};
-	register_config_t _register_cfg[size_register_cfg] {
-		// Register               | Set bits, Clear bits
-		{ Register::CNTL2,        0, CNTL2_BIT::SRST },
-		{ Register::CNTL3,        CNTL3_BIT::Z_16BIT | CNTL3_BIT::Y_16BIT | CNTL3_BIT::X_16BIT, 0 },
-		{ Register::AVGCNTL,      AVGCNTL_BIT::Y_16TIMES_SET | AVGCNTL_BIT::XZ_16TIMES_SET, AVGCNTL_BIT::Y_16TIMES_CLEAR | AVGCNTL_BIT::XZ_16TIMES_CLEAR },
-		{ Register::PDCNTL,       PDCNTL_BIT::PULSE_NORMAL, 0 },
-	};
 };
