@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_TMAG5273
+	bool "TMAG5273"
+	default n
+	---help---
+		Enable support for TI TMAG5273
