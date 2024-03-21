@@ -83,7 +83,8 @@ private:
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
-	// compatibility
+  void pcaSelect(uint8_t i);
+  // compatibility
 	uint8_t readRegister(Register regAddress);
 	uint8_t writeRegister(Register regAddress, uint8_t data);
 	// porting from Arduino.h
@@ -93,7 +94,7 @@ private:
 	#define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
 	// porting from SparkFun driver
 	uint16_t getManufacturerID();
-	int8_t isConnected();
+	bool isConnected();
 	int8_t setMagneticChannel(uint8_t channelMode);
 	int8_t setTemperatureEn(bool temperatureEnable);
 	int8_t setOperatingMode(uint8_t opMode);
@@ -123,13 +124,8 @@ private:
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
-	enum class STATE : uint8_t {
-		RESET,
-		WAIT_FOR_RESET,
+	enum class STATE: uint8_t {
 		CONFIGURE,
-		MEASURE,
-		READ,
-	} _state{STATE::RESET};
-
-	uint8_t _checked_register{0};
+		MEASURE
+	} _state{STATE::CONFIGURE};
 };

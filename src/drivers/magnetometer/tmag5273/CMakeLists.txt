@@ -35,11 +35,12 @@ px4_add_module(
 	MODULE drivers__magnetometer__tmag5273
 	MAIN tmag5273
 	COMPILE_FLAGS
+		-DDEBUG_BUILD
 	SRCS
 		TMAG5273.cpp
 		TMAG5273.hpp
 		tmag5273_main.cpp
-		TMAG5273_registers.hpp
+		TI_TMAG5273_registers.hpp
 	DEPENDS
 		drivers_magnetometer
 		px4_work_queue

@@ -55,9 +55,7 @@ static constexpr uint8_t Bit7 = (1 << 7);
 namespace TI_TMAG5273
 {
 static constexpr uint32_t I2C_SPEED = 400 * 1000;  // 400 kHz I2C serial interface
-static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x70;
-
-static constexpr uint8_t Device_ID = 0x35;
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x35;
 
 /********************************** Constant Variable Definitions **********************************/
 #define TMAG5273_DEVICE_ID_VALUE 0x5449   // Value found in the device ID register

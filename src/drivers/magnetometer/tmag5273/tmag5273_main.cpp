@@ -42,8 +42,8 @@ void TMAG5273::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x0E);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x35);
+	// PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 0, "Rotation", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -62,10 +62,12 @@ extern "C" int tmag5273_main(int argc, char *argv[])
 			break;
 		}
 	}
+	PX4_DEBUG("-----------------------here-------------------");
 
 	const char *verb = cli.optArg();
 
 	if (!verb) {
+		PX4_DEBUG("%s", verb);
 		ThisDriver::print_usage();
 		return -1;
 	}
