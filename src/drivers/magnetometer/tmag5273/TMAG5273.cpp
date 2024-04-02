@@ -113,19 +113,19 @@ void TMAG5273::RunImpl()
       break;
 
     case STATE::MEASURE:
-  		const hrt_abstime tic = hrt_absolute_time();
+  		// const hrt_abstime tic = hrt_absolute_time();
       const float x = getXData();
       const float y = getYData();
       const float z = getZData();
-  		const hrt_abstime toc = hrt_absolute_time();
+  		// const hrt_abstime toc = hrt_absolute_time();
 			_px4_mag.update(now, x, y, z);
 
-			PX4_DEBUG("%llu", toc-tic);
+			// PX4_DEBUG("%llu", toc-tic);
       // PX4_DEBUG("%llu Read from magnetometer: %f %f %f", now, (double)x, (double)y, (double)z);
 
       // initiate next measurement
       // ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
-      ScheduleDelayed(5_ms);
+      ScheduleDelayed(1_us);
       break;
   }
 }
