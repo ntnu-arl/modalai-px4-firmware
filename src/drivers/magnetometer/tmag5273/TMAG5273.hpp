@@ -80,6 +80,7 @@ private:
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
 	uint8_t RegisterRead(Register reg);
+	void RegisterReadMultiple(Register reg, uint8_t* buffer, uint8_t bytes);
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
@@ -111,7 +112,8 @@ private:
 	float getXData();
 	float getYData();
 	float getZData();
-	uint8_t getXYAxisRange();
+  void getXYZData(float* xyz);
+  uint8_t getXYAxisRange();
 	uint8_t getZAxisRange();
 
 	PX4Magnetometer _px4_mag;

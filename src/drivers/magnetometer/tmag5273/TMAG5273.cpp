@@ -113,20 +113,22 @@ void TMAG5273::RunImpl()
       break;
 
     case STATE::MEASURE:
-  		// const hrt_abstime tic = hrt_absolute_time();
-      const float x = getXData();
-      const float y = getYData();
-      const float z = getZData();
-  		// const hrt_abstime toc = hrt_absolute_time();
-			_px4_mag.update(now, x, y, z);
+  		const hrt_abstime tic = hrt_absolute_time();
+        float xyz[3] {};
+        getXYZData(xyz);
+        const float x = xyz[0];
+        const float y = xyz[1];
+        const float z = xyz[2];
+        const hrt_abstime toc = hrt_absolute_time();
+        _px4_mag.update(now, x, y, z);
 
 			// PX4_DEBUG("%llu", toc-tic);
       // PX4_DEBUG("%llu Read from magnetometer: %f %f %f", now, (double)x, (double)y, (double)z);
 
-      // initiate next measurement
-      // ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
-      ScheduleDelayed(1_us);
-      break;
+        // initiate next measurement
+        ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
+        //   ScheduleDelayed(20_ms);
+        break;
   }
 }
 
@@ -214,6 +216,12 @@ uint8_t TMAG5273::RegisterRead(Register reg)
 	uint8_t buffer{};
 	transfer(&cmd, 1, &buffer, 1);
 	return buffer;
+}
+
+void TMAG5273::RegisterReadMultiple(Register reg, uint8_t* buffer, uint8_t bytes)
+{
+    const uint8_t cmd = static_cast<uint8_t>(reg);
+    transfer(&cmd, 1, buffer, bytes);
 }
 
 void TMAG5273::RegisterWrite(Register reg, uint8_t value)
@@ -782,34 +790,44 @@ uint8_t TMAG5273::getAngleEn()
     return 0;
 }
 
+void TMAG5273::getXYZData(float* xyz){
+    const uint8_t bytes = 6;
+    uint8_t buffer[bytes] {};
+    RegisterReadMultiple(TMAG5273_REG_X_MSB_RESULT, buffer, bytes);
+
+    const int16_t xData = (int16_t) buffer[1] | ((int16_t) buffer[0] << 8);
+    const int16_t yData = (int16_t) buffer[3] | ((int16_t) buffer[2] << 8);
+    const int16_t zData = (int16_t) buffer[5] | ((int16_t) buffer[4] << 8);
+
+    // TODO: get range data in beginning
+    uint16_t rangeXY = 40;
+    uint16_t rangeZ = 80;
+
+    const float div = 32768;
+    xyz[0] = ((float) xData) * rangeXY / div;
+    xyz[1] = ((float) yData) * rangeXY / div;
+    xyz[2] = ((float) zData) * rangeZ / div;
+}
+
 /// @brief Readcs back the X-Channel data conversion results, the
 /// MSB 8-Bit and LSB 8-Bits. This reads from the following registers:
 ///     X_MSB_RESULT and X_LSB_RESULT
 /// @return X-Channel data conversion results
 float TMAG5273::getXData()
 {
-    int8_t xLSB = readRegister(TMAG5273_REG_X_LSB_RESULT);
-    int8_t xMSB = readRegister(TMAG5273_REG_X_MSB_RESULT);
+    const int8_t xLSB = readRegister(TMAG5273_REG_X_LSB_RESULT);
+    const int8_t xMSB = readRegister(TMAG5273_REG_X_MSB_RESULT);
 
     // Variable to store full X data
     int16_t xData = 0;
     // Combines the two in one register where the MSB is shifted to the correct location
     xData = xLSB + (xMSB << 8);
 
-    // Reads to see if the range is set to 40mT or 80mT
-    uint8_t rangeValXY = getXYAxisRange();
-    uint8_t range = 0;
-    if (rangeValXY == 0)
-    {
-        range = 40;
-    }
-    else if (rangeValXY == 1)
-    {
-        range = 80;
-    }
+    // TODO: more efficient impl (check range once)
+    const uint8_t range = 40;
 
     // 16-bit data format equation
-    float div = 32768;
+    const float div = 32768;
     float xOut = -(range * xData) / div;
 
     return xOut;
