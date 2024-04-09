@@ -16,6 +16,7 @@ menu "Magnetometer"
         select DRIVERS_MAGNETOMETER_VTRANTECH_VCM1193L
         select DRIVERS_MAGNETOMETER_TMAG5273
         select DRIVERS_MAGNETOMETER_PCA9546
+        select DRIVERS_MAGNETOMETER_TMAG5273MULT
         ---help---
             Enable default set of magnetometer drivers
     rsource "*/Kconfig"

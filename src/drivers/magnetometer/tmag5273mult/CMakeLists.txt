@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,17 @@
 #
 ############################################################################
 
-add_subdirectory(akm)
-add_subdirectory(bosch)
-add_subdirectory(hmc5883)
-add_subdirectory(qmc5883l)
-add_subdirectory(isentek)
-add_subdirectory(lis2mdl)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(rm3100)
-add_subdirectory(vtrantech)
-add_subdirectory(tmag5273)
-add_subdirectory(pca9546)
-add_subdirectory(tmag5273mult)
+px4_add_module(
+	MODULE drivers__magnetometer__tmag5273mult
+	MAIN tmag5273mult
+	COMPILE_FLAGS
+		-DDEBUG_BUILD
+	SRCS
+		TMAG5273Mult.cpp
+		TMAG5273Mult.hpp
+		tmag5273mult_main.cpp
+		TI_TMAG5273_registers.hpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)
