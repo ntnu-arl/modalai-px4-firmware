@@ -74,6 +74,13 @@ private:
 		uint8_t clear_bits{0};
 	};
 
+	struct mag_xyz_t {
+		// float x{0.0f};
+		// float y{0.0f};
+		// float z{0.0f};
+		float xyz[3];
+	} _mag_data[NUMBER_OF_TMAG5273]{};
+
 	int probe() override;
 
 	bool Reset();

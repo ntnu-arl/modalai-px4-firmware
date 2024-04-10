@@ -108,7 +108,7 @@ int TMAG5273Mult::probe()
 void TMAG5273Mult::RunImpl()
 {
 //   PX4_DEBUG("-------------------- impl");
-  const hrt_abstime now = hrt_absolute_time();
+  [[maybe_unused]] const hrt_abstime now = hrt_absolute_time();
 
   switch (_state)
   {
@@ -128,21 +128,20 @@ void TMAG5273Mult::RunImpl()
       break;
 
     case STATE::MEASURE:
-  		const hrt_abstime tic = hrt_absolute_time();
-        float xyz[3] {};
+  		// const hrt_abstime tic = hrt_absolute_time();
+        // mag_xyz_t data[NUMBER_OF_TMAG5273] {};
         for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
         {
-          _mux.select(i);
-          getXYZData(xyz);
-          [[maybe_unused]] const float x = xyz[0];
-          [[maybe_unused]] const float y = xyz[1];
-          [[maybe_unused]] const float z = xyz[2];
-        //   _px4_mag.update(now, x, y, z);
+            _mux.select(i);
+            getXYZData(_mag_data[i].xyz);
+            
         }
-        const hrt_abstime toc = hrt_absolute_time();
-
-        PX4_DEBUG("%llu us", toc-tic);
-        PX4_DEBUG("%llu Read from magnetometer: %f %f %f", now, (double)xyz[0], (double)xyz[1], (double)xyz[2]);
+        // const hrt_abstime toc = hrt_absolute_time();
+        // PX4_DEBUG("%llu us", toc-tic); // avg: approx 2200us
+        // PX4_DEBUG("%llu Read from magnetometer: ", now);
+        // PX4_DEBUG("\tx: [%.2f %.2f %.2f %.2f]\n", (double)_mag_data[0].xyz[0], (double)_mag_data[1].xyz[0], (double)_mag_data[2].xyz[0], (double)_mag_data[3].xyz[0]);
+        // PX4_DEBUG("\ty: [%.2f %.2f %.2f %.2f]\n", (double)_mag_data[0].xyz[1], (double)_mag_data[1].xyz[1], (double)_mag_data[2].xyz[1], (double)_mag_data[3].xyz[1]);
+        // PX4_DEBUG("\tz: [%.2f %.2f %.2f %.2f]\n", (double)_mag_data[0].xyz[2], (double)_mag_data[1].xyz[2], (double)_mag_data[2].xyz[2], (double)_mag_data[3].xyz[2]);
 
         // initiate next measurement
         ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
