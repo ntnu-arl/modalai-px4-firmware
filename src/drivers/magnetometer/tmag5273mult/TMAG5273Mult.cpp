@@ -90,17 +90,16 @@ void TMAG5273Mult::print_status()
 int TMAG5273Mult::probe()
 {
     PX4_DEBUG("-------------------- probe");
-    // for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
-    // {
-    uint8_t i = 0;
-    _multiplex.select(i);
-    if (!isConnected())
+    for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
     {
-      PX4_DEBUG("-------------------- probe Failed");
-      DEVICE_DEBUG("TMAG5273 not connected");
-      return PX4_ERROR;
+        _multiplex.select(i);
+        if (!isConnected())
+        {
+            PX4_DEBUG("-------------------- probe Failed");
+            DEVICE_DEBUG("TMAG5273 not connected");
+            return PX4_ERROR;
+        }
     }
-    // }
     PX4_DEBUG("-------------------- probe");
 
 	return PX4_OK;
@@ -131,16 +130,19 @@ void TMAG5273Mult::RunImpl()
     case STATE::MEASURE:
   		const hrt_abstime tic = hrt_absolute_time();
         float xyz[3] {};
-        _multiplex.select(0);
-        getXYZData(xyz);
-        const float x = xyz[0];
-        const float y = xyz[1];
-        const float z = xyz[2];
+        for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
+        {
+          _multiplex.select(i);
+          getXYZData(xyz);
+          [[maybe_unused]] const float x = xyz[0];
+          [[maybe_unused]] const float y = xyz[1];
+          [[maybe_unused]] const float z = xyz[2];
+        //   _px4_mag.update(now, x, y, z);
+        }
         const hrt_abstime toc = hrt_absolute_time();
-        _px4_mag.update(now, x, y, z);
 
         PX4_DEBUG("%llu us", toc-tic);
-        PX4_DEBUG("%llu Read from magnetometer: %f %f %f", now, (double)x, (double)y, (double)z);
+        PX4_DEBUG("%llu Read from magnetometer: %f %f %f", now, (double)xyz[0], (double)xyz[1], (double)xyz[2]);
 
         // initiate next measurement
         ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)

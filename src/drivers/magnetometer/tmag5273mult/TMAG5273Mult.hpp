@@ -54,7 +54,7 @@
 #include <px4_platform_common/i2c_spi_buses.h>
 
 using namespace TI_TMAG5273;
-#define NUMBER_OF_TMAG5273 1
+#define NUMBER_OF_TMAG5273 4
 
 class PCA9546 : public device::I2C
 {
@@ -71,8 +71,9 @@ public:
       PX4_ERR("select for index > NUMBER_OF_TMAG5273: %i", NUMBER_OF_TMAG5273);
       return false;
     }
-
-    this->transfer(&i, 1, nullptr, 0);
+		
+		const uint8_t msg = 1 << i;
+    this->transfer(&msg, 1, nullptr, 0);
     return true;
   }
 private:
