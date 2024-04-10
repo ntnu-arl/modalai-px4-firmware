@@ -62,7 +62,6 @@ extern "C" int tmag5273mux_main(int argc, char *argv[])
 			break;
 		}
 	}
-	PX4_DEBUG("-----------------------here-------------------");
 
 	const char *verb = cli.optArg();
 
@@ -74,9 +73,7 @@ extern "C" int tmag5273mux_main(int argc, char *argv[])
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_TMAG5273MUX);
 
-	PX4_DEBUG("-----------------------hi-------------------");
 	if (!strcmp(verb, "start")) {
-		PX4_DEBUG("-----------------------start-------------------");
 		return ThisDriver::module_start(cli, iterator);
 	}
 

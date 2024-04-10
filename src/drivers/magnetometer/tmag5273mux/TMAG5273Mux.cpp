@@ -43,7 +43,6 @@ using namespace time_literals;
 TMAG5273Mux::TMAG5273Mux(const I2CSPIDriverConfig& config)
   : I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id()), _mux(config, I2C_SPEED, NUMBER_OF_TMAG5273)
 {
-  PX4_DEBUG("-------------------- const");
 }
 
 TMAG5273Mux::~TMAG5273Mux()
@@ -55,19 +54,16 @@ TMAG5273Mux::~TMAG5273Mux()
 
 int TMAG5273Mux::init()
 {
-    PX4_DEBUG("-------------------- init");
     int ret_mux = _mux.init();
     PX4_DEBUG("I2C::init mux (%i)", ret_mux);
 
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
-        PX4_DEBUG("-------------------- init failed");
 		DEVICE_DEBUG("I2C::init failed (%i)", ret);
 		return ret;
 	}
-    
-    PX4_DEBUG("-------------------- init");
+
 	return Reset() ? 0 : -1;
 }
 
@@ -89,31 +85,26 @@ void TMAG5273Mux::print_status()
 
 int TMAG5273Mux::probe()
 {
-    PX4_DEBUG("-------------------- probe");
     for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
     {
         _mux.select(i);
         if (!isConnected())
         {
-            PX4_DEBUG("-------------------- probe Failed");
             DEVICE_DEBUG("TMAG5273 not connected");
             return PX4_ERROR;
         }
     }
-    PX4_DEBUG("-------------------- probe");
 
 	return PX4_OK;
 }
 
 void TMAG5273Mux::RunImpl()
 {
-//   PX4_DEBUG("-------------------- impl");
   [[maybe_unused]] const hrt_abstime now = hrt_absolute_time();
 
   switch (_state)
   {
     case STATE::CONFIGURE:
-      PX4_DEBUG("-------------------- hi");
       if (ConfigureAll())
       {
         _state = STATE::MEASURE;
@@ -167,18 +158,15 @@ bool TMAG5273Mux::ConfigureOne()
 {
 	bool success = true;
 
-    PX4_DEBUG("-------------------- a");
 	if (!isConnected()){
 		return false;	
 	}
 
-    PX4_DEBUG("-------------------- b");
 	// Following the Detailed Design Prodedure on page 42 of the datasheet
     setMagneticChannel(TMAG5273_X_Y_Z_ENABLE);
     setTemperatureEn(true);
     setOperatingMode(TMAG5273_CONTINUOUS_MEASURE_MODE);
 
-    PX4_DEBUG("-------------------- c");
     // Set the axis ranges for the device to be the largest
     setXYAxisRange(TMAG5273_RANGE_80MT);
     setZAxisRange(TMAG5273_RANGE_80MT);
@@ -323,13 +311,10 @@ uint16_t TMAG5273Mux::getManufacturerID()
 /// @return Error code (0 is success, negative is failure)
 bool TMAG5273Mux::isConnected()
 {
-    PX4_DEBUG("-------------------- isConnected");
     if (getManufacturerID() != TMAG5273_DEVICE_ID_VALUE)
     {
-        PX4_DEBUG("-------------------- isConnected false");
         return false;
     }
-    PX4_DEBUG("-------------------- isConnected true");
 
     return true;
 }
