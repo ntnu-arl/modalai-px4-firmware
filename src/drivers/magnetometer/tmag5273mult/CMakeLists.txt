@@ -37,6 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-DDEBUG_BUILD
 	SRCS
+		PCA9546.hpp
 		TMAG5273Mult.cpp
 		TMAG5273Mult.hpp
 		tmag5273mult_main.cpp

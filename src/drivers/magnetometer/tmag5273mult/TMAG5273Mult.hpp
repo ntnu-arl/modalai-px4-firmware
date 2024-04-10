@@ -40,12 +40,9 @@
 
 #pragma once
 
-// #include <linux/i2c.h>
-// #include <linux/i2c-dev.h>
-// #include <sys/ioctl.h>
-
 #include "TI_TMAG5273_registers.hpp"
 #include "ADA_PCA9546_registers.hpp"
+#include "PCA9546.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
@@ -55,33 +52,6 @@
 
 using namespace TI_TMAG5273;
 #define NUMBER_OF_TMAG5273 4
-
-class PCA9546 : public device::I2C
-{
-public:
-  PCA9546(const I2CSPIDriverConfig& config)
-    : I2C(DRV_MAG_DEVTYPE_PCA9546, "pca9546", config.bus, ADA_PCA9546::I2C_ADDRESS_DEFAULT, I2C_SPEED)
-  {
-  }
-
-  bool select(uint8_t i)
-  {
-    if (i >= NUMBER_OF_TMAG5273)
-    {
-      PX4_ERR("select for index > NUMBER_OF_TMAG5273: %i", NUMBER_OF_TMAG5273);
-      return false;
-    }
-		
-		const uint8_t msg = 1 << i;
-    this->transfer(&msg, 1, nullptr, 0);
-    return true;
-  }
-private:
-  int probe() override
-  {
-    return PX4_OK;
-  }
-};
 
 class TMAG5273Mult : public device::I2C, public I2CSPIDriver<TMAG5273Mult>
 {
@@ -117,26 +87,6 @@ private:
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
-  // bool openMultiplexer()
-  // {
-  //   // Open the actual I2C device
-  //   char dev_path[16]{};
-  //   snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", _bus);
-  //   _fd = open(dev_path, O_RDWR);
-		
-	// 	if (_fd < 0){
-	// 		PX4_ERR("Failed to open device %s", dev_path);
-	// 		return false;
-	// 	}
-
-	// 	return true;
-  // }
-  // bool pcaSelect(uint8_t i)
-  // {
-  //   ioctl(_fd, I2C_SLAVE, ADA_PCA9546::I2C_ADDRESS_DEFAULT);
-  //   write(_fd, &i, 1);
-  // }
-
   // compatibility
 	uint8_t readRegister(Register regAddress);
 	uint8_t writeRegister(Register regAddress, uint8_t data);
@@ -169,9 +119,7 @@ private:
 	uint8_t getZAxisRange();
 
 	PX4Magnetometer _px4_mag;
-	// uint8_t _bus;
-	// int _fd;
-	PCA9546 _multiplex;
+	PCA9546 _mux;
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};

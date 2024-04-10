@@ -41,7 +41,7 @@ using namespace time_literals;
 // }
 
 TMAG5273Mult::TMAG5273Mult(const I2CSPIDriverConfig& config)
-  : I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id()), _multiplex(config)
+  : I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id()), _mux(config, I2C_SPEED, NUMBER_OF_TMAG5273)
 {
   PX4_DEBUG("-------------------- const");
 }
@@ -56,7 +56,7 @@ TMAG5273Mult::~TMAG5273Mult()
 int TMAG5273Mult::init()
 {
     PX4_DEBUG("-------------------- init");
-    int ret_mux = _multiplex.init();
+    int ret_mux = _mux.init();
     PX4_DEBUG("I2C::init mux (%i)", ret_mux);
 
 	int ret = I2C::init();
@@ -92,7 +92,7 @@ int TMAG5273Mult::probe()
     PX4_DEBUG("-------------------- probe");
     for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
     {
-        _multiplex.select(i);
+        _mux.select(i);
         if (!isConnected())
         {
             PX4_DEBUG("-------------------- probe Failed");
@@ -132,7 +132,7 @@ void TMAG5273Mult::RunImpl()
         float xyz[3] {};
         for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
         {
-          _multiplex.select(i);
+          _mux.select(i);
           getXYZData(xyz);
           [[maybe_unused]] const float x = xyz[0];
           [[maybe_unused]] const float y = xyz[1];
