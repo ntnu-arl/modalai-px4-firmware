@@ -134,9 +134,11 @@ void TMAG5273Mux::RunImpl()
         PX4_DEBUG("\ty: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[1], (double)_mag_data[1].xyz[1], (double)_mag_data[2].xyz[1], (double)_mag_data[3].xyz[1]);
         PX4_DEBUG("\tz: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[2], (double)_mag_data[1].xyz[2], (double)_mag_data[2].xyz[2], (double)_mag_data[3].xyz[2]);
 
+        // TODO: custom uORB
+        
+        // TODO: pick delay time
         // initiate next measurement
         ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
-        //   ScheduleDelayed(20_ms);
         break;
   }
 }
