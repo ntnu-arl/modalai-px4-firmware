@@ -138,7 +138,7 @@ void TMAG5273Mux::RunImpl()
         
         // TODO: pick delay time
         // initiate next measurement
-        ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
+        ScheduleDelayed(10_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
         break;
   }
 }
@@ -175,6 +175,11 @@ bool TMAG5273Mux::ConfigureOne()
     if ((XY_AXIS_RANGE != getXYAxisRange()) || (Z_AXIS_RANGE != getZAxisRange()))
     {
         PX4_ERR("Axis range error");
+        return false;
+    }
+
+    // set conv avg for 400hz
+    if (setConvAvg(0x5) != 0){
         return false;
     }
 
@@ -957,4 +962,67 @@ uint8_t TMAG5273Mux::getZAxisRange()
     }
 
     return 0;
+}
+
+/// @brief Sets the additional sampling of the sensor data to reduce the
+/// noise effect (or to increase resolution)
+/// @param avgMode value to set the conversion average
+///     0X0 = 1x average, 10.0-kSPS (3-axes) or 20-kSPS (1 axis)
+///     0X1 = 2x average, 5.7-kSPS (3-axes) or 13.3-kSPS (1 axis)
+///     0X2 = 4x average, 3.1-kSPS (3-axes) or 8.0-kSPS (1 axis)
+///     0X3 = 8x average, 1.6-kSPS (3-axes) or 4.4-kSPS (1 axis)
+///     0X4 = 16x average, 0.8-kSPS (3-axes) or 2.4-kSPS (1 axis)
+///     0X5 =  32x average, 0.4-kSPS (3-axes) or 1.2-kSPS (1 axis)
+///     TMAG5273_REG_DEVICE_CONFIG_1 - bit 4-2
+/// @return Error code (0 is success, negative is failure, positive is warning)
+int8_t TMAG5273Mux::setConvAvg(uint8_t avgMode)
+{
+    uint8_t mode = 0;
+    mode = readRegister(TMAG5273_REG_DEVICE_CONFIG_1);
+
+    // If-Else statement for writing values to the register, bit by bit
+    if (avgMode == 0) // 0b000
+    {
+        bitWrite(mode, 2, 0);
+        bitWrite(mode, 3, 0);
+        bitWrite(mode, 4, 0);
+        writeRegister(TMAG5273_REG_DEVICE_CONFIG_1, mode);
+    }
+    else if (avgMode == 0x1) // 0b001
+    {
+        bitWrite(mode, 2, 1);
+        bitWrite(mode, 3, 0);
+        bitWrite(mode, 4, 0);
+        writeRegister(TMAG5273_REG_DEVICE_CONFIG_1, mode);
+    }
+    else if (avgMode == 0x2) // 0b010
+    {
+        bitWrite(mode, 2, 0);
+        bitWrite(mode, 3, 1);
+        bitWrite(mode, 4, 0);
+        writeRegister(TMAG5273_REG_DEVICE_CONFIG_1, mode);
+    }
+    else if (avgMode == 0x3) // 0b011
+    {
+        bitWrite(mode, 2, 1);
+        bitWrite(mode, 3, 1);
+        bitWrite(mode, 4, 0);
+        writeRegister(TMAG5273_REG_DEVICE_CONFIG_1, mode);
+    }
+    else if (avgMode == 0x4) // 0b100
+    {
+        bitWrite(mode, 2, 0);
+        bitWrite(mode, 3, 0);
+        bitWrite(mode, 4, 1);
+        writeRegister(TMAG5273_REG_DEVICE_CONFIG_1, mode);
+    }
+    else if (avgMode == 0x5) // 0b101
+    {
+        bitWrite(mode, 2, 1);
+        bitWrite(mode, 3, 0);
+        bitWrite(mode, 4, 1);
+        writeRegister(TMAG5273_REG_DEVICE_CONFIG_1, mode);
+    }
+
+    return getError();
 }

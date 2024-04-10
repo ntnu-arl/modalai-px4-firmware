@@ -130,6 +130,8 @@ private:
 	uint8_t getXYAxisRange();
 	uint8_t getZAxisRange();
 
+	int8_t setConvAvg(uint8_t avgMode);
+
 	PX4Magnetometer _px4_mag;
 	PCA9546 _mux;
 	const float _rangeXY{ XY_AXIS_RANGE ? 80.0f : 40.0f };
