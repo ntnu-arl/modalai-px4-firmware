@@ -172,6 +172,11 @@ bool TMAG5273Mux::ConfigureOne()
     // Set the axis ranges for the device to be the largest
     setXYAxisRange(TMAG5273_RANGE_80MT);
     setZAxisRange(TMAG5273_RANGE_80MT);
+    if ((XY_AXIS_RANGE != getXYAxisRange()) || (Z_AXIS_RANGE != getZAxisRange()))
+    {
+        PX4_ERR("Axis range error");
+        return false;
+    }
 
     // Check if there is any issue with the device status register
     if (getError() != 0)
@@ -824,14 +829,11 @@ void TMAG5273Mux::getXYZData(float* xyz){
     const int16_t yData = (int16_t) buffer[3] | ((int16_t) buffer[2] << 8);
     const int16_t zData = (int16_t) buffer[5] | ((int16_t) buffer[4] << 8);
 
-    // TODO: get range data in beginning
-    uint16_t rangeXY = 40;
-    uint16_t rangeZ = 80;
-
     const float div = 32768;
-    xyz[0] = ((float) xData) * rangeXY / div;
-    xyz[1] = ((float) yData) * rangeXY / div;
-    xyz[2] = ((float) zData) * rangeZ / div;
+    xyz[0] = ((float)xData) * _rangeXY / div;
+    xyz[1] = ((float)yData) * _rangeXY / div;
+    xyz[2] = ((float)zData) * _rangeZ / div;
+    // PX4_DEBUG("%f\t%f\t%f", (double)xyz[0], (double)xyz[1], (double)xyz[2]);
 }
 
 /// @brief Readcs back the X-Channel data conversion results, the

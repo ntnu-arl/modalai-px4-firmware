@@ -67,6 +67,10 @@ public:
 	void print_status() override;
 
 private:
+	// 0 for 40mT and 1 for 80mT
+	static constexpr uint8_t XY_AXIS_RANGE = 1;
+	static constexpr uint8_t Z_AXIS_RANGE = 1;
+	
 	// Sensor Configuration
 	struct register_config_t {
 		Register reg;
@@ -78,7 +82,7 @@ private:
 		// float x{0.0f};
 		// float y{0.0f};
 		// float z{0.0f};
-		float xyz[3];
+		float xyz[3]{};
 	} _mag_data[NUMBER_OF_TMAG5273]{};
 
 	int probe() override;
@@ -122,12 +126,14 @@ private:
 	float getXData();
 	float getYData();
 	float getZData();
-  void getXYZData(float* xyz);
-  uint8_t getXYAxisRange();
+	void getXYZData(float* xyz);
+	uint8_t getXYAxisRange();
 	uint8_t getZAxisRange();
 
 	PX4Magnetometer _px4_mag;
 	PCA9546 _mux;
+	const float _rangeXY{ XY_AXIS_RANGE ? 80.0f : 40.0f };
+	const float _rangeZ{ Z_AXIS_RANGE ? 80.0f : 40.0f };
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
