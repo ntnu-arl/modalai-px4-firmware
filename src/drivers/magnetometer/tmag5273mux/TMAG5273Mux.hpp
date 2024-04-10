@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file TMAG5273Mult.hpp
+ * @file TMAG5273Mux.hpp
  *
- * Driver for the TI TMAG5273Mult connected via I2C.
+ * Driver for the TI TMAG5273Mux connected via I2C.
  *
  */
 
@@ -53,11 +53,11 @@
 using namespace TI_TMAG5273;
 #define NUMBER_OF_TMAG5273 4
 
-class TMAG5273Mult : public device::I2C, public I2CSPIDriver<TMAG5273Mult>
+class TMAG5273Mux : public device::I2C, public I2CSPIDriver<TMAG5273Mux>
 {
 public:
-	TMAG5273Mult(const I2CSPIDriverConfig &config);
-	~TMAG5273Mult() override;
+	TMAG5273Mux(const I2CSPIDriverConfig &config);
+	~TMAG5273Mux() override;
 
 	static void print_usage();
 

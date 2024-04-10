@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "TMAG5273Mult.hpp"
+#include "TMAG5273Mux.hpp"
 
 using namespace time_literals;
 
@@ -40,20 +40,20 @@ using namespace time_literals;
 // 	return (msb << 8u) | lsb;
 // }
 
-TMAG5273Mult::TMAG5273Mult(const I2CSPIDriverConfig& config)
+TMAG5273Mux::TMAG5273Mux(const I2CSPIDriverConfig& config)
   : I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id()), _mux(config, I2C_SPEED, NUMBER_OF_TMAG5273)
 {
   PX4_DEBUG("-------------------- const");
 }
 
-TMAG5273Mult::~TMAG5273Mult()
+TMAG5273Mux::~TMAG5273Mux()
 {
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 }
 
-int TMAG5273Mult::init()
+int TMAG5273Mux::init()
 {
     PX4_DEBUG("-------------------- init");
     int ret_mux = _mux.init();
@@ -71,14 +71,14 @@ int TMAG5273Mult::init()
 	return Reset() ? 0 : -1;
 }
 
-bool TMAG5273Mult::Reset()
+bool TMAG5273Mux::Reset()
 {
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void TMAG5273Mult::print_status()
+void TMAG5273Mux::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
@@ -87,7 +87,7 @@ void TMAG5273Mult::print_status()
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int TMAG5273Mult::probe()
+int TMAG5273Mux::probe()
 {
     PX4_DEBUG("-------------------- probe");
     for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
@@ -105,7 +105,7 @@ int TMAG5273Mult::probe()
 	return PX4_OK;
 }
 
-void TMAG5273Mult::RunImpl()
+void TMAG5273Mux::RunImpl()
 {
 //   PX4_DEBUG("-------------------- impl");
   [[maybe_unused]] const hrt_abstime now = hrt_absolute_time();
@@ -128,7 +128,7 @@ void TMAG5273Mult::RunImpl()
       break;
 
     case STATE::MEASURE:
-  		// const hrt_abstime tic = hrt_absolute_time();
+  		const hrt_abstime tic = hrt_absolute_time();
         // mag_xyz_t data[NUMBER_OF_TMAG5273] {};
         for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
         {
@@ -136,12 +136,12 @@ void TMAG5273Mult::RunImpl()
             getXYZData(_mag_data[i].xyz);
             
         }
-        // const hrt_abstime toc = hrt_absolute_time();
-        // PX4_DEBUG("%llu us", toc-tic); // avg: approx 2200us
-        // PX4_DEBUG("%llu Read from magnetometer: ", now);
-        // PX4_DEBUG("\tx: [%.2f %.2f %.2f %.2f]\n", (double)_mag_data[0].xyz[0], (double)_mag_data[1].xyz[0], (double)_mag_data[2].xyz[0], (double)_mag_data[3].xyz[0]);
-        // PX4_DEBUG("\ty: [%.2f %.2f %.2f %.2f]\n", (double)_mag_data[0].xyz[1], (double)_mag_data[1].xyz[1], (double)_mag_data[2].xyz[1], (double)_mag_data[3].xyz[1]);
-        // PX4_DEBUG("\tz: [%.2f %.2f %.2f %.2f]\n", (double)_mag_data[0].xyz[2], (double)_mag_data[1].xyz[2], (double)_mag_data[2].xyz[2], (double)_mag_data[3].xyz[2]);
+        const hrt_abstime toc = hrt_absolute_time();
+        PX4_DEBUG("%llu us", toc-tic); // avg: approx 2200us
+        PX4_DEBUG("%llu Read from magnetometer: ", now);
+        PX4_DEBUG("\tx: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[0], (double)_mag_data[1].xyz[0], (double)_mag_data[2].xyz[0], (double)_mag_data[3].xyz[0]);
+        PX4_DEBUG("\ty: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[1], (double)_mag_data[1].xyz[1], (double)_mag_data[2].xyz[1], (double)_mag_data[3].xyz[1]);
+        PX4_DEBUG("\tz: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[2], (double)_mag_data[1].xyz[2], (double)_mag_data[2].xyz[2], (double)_mag_data[3].xyz[2]);
 
         // initiate next measurement
         ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
@@ -150,7 +150,7 @@ void TMAG5273Mult::RunImpl()
   }
 }
 
-bool TMAG5273Mult::ConfigureAll()
+bool TMAG5273Mux::ConfigureAll()
 {
     bool success = true;
 
@@ -163,7 +163,7 @@ bool TMAG5273Mult::ConfigureAll()
     return success;
 }
 
-bool TMAG5273Mult::ConfigureOne()
+bool TMAG5273Mux::ConfigureOne()
 {
 	bool success = true;
 
@@ -225,7 +225,7 @@ bool TMAG5273Mult::ConfigureOne()
 	return success;
 }
 
-bool TMAG5273Mult::RegisterCheck(const register_config_t &reg_cfg)
+bool TMAG5273Mux::RegisterCheck(const register_config_t &reg_cfg)
 {
 	bool success = true;
 
@@ -244,7 +244,7 @@ bool TMAG5273Mult::RegisterCheck(const register_config_t &reg_cfg)
 	return success;
 }
 
-uint8_t TMAG5273Mult::RegisterRead(Register reg)
+uint8_t TMAG5273Mux::RegisterRead(Register reg)
 {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
@@ -252,19 +252,19 @@ uint8_t TMAG5273Mult::RegisterRead(Register reg)
 	return buffer;
 }
 
-void TMAG5273Mult::RegisterReadMultiple(Register reg, uint8_t* buffer, uint8_t bytes)
+void TMAG5273Mux::RegisterReadMultiple(Register reg, uint8_t* buffer, uint8_t bytes)
 {
     const uint8_t cmd = static_cast<uint8_t>(reg);
     transfer(&cmd, 1, buffer, bytes);
 }
 
-void TMAG5273Mult::RegisterWrite(Register reg, uint8_t value)
+void TMAG5273Mux::RegisterWrite(Register reg, uint8_t value)
 {
 	uint8_t buffer[2] { (uint8_t)reg, value };
 	transfer(buffer, sizeof(buffer), nullptr, 0);
 }
 
-void TMAG5273Mult::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
+void TMAG5273Mux::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
 {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = (orig_val & ~clearbits) | setbits;
@@ -277,7 +277,7 @@ void TMAG5273Mult::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_
 /// @brief Reads the register byte from the sensor when called upon.
 /// @param regAddress Register's address to read from
 /// @return Value of the register chosen to be read from
-uint8_t TMAG5273Mult::readRegister(Register regAddress)
+uint8_t TMAG5273Mux::readRegister(Register regAddress)
 {
     /* uint8_t regVal = 0;
     readRegisters(regAddress, &regVal, 2);
@@ -289,7 +289,7 @@ uint8_t TMAG5273Mult::readRegister(Register regAddress)
 /// @param regAddress I2C address of device
 /// @param data Value to fill register with
 /// @return Error code (0 is success, negative is failure, positive is warning)
-uint8_t TMAG5273Mult::writeRegister(Register regAddress, uint8_t data)
+uint8_t TMAG5273Mux::writeRegister(Register regAddress, uint8_t data)
 {
     /* // Write 1 byte to writeRegisters()
     writeRegisters(regAddress, &data, 1);
@@ -303,7 +303,7 @@ uint8_t TMAG5273Mult::writeRegister(Register regAddress, uint8_t data)
 ///     MANUFACTURER_ID_LSB
 ///     MANUFACTURER_ID_MSB
 /// @return 16-Bit Manufacturer ID
-uint16_t TMAG5273Mult::getManufacturerID()
+uint16_t TMAG5273Mux::getManufacturerID()
 {
     uint16_t deviceIDReg = 0;
     uint8_t databuffer[2];
@@ -321,7 +321,7 @@ uint16_t TMAG5273Mult::getManufacturerID()
 ///  over I2C, along with checking the Device ID to ensure proper
 ///  connection.
 /// @return Error code (0 is success, negative is failure)
-bool TMAG5273Mult::isConnected()
+bool TMAG5273Mux::isConnected()
 {
     PX4_DEBUG("-------------------- isConnected");
     if (getManufacturerID() != TMAG5273_DEVICE_ID_VALUE)
@@ -351,7 +351,7 @@ bool TMAG5273Mult::isConnected()
 ///     0XB = XZX Channel Enabled
 ///     TMAG5273_REG_SENSOR_CONFIG_1 - bits 7-4
 /// @return Error code (0 is success, negative is failure, positive is warning)
-int8_t TMAG5273Mult::setMagneticChannel(uint8_t channelMode)
+int8_t TMAG5273Mux::setMagneticChannel(uint8_t channelMode)
 {
     uint16_t mode = 0;
     mode = readRegister(TMAG5273_REG_SENSOR_CONFIG_1);
@@ -470,7 +470,7 @@ int8_t TMAG5273Mult::setMagneticChannel(uint8_t channelMode)
 ///     0x1 = Temp Channel Enabled
 ///     TMAG5273_REG_T_CONFIG - bit 0
 /// @return Error code (0 is success, negative is failure, positive is warning)
-int8_t TMAG5273Mult::setTemperatureEn(bool temperatureEnable)
+int8_t TMAG5273Mux::setTemperatureEn(bool temperatureEnable)
 {
     uint16_t mode = 0;
     mode = readRegister(TMAG5273_REG_T_CONFIG);
@@ -502,7 +502,7 @@ int8_t TMAG5273Mult::setTemperatureEn(bool temperatureEnable)
 ///     0X3 = Wake-up and sleep mode (W&S Mode)
 ///     TMAG5273_REG_DEVICE_CONFIG_2 - bit 1-0
 /// @return Error code (0 is success, negative is failure, positive is warning)
-int8_t TMAG5273Mult::setOperatingMode(uint8_t opMode)
+int8_t TMAG5273Mux::setOperatingMode(uint8_t opMode)
 {
     uint16_t mode = 0;
     mode = readRegister(TMAG5273_REG_DEVICE_CONFIG_2);
@@ -546,7 +546,7 @@ int8_t TMAG5273Mult::setOperatingMode(uint8_t opMode)
 ///     0X1 = ±80mT
 ///     TMAG5273_REG_SENSOR_CONFIG_2 - bit 1
 /// @return Error code (0 is success, negative is failure, positive is warning)
-int8_t TMAG5273Mult::setXYAxisRange(uint8_t xyAxisRange)
+int8_t TMAG5273Mux::setXYAxisRange(uint8_t xyAxisRange)
 {
     uint16_t mode = 0;
     mode = readRegister(TMAG5273_REG_SENSOR_CONFIG_2);
@@ -574,7 +574,7 @@ int8_t TMAG5273Mult::setXYAxisRange(uint8_t xyAxisRange)
 ///     0X1 = ±80mT
 ///     TMAG5273_REG_SENSOR_CONFIG_2 - bit 0
 /// @return Error code (0 is success, negative is failure, positive is warning)
-int8_t TMAG5273Mult::setZAxisRange(uint8_t zAxisRange)
+int8_t TMAG5273Mux::setZAxisRange(uint8_t zAxisRange)
 {
     uint16_t mode = 0;
     mode = readRegister(TMAG5273_REG_SENSOR_CONFIG_2);
@@ -603,7 +603,7 @@ int8_t TMAG5273Mult::setZAxisRange(uint8_t zAxisRange)
 ///  OTP CRC errors, or undervoltage resistors.
 ///     TMAG5273_REG_DEVICE_STATUS
 /// @return Device Status Regsiter as a raw value.
-uint8_t TMAG5273Mult::getDeviceStatus()
+uint8_t TMAG5273Mux::getDeviceStatus()
 {
     // Check for undervoltage, OTP CRC, Int Pin, and Oscillator errors
     uint8_t deviceStatusReg = readRegister(TMAG5273_REG_DEVICE_STATUS);
@@ -617,7 +617,7 @@ uint8_t TMAG5273Mult::getDeviceStatus()
 ///  For more information on the specific error, checkout the
 ///  getDeviceStatus() function and compare to the datasheet.
 /// @return Error code (0 is success, negative is failure, positive is warning)
-int8_t TMAG5273Mult::getError()
+int8_t TMAG5273Mux::getError()
 {
     // Pull in the device status register to compare to the error codes
     uint8_t statusReg = getDeviceStatus();
@@ -643,7 +643,7 @@ int8_t TMAG5273Mult::getError()
 ///     0X1 = Low noise mode
 ///     TMAG5273_REG_DEVICE_CONFIG_2 - bit 4
 /// @return Low power (0) or low noise (1) mode
-uint8_t TMAG5273Mult::getLowPower()
+uint8_t TMAG5273Mux::getLowPower()
 {
     uint8_t lowPowerMode = 0;
     lowPowerMode = readRegister(TMAG5273_REG_DEVICE_CONFIG_2);
@@ -660,7 +660,7 @@ uint8_t TMAG5273Mult::getLowPower()
 ///     0X3 = Wake-up and sleep mode (W&S Mode)
 ///     TMAG5273_REG_DEVICE_CONFIG_2 - bit 1-0
 /// @return Operating mode: stand-by, sleep, continuous, or wake-up and sleep
-uint8_t TMAG5273Mult::getOperatingMode()
+uint8_t TMAG5273Mux::getOperatingMode()
 {
     uint8_t opMode = 0;
     opMode = readRegister(TMAG5273_REG_DEVICE_CONFIG_2);
@@ -707,7 +707,7 @@ uint8_t TMAG5273Mult::getOperatingMode()
 ///     0XB = XZX Channel Enabled
 ///     TMAG5273_REG_SENSOR_CONFIG_1 - bit 7-4
 /// @return Code for the magnetic channel axis being read
-uint8_t TMAG5273Mult::getMagneticChannel()
+uint8_t TMAG5273Mux::getMagneticChannel()
 {
     uint8_t magChannel = 0;
     magChannel = readRegister(TMAG5273_REG_SENSOR_CONFIG_1);
@@ -777,7 +777,7 @@ uint8_t TMAG5273Mult::getMagneticChannel()
 ///     0x1 = Temp Channel Enabled
 ///     TMAG5273_REG_T_CONFIG - bit 0
 /// @return Enable bit that determines if temp channel is enabled or disabled
-uint8_t TMAG5273Mult::getTemperatureEn()
+uint8_t TMAG5273Mux::getTemperatureEn()
 {
     uint8_t tempENreg = 0;
     tempENreg = readRegister(TMAG5273_REG_T_CONFIG);
@@ -796,7 +796,7 @@ uint8_t TMAG5273Mult::getTemperatureEn()
 ///     0X3 = X 1st, Z 2nd
 ///     TMAG5273_REG_SENSOR_CONFIG_2 - bit 3-2
 /// @return Angle calculation and associated channel order
-uint8_t TMAG5273Mult::getAngleEn()
+uint8_t TMAG5273Mux::getAngleEn()
 {
     uint8_t angleReg = 0;
     angleReg = readRegister(TMAG5273_REG_SENSOR_CONFIG_2);
@@ -828,7 +828,7 @@ uint8_t TMAG5273Mult::getAngleEn()
     return 0;
 }
 
-void TMAG5273Mult::getXYZData(float* xyz){
+void TMAG5273Mux::getXYZData(float* xyz){
     const uint8_t bytes = 6;
     uint8_t buffer[bytes] {};
     RegisterReadMultiple(TMAG5273_REG_X_MSB_RESULT, buffer, bytes);
@@ -851,7 +851,7 @@ void TMAG5273Mult::getXYZData(float* xyz){
 /// MSB 8-Bit and LSB 8-Bits. This reads from the following registers:
 ///     X_MSB_RESULT and X_LSB_RESULT
 /// @return X-Channel data conversion results
-float TMAG5273Mult::getXData()
+float TMAG5273Mux::getXData()
 {
     const int8_t xLSB = readRegister(TMAG5273_REG_X_LSB_RESULT);
     const int8_t xMSB = readRegister(TMAG5273_REG_X_MSB_RESULT);
@@ -875,7 +875,7 @@ float TMAG5273Mult::getXData()
 ///  MSB 8-Bits and LSB 8-Bits. This reads from the following registers:
 ///     Y_MSB_RESULT and Y_LSB_RESULT
 /// @return Y-Channel data conversion results
-float TMAG5273Mult::getYData()
+float TMAG5273Mux::getYData()
 {
     const int8_t yLSB = readRegister(TMAG5273_REG_Y_LSB_RESULT);
     const int8_t yMSB = readRegister(TMAG5273_REG_Y_MSB_RESULT);
@@ -899,7 +899,7 @@ float TMAG5273Mult::getYData()
 ///  MSB 8-Bits and LSB 8-Bits. This reads from the following registers:
 ///     Z_MSB_RESULT and Z_LSB_RESULT
 /// @return Z-Channel data conversion results.
-float TMAG5273Mult::getZData()
+float TMAG5273Mux::getZData()
 {
     const int8_t zLSB = readRegister(TMAG5273_REG_Z_LSB_RESULT);
     const int8_t zMSB = readRegister(TMAG5273_REG_Z_MSB_RESULT);
@@ -926,7 +926,7 @@ float TMAG5273Mult::getZData()
 ///     0X1 = ±80mT
 ///     TMAG5273_REG_SENSOR_CONFIG_2 - bit 1
 /// @return X and Y axes magnetic range (0 or 1)
-uint8_t TMAG5273Mult::getXYAxisRange()
+uint8_t TMAG5273Mux::getXYAxisRange()
 {
     uint8_t XYrangeReg = 0;
     XYrangeReg = readRegister(TMAG5273_REG_SENSOR_CONFIG_2);
@@ -951,7 +951,7 @@ uint8_t TMAG5273Mult::getXYAxisRange()
 ///     0X1 = ±80mT
 ///     TMAG5273_REG_SENSOR_CONFIG_2 - bit 0
 /// @return Z axis magnetic range from ±40mT or ±80mT
-uint8_t TMAG5273Mult::getZAxisRange()
+uint8_t TMAG5273Mux::getZAxisRange()
 {
     uint8_t ZrangeReg = 0;
     ZrangeReg = readRegister(TMAG5273_REG_SENSOR_CONFIG_2);

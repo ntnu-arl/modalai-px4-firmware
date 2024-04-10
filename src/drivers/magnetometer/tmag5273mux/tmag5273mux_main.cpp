@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
-#include "TMAG5273Mult.hpp"
+#include "TMAG5273Mux.hpp"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void TMAG5273Mult::print_usage()
+void TMAG5273Mux::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("tmag5273mult", "driver");
+	PRINT_MODULE_USAGE_NAME("tmag5273mux", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -47,10 +47,10 @@ void TMAG5273Mult::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int tmag5273mult_main(int argc, char *argv[])
+extern "C" int tmag5273mux_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = TMAG5273Mult;
+	using ThisDriver = TMAG5273Mux;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 	cli.default_i2c_frequency = I2C_SPEED;
@@ -72,7 +72,7 @@ extern "C" int tmag5273mult_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_TMAG5273MULT);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_TMAG5273MUX);
 
 	PX4_DEBUG("-----------------------hi-------------------");
 	if (!strcmp(verb, "start")) {

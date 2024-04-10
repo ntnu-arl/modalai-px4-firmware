@@ -32,15 +32,15 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__magnetometer__tmag5273mult
-	MAIN tmag5273mult
+	MODULE drivers__magnetometer__tmag5273mux
+	MAIN tmag5273mux
 	COMPILE_FLAGS
 		-DDEBUG_BUILD
 	SRCS
 		PCA9546.hpp
-		TMAG5273Mult.cpp
-		TMAG5273Mult.hpp
-		tmag5273mult_main.cpp
+		TMAG5273Mux.cpp
+		TMAG5273Mux.hpp
+		tmag5273mux_main.cpp
 		TI_TMAG5273_registers.hpp
 	DEPENDS
 		drivers_magnetometer
