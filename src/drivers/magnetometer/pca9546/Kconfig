@@ -1,5 +1,0 @@
-menuconfig DRIVERS_MAGNETOMETER_PCA9546
-	bool "PCA9546"
-	default n
-	---help---
-		Enable support for PCA9546
