@@ -114,7 +114,7 @@ void TMAG5273Mult::RunImpl()
   {
     case STATE::CONFIGURE:
       PX4_DEBUG("-------------------- hi");
-      if (Configure())
+      if (ConfigureAll())
       {
         _state = STATE::MEASURE;
         ScheduleDelayed(20_ms);
@@ -151,7 +151,20 @@ void TMAG5273Mult::RunImpl()
   }
 }
 
-bool TMAG5273Mult::Configure()
+bool TMAG5273Mult::ConfigureAll()
+{
+    bool success = true;
+
+    for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
+    {
+        _mux.select(i);
+        success &= ConfigureOne();
+    }
+
+    return success;
+}
+
+bool TMAG5273Mult::ConfigureOne()
 {
 	bool success = true;
 

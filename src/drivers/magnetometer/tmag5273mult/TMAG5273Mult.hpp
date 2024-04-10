@@ -78,7 +78,8 @@ private:
 
 	bool Reset();
 
-	bool Configure();
+	bool ConfigureOne();
+	bool ConfigureAll();
 
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
