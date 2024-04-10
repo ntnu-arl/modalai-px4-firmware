@@ -123,9 +123,6 @@ private:
 	uint8_t getTemperatureEn();
 	uint8_t getAngleEn();
 
-	float getXData();
-	float getYData();
-	float getZData();
 	void getXYZData(float* xyz);
 	uint8_t getXYAxisRange();
 	uint8_t getZAxisRange();
