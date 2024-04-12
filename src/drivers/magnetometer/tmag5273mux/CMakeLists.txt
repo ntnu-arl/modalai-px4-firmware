@@ -35,7 +35,7 @@ px4_add_module(
 	MODULE drivers__magnetometer__tmag5273mux
 	MAIN tmag5273mux
 	COMPILE_FLAGS
-		-DDEBUG_BUILD
+		# -DDEBUG_BUILD
 	SRCS
 		PCA9546.hpp
 		TMAG5273Mux.cpp

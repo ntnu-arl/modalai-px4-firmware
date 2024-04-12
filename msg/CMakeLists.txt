@@ -179,6 +179,7 @@ set(msg_files
 	SensorGyroFifo.msg
 	SensorHygrometer.msg
 	SensorMag.msg
+	SensorMagMux.msg
 	SensorOpticalFlow.msg
 	SensorPreflightMag.msg
 	SensorSelection.msg

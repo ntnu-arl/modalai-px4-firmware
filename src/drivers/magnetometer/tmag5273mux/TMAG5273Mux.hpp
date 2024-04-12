@@ -49,6 +49,9 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/defines.h>
+
+#include <uORB/topics/sensor_mag_mux.h>
 
 using namespace TI_TMAG5273;
 #define NUMBER_OF_TMAG5273 4
@@ -92,6 +95,8 @@ private:
 	bool ConfigureOne();
 	bool ConfigureAll();
 
+	void publish(const hrt_abstime &timestamp);
+
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
 	uint8_t RegisterRead(Register reg);
@@ -129,10 +134,12 @@ private:
 
 	int8_t setConvAvg(uint8_t avgMode);
 
-	PX4Magnetometer _px4_mag;
+
 	PCA9546 _mux;
 	const float _rangeXY{ XY_AXIS_RANGE ? 80.0f : 40.0f };
 	const float _rangeZ{ Z_AXIS_RANGE ? 80.0f : 40.0f };
+
+	uORB::PublicationMulti<sensor_mag_mux_s> _sensor_pub{ORB_ID(sensor_mag_mux)};
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};

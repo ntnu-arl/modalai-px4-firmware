@@ -41,12 +41,14 @@ using namespace time_literals;
 // }
 
 TMAG5273Mux::TMAG5273Mux(const I2CSPIDriverConfig& config)
-  : I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id()), _mux(config, I2C_SPEED, NUMBER_OF_TMAG5273)
+  : I2C(config), I2CSPIDriver(config), _mux(config, I2C_SPEED, NUMBER_OF_TMAG5273)
 {
 }
 
 TMAG5273Mux::~TMAG5273Mux()
 {
+    _sensor_pub.unadvertise();
+
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -134,13 +136,28 @@ void TMAG5273Mux::RunImpl()
         PX4_DEBUG("\ty: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[1], (double)_mag_data[1].xyz[1], (double)_mag_data[2].xyz[1], (double)_mag_data[3].xyz[1]);
         PX4_DEBUG("\tz: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[2], (double)_mag_data[1].xyz[2], (double)_mag_data[2].xyz[2], (double)_mag_data[3].xyz[2]);
 
-        // TODO: custom uORB
+        publish(now);
         
         // TODO: pick delay time
         // initiate next measurement
         ScheduleDelayed(10_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
         break;
   }
+}
+
+void TMAG5273Mux::publish(const hrt_abstime &timestamp)
+{
+    sensor_mag_mux_s report;
+    assert(report.NUMBER_SENSORS >= NUMBER_OF_TMAG5273);
+    report.timestamp = timestamp;
+    for (uint8_t i=0; i<NUMBER_OF_TMAG5273; ++i)
+    {
+        report.mags[i].x = _mag_data[i].xyz[0];
+        report.mags[i].y = _mag_data[i].xyz[1];
+        report.mags[i].z = _mag_data[i].xyz[2];
+    }
+    // TODO: gain offset (see datasheet)
+    _sensor_pub.publish(report);
 }
 
 bool TMAG5273Mux::ConfigureAll()
@@ -218,9 +235,6 @@ bool TMAG5273Mux::ConfigureOne()
     {
         return 0;
     }
-
-	// _px4_mag.set_scale(1.f / 1320.f); // 1320 LSB/Gauss
-	_px4_mag.set_scale(1.f);
 
 	return success;
 }
