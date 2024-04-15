@@ -88,11 +88,11 @@ void TMAG5273Mux::print_status()
 int TMAG5273Mux::probe()
 {
     for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
-    {
+    {   PX4_DEBUG("Checking %u", i);
         _mux.select(i);
         if (!isConnected())
         {
-            DEVICE_DEBUG("TMAG5273 not connected");
+            PX4_DEBUG("TMAG5273 not connected");
             return PX4_ERROR;
         }
     }
@@ -331,7 +331,6 @@ uint16_t TMAG5273Mux::getManufacturerID()
 
     deviceIDReg = (databuffer[1] << 8) | (databuffer[0]);
 
-    PX4_DEBUG("deviceIDReg: %u", deviceIDReg);
     return deviceIDReg;
 }
 
