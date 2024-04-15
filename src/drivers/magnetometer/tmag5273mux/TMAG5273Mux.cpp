@@ -850,6 +850,7 @@ void TMAG5273Mux::getXYZData(float* xyz){
 
     const float div = 32768;
     xyz[0] = ((float)xData) * _rangeXY / div;
+    // REVIEW: make y negative (more intuitive East-North-Up right handed coord system)
     xyz[1] = ((float)yData) * _rangeXY / div;
     xyz[2] = ((float)zData) * _rangeZ / div;
     // PX4_DEBUG("%f\t%f\t%f", (double)xyz[0], (double)xyz[1], (double)xyz[2]);
