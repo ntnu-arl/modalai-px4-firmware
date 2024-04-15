@@ -135,6 +135,37 @@ private:
 	int8_t setConvAvg(uint8_t avgMode);
 
 
+	void cart2Sph(const float xyz[3])
+	{
+		// given mounting configuration vs typical spherical coords
+		// forward (x) should be mag z coord
+		// left (y) should be mag x coord
+		// up (z) should be mag -y coord
+		const float x = xyz[2];
+		const float y = xyz[0];
+		const float z = -xyz[1];
+
+		const float azimuth = std::atan2(y, x);
+    const float elevation = std::asin(z / std::sqrt(x * x + y * y + z * z));  // elevation 0 == straight forward
+
+		const double rad2deg = 180.0 / M_PI_PRECISE;
+    PX4_DEBUG("\tazimuth: %f\televation: %f", (double)azimuth * rad2deg, (double)elevation * rad2deg);
+  }
+
+	// calc angles between XZ and YZ
+	void calcAngles(const float xyz[3])
+	{
+		const float x = xyz[0];
+		const float y = -xyz[1];
+		const float z = xyz[2];
+
+		const float xz_angle = std::atan2(x, z);
+    const float yz_angle = std::atan2(y, z);
+
+		const double rad2deg = 180 / M_PI_PRECISE;
+    PX4_DEBUG("\txz angle: %f\tyz angle: %f", (double)xz_angle * rad2deg, (double)yz_angle * rad2deg);
+  }
+
 	PCA9546 _mux;
 	const float _rangeXY{ XY_AXIS_RANGE ? 80.0f : 40.0f };
 	const float _rangeZ{ Z_AXIS_RANGE ? 80.0f : 40.0f };
