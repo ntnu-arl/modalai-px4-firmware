@@ -404,14 +404,20 @@ ControlAllocator::Run()
 			{
 				ActuatorEffectiveness::Configuration config{};
 				EffectivenessUpdateReason reason = EffectivenessUpdateReason::CONFIGURATION_UPDATE;
-				_actuator_effectiveness->getEffectivenessMatrix(config, reason);
 
-				for (int i = 0; i < _num_control_allocation; ++i)
+				if (_actuator_effectiveness->getEffectivenessMatrix(config, reason))
 				{
-					// Assign control effectiveness matrix
-					_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
-																													config.linearization_point[i], config.num_actuators_matrix[i],
-																													reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+					for (int i = 0; i < _num_control_allocation; ++i)
+					{
+						// Assign control effectiveness matrix
+						_control_allocation[i]->setEffectivenessMatrix(
+								config.effectiveness_matrices[i], config.trim[i], config.linearization_point[i],
+								config.num_actuators_matrix[i], reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+					}
+				}
+				else
+				{
+					PX4_WARN("Couldn't get effectiveness matrix");
 				}
 			}
 			else
