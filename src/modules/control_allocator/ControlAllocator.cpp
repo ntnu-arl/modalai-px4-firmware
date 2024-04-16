@@ -216,6 +216,7 @@ ControlAllocator::update_effectiveness_source()
 		// try to instanciate new effectiveness source
 		ActuatorEffectiveness *tmp = nullptr;
 
+		_flexible_support = false;
 		switch (source) {
 		case EffectivenessSource::NONE:
 		case EffectivenessSource::MULTIROTOR:
@@ -260,6 +261,11 @@ ControlAllocator::update_effectiveness_source()
 
 		case EffectivenessSource::HELICOPTER:
 			tmp = new ActuatorEffectivenessHelicopter(this);
+			break;
+
+		case EffectivenessSource::MULTIROTOR_FLEXIBLE:
+			tmp = new ActuatorEffectivenessMCFlexible(this);
+			_flexible_support = true;
 			break;
 
 		default:
@@ -382,6 +388,37 @@ ControlAllocator::Run()
 			_timestamp_sample = vehicle_thrust_setpoint.timestamp_sample;
 		}
 	}
+	
+	// Also run allocator if arm deflections update
+	if (_flexible_support)
+	{
+		sensor_mag_mux_s sensor_mag_mux;
+		if (_sensor_mag_mux_sub.update(&sensor_mag_mux))
+		{
+			const int count = sensor_mag_mux.NUMBER_SENSORS;
+
+			Vector3f measurements[count];
+			for (int i = 0; i < count; ++i)
+			{
+				measurements[i] = Vector3f(sensor_mag_mux.mags[i].x, sensor_mag_mux.mags[i].y, sensor_mag_mux.mags[i].z);
+			}
+
+			if (_actuator_effectiveness->updateHallEffect(measurements, count))
+			{
+				ActuatorEffectiveness::Configuration config{};
+				EffectivenessUpdateReason reason = EffectivenessUpdateReason::CONFIGURATION_UPDATE;
+				_actuator_effectiveness->getEffectivenessMatrix(config, reason);
+
+				for (int i = 0; i < _num_control_allocation; ++i)
+				{
+					// Assign control effectiveness matrix
+					_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
+																													config.linearization_point[i], config.num_actuators_matrix[i],
+																													reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+				}
+			}
+		}
+	}
 
 	if (do_update) {
 		_last_run = now;
@@ -389,6 +426,8 @@ ControlAllocator::Run()
 		check_for_motor_failures();
 
 		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+		// TODO: update sensor measurements
+		// TODO: update effectiveness matrix
 
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
