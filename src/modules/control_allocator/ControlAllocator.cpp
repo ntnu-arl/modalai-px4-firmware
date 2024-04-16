@@ -416,7 +416,7 @@ ControlAllocator::Run()
 			}
 			else
 			{
-				PX4_WARN("New emag mux message but couldn't updateHallEffect");
+				PX4_WARN("New mag mux message but couldn't updateHallEffect");
 			}
 		}
 	}
