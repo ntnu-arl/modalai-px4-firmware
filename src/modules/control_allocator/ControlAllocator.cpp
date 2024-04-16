@@ -216,7 +216,6 @@ ControlAllocator::update_effectiveness_source()
 		// try to instanciate new effectiveness source
 		ActuatorEffectiveness *tmp = nullptr;
 
-		_flexible_support = false;
 		switch (source) {
 		case EffectivenessSource::NONE:
 		case EffectivenessSource::MULTIROTOR:
@@ -265,7 +264,6 @@ ControlAllocator::update_effectiveness_source()
 
 		case EffectivenessSource::MULTIROTOR_FLEXIBLE:
 			tmp = new ActuatorEffectivenessMCFlexible(this);
-			_flexible_support = true;
 			break;
 
 		default:
@@ -390,7 +388,6 @@ ControlAllocator::Run()
 	}
 
 	// Also run allocator if arm deflections update
-	if (_flexible_support)
 	{
 		sensor_mag_mux_s sensor_mag_mux;
 		if (_sensor_mag_mux_sub.update(&sensor_mag_mux))

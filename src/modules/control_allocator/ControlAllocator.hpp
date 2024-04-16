@@ -209,8 +209,6 @@ private:
 	Params _params{};
 	bool _has_slew_rate{false};
 
-	bool _flexible_support{false};
-
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
