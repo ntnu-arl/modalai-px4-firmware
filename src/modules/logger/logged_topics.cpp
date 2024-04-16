@@ -220,6 +220,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_gnss_relative", 1000, 1);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
+	add_topic("sensor_mag_mux", 20);
 	// add_topic_multi("sensor_optical_flow", 1000, 2);
 	add_topic("sensor_optical_flow");
 
