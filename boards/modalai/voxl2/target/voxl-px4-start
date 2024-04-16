@@ -68,6 +68,7 @@ param load
 # because if power is removed without stopping the logger gracefully then
 # the log file may be corrupted.
 logger start -t
+# add -e to log "from start" instead of "from arm"
 
 # # IMU (accelerometer / gyroscope)
 # if [ "$PLATFORM" == "M0104" ]; then
@@ -89,7 +90,7 @@ logger start -t
 # qshell ist8310 start -R 10 -X -b 1
 /bin/echo "===============Looking for TMAG5273 magnetometer==============="
 # qshell tmag5273 start -X -b 1
-# qshell tmag5273mux start -X -b 1
+qshell tmag5273mux start -X -b 1
 
 # # GPS and magnetometer
 # if [ "$GPS" != "NONE" ]; then
@@ -104,8 +105,8 @@ logger start -t
 
 # Auto detect an ncp5623c i2c RGB LED. If one isn't connected this will
 # fail but not cause any harm. 
-/bin/echo "Looking for ncp5623c RGB LED"
-qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
+# /bin/echo "Looking for ncp5623c RGB LED"
+# qshell rgbled_ncp5623c start -X -b 1 -f 40    0 -a 56
 
 # We do not change the following parameters but QGC will complain if they aren't
 # being reported as "used" by px4. "Touching" them accomplishes that.
@@ -233,6 +234,7 @@ mavlink stream -u 14556 -s ATTITUDE -r 10
 mavlink stream -u 14556 -s ATTITUDE_QUATERNION -r 10
 mavlink stream -u 14556 -s GLOBAL_POSITION_INT -r 30
 mavlink stream -u 14556 -s SCALED_PRESSURE -r 10
+mavlink stream -u 14556 -s MAG_MUX -r 1
 
 # start the slow normal mode for voxl-mavlink-server to forward to GCS
 mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
