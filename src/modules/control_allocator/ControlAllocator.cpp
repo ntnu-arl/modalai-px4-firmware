@@ -388,7 +388,7 @@ ControlAllocator::Run()
 			_timestamp_sample = vehicle_thrust_setpoint.timestamp_sample;
 		}
 	}
-	
+
 	// Also run allocator if arm deflections update
 	if (_flexible_support)
 	{
@@ -416,6 +416,10 @@ ControlAllocator::Run()
 																													config.linearization_point[i], config.num_actuators_matrix[i],
 																													reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
 				}
+			}
+			else
+			{
+				PX4_WARN("New emag mux message but couldn't updateHallEffect");
 			}
 		}
 	}
