@@ -78,12 +78,7 @@ private:
 				msg.mags[i*3 + 2] =  sensor_mag_mux.mags[i].z;
 			}
 
-			for(int i=0; i<4; i++)
-			{
-				PX4_INFO("%i %f ", i, (double)msg.mags[i]);
-			}				
-
-				mavlink_msg_mag_mux_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_msg_mag_mux_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
