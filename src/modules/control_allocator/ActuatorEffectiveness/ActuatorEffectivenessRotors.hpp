@@ -70,8 +70,17 @@ public:
 		int tilt_index;
 	};
 
+	struct SensorGeometry {
+    matrix::Vector3f O_t_OS;      // position of sensor in COG {O}
+    matrix::Quaternionf O_rot_S;  // rotation from {S} to {O}
+    matrix::Vector3f O_t_OR;      // translation from {O} to {R} in {O}
+    matrix::Vector3f axis;        // copy of axis from rotor geomtery
+    matrix::Vector3f S_t_SR;      // translation from sensor {S} to rotor {R} expressed in sensor {S}
+  };
+
 	struct Geometry {
 		RotorGeometry rotors[NUM_ROTORS_MAX];
+		SensorGeometry sensors[NUM_ROTORS_MAX];
 		int num_rotors{0};
 		bool propeller_torque_disabled{false};
 		bool yaw_by_differential_thrust_disabled{false};
@@ -80,7 +89,7 @@ public:
 	};
 
 	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
-				    bool tilt_support = false);
+				    bool tilt_support = false, bool flexible_support = false);
 	virtual ~ActuatorEffectivenessRotors() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
@@ -110,6 +119,8 @@ public:
 	 */
 	uint32_t updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control);
 
+	void updateRotorsFromSensors(const matrix::Vector3f* mag_meas);
+
 	const Geometry &geometry() const { return _geometry; }
 
 	/**
@@ -132,6 +143,7 @@ private:
 	void updateParams() override;
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
+	const bool _flexible_support;
 
 	struct ParamHandles {
 		param_t position_x;
@@ -143,6 +155,9 @@ private:
 		param_t thrust_coef;
 		param_t moment_ratio;
 		param_t tilt_index;
+		param_t sensor_x;
+		param_t sensor_y;
+		param_t sensor_z;
 	};
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
 	param_t _count_handle;

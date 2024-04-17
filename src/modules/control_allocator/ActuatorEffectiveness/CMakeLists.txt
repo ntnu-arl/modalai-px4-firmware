@@ -44,6 +44,8 @@ px4_add_library(ActuatorEffectiveness
 	ActuatorEffectivenessHelicopter.hpp
 	ActuatorEffectivenessMCTilt.cpp
 	ActuatorEffectivenessMCTilt.hpp
+	ActuatorEffectivenessMCFlexible.cpp
+	ActuatorEffectivenessMCFlexible.hpp
 	ActuatorEffectivenessMultirotor.cpp
 	ActuatorEffectivenessMultirotor.hpp
 	ActuatorEffectivenessTilts.cpp

@@ -262,6 +262,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopter(this);
 			break;
 
+		case EffectivenessSource::MULTIROTOR_FLEXIBLE:
+			tmp = new ActuatorEffectivenessMCFlexible(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
@@ -383,12 +387,54 @@ ControlAllocator::Run()
 		}
 	}
 
+	// Also run allocator if arm deflections update
+	{
+		sensor_mag_mux_s sensor_mag_mux;
+		if (_sensor_mag_mux_sub.update(&sensor_mag_mux))
+		{
+			const int count = sensor_mag_mux.NUMBER_SENSORS;
+
+			Vector3f measurements[count];
+			for (int i = 0; i < count; ++i)
+			{
+				measurements[i] = Vector3f(sensor_mag_mux.mags[i].x, sensor_mag_mux.mags[i].y, sensor_mag_mux.mags[i].z);
+			}
+
+			if (_actuator_effectiveness->updateHallEffect(measurements, count))
+			{
+				ActuatorEffectiveness::Configuration config{};
+				EffectivenessUpdateReason reason = EffectivenessUpdateReason::CONFIGURATION_UPDATE;
+
+				if (_actuator_effectiveness->getEffectivenessMatrix(config, reason))
+				{
+					for (int i = 0; i < _num_control_allocation; ++i)
+					{
+						// Assign control effectiveness matrix
+						_control_allocation[i]->setEffectivenessMatrix(
+								config.effectiveness_matrices[i], config.trim[i], config.linearization_point[i],
+								config.num_actuators_matrix[i], reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+					}
+				}
+				else
+				{
+					PX4_WARN("Couldn't get effectiveness matrix");
+				}
+			}
+			else
+			{
+				PX4_WARN("New mag mux message but couldn't updateHallEffect");
+			}
+		}
+	}
+
 	if (do_update) {
 		_last_run = now;
 
 		check_for_motor_failures();
 
 		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+		// TODO: update sensor measurements
+		// TODO: update effectiveness matrix
 
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];

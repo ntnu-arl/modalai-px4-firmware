@@ -46,8 +46,8 @@
 using namespace matrix;
 
 ActuatorEffectivenessRotors::ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config,
-		bool tilt_support)
-	: ModuleParams(parent), _axis_config(axis_config), _tilt_support(tilt_support)
+		bool tilt_support, bool flexible_support)
+	: ModuleParams(parent), _axis_config(axis_config), _tilt_support(tilt_support), _flexible_support(flexible_support)
 {
 	for (int i = 0; i < NUM_ROTORS_MAX; ++i) {
 		char buffer[17];
@@ -76,6 +76,16 @@ ActuatorEffectivenessRotors::ActuatorEffectivenessRotors(ModuleParams *parent, A
 		if (_tilt_support) {
 			snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_TILT", i);
 			_param_handles[i].tilt_index = param_find(buffer);
+		}
+
+		if (_flexible_support) {
+			// sensor position wrt COG
+			snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_PX", i);
+			_param_handles[i].sensor_x = param_find(buffer);
+			snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_PY", i);
+			_param_handles[i].sensor_y = param_find(buffer);
+			snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_PZ", i);
+			_param_handles[i].sensor_z = param_find(buffer);
 		}
 	}
 
@@ -131,6 +141,29 @@ void ActuatorEffectivenessRotors::updateParams()
 
 		} else {
 			_geometry.rotors[i].tilt_index = -1;
+		}
+
+		if (_flexible_support) {
+			Vector3f &O_t_OS = _geometry.sensors[i].O_t_OS;
+			param_get(_param_handles[i].sensor_x, &O_t_OS(0));
+			param_get(_param_handles[i].sensor_y, &O_t_OS(1));
+			param_get(_param_handles[i].sensor_z, &O_t_OS(2));
+
+			_geometry.sensors[i].O_t_OR = _geometry.rotors[i].position;
+			_geometry.sensors[i].axis = _geometry.rotors[i].axis;
+
+			// create rotation for nominal case
+			// asuming pitch and roll are 0
+			const float yaw = std::atan2(O_t_OS(1), O_t_OS(0));
+      _geometry.sensors[i].O_rot_S = matrix::Quaternionf(matrix::Eulerf(0.0f, 0.0f, yaw));
+      // _geometry.sensors[i].O_rot_S =
+      //     matrix::Quaternionf(matrix::Vector3f(1.0f, 0.0f, 0.0f), matrix::Vector3f(sensor(0), sensor(1), 0.0f));
+
+      // position of rotor with respect to sensor
+			Vector3f &S_t_SR = _geometry.sensors[i].S_t_SR;
+			const Vector3f &O_t_OR = _geometry.rotors[i].position;
+			const Vector3f O_t_SR = O_t_OR - O_t_OS;
+			S_t_SR = _geometry.sensors[i].O_rot_S.rotateVectorInverse(O_t_SR);
 		}
 	}
 }
@@ -257,6 +290,34 @@ uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectiv
 	}
 
 	return nontilted_motors;
+}
+
+// REVIEW: unnecessary?
+matrix::Vector3f sph2cart(const float& azimuth, const float& elevation)
+{
+  return matrix::Vector3f(std::cos(azimuth) * std::cos(elevation), std::sin(azimuth) * std ::cos(elevation),
+                          std::sin(elevation));
+}
+
+void ActuatorEffectivenessRotors::updateRotorsFromSensors(const matrix::Vector3f* hall_effect)
+{
+	for (int i=0; i < _geometry.num_rotors; ++i) {
+		// TODO: get from sensors
+		// REVIEW: does spherical2cartesian make sense?
+    // rotation of rotor deflection
+    const matrix::Quaternionf Sd_rot_S(matrix::Vector3f(1.0f, 0.0f, 0.0f), hall_effect[i]);
+
+    const matrix::Quaternionf& O_rot_S = _geometry.sensors[i].O_rot_S;
+
+    // update position
+		// TODO: update notation, shouldn't be S_t_SRd, should probably be Sd_t_SR
+    const matrix::Vector3f S_t_SRd = Sd_rot_S.rotateVector(_geometry.sensors[i].S_t_SR); // deflected rotor
+    const matrix::Vector3f O_t_SRd = O_rot_S.rotateVector(S_t_SRd);
+    _geometry.rotors[i].position = O_t_SRd + _geometry.sensors[i].O_t_OS;
+
+    // update axis
+    _geometry.rotors[i].axis = O_rot_S.rotateVector(Sd_rot_S.rotateVector(_geometry.sensors[i].axis)); // assuming prop-vertical thrust
+  }
 }
 
 Vector3f ActuatorEffectivenessRotors::tiltedAxis(float tilt_angle, float tilt_direction)
