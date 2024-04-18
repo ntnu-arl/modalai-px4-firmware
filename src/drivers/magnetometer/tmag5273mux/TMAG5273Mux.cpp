@@ -121,6 +121,9 @@ void TMAG5273Mux::RunImpl()
       break;
 
     case STATE::MEASURE:
+        // REVIEW not sure if allowed?
+        // ScheduleDelayed(_measurement_interval); 
+
   		const hrt_abstime tic = hrt_absolute_time();
         // mag_xyz_t data[NUMBER_OF_TMAG5273] {};
         for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
@@ -129,22 +132,31 @@ void TMAG5273Mux::RunImpl()
             getXYZData(_mag_data[i].xyz);
             
         }
-        const hrt_abstime toc = hrt_absolute_time();
-        PX4_DEBUG("%llu us", toc-tic); // avg: approx 2200us
+        const hrt_abstime sample_time = hrt_absolute_time() - tic;
+        PX4_DEBUG("%llu us", sample_time); // avg: approx 2200us
         PX4_DEBUG("%llu Read from magnetometer: ", now);
         PX4_DEBUG("\tx: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[0], (double)_mag_data[1].xyz[0], (double)_mag_data[2].xyz[0], (double)_mag_data[3].xyz[0]);
         PX4_DEBUG("\ty: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[1], (double)_mag_data[1].xyz[1], (double)_mag_data[2].xyz[1], (double)_mag_data[3].xyz[1]);
         PX4_DEBUG("\tz: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[2], (double)_mag_data[1].xyz[2], (double)_mag_data[2].xyz[2], (double)_mag_data[3].xyz[2]);
-        for (uint8_t i=0; i<NUMBER_OF_TMAG5273; ++i){
-            cart2Sph(_mag_data[i].xyz);
-            calcAngles(_mag_data[i].xyz);
-        }
+        // for (uint8_t i=0; i<NUMBER_OF_TMAG5273; ++i){
+        //     cart2Sph(_mag_data[i].xyz);
+        //     calcAngles(_mag_data[i].xyz);
+        // }
 
         publish(now);
-        
-        // TODO: pick delay time
+
         // initiate next measurement
-        ScheduleDelayed(10_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
+        hrt_abstime delay;
+        if (sample_time > _measurement_interval)
+        {
+            delay = 100_us; // default delay time
+            PX4_DEBUG("Sample time greater than measurement interval: %llu > %llu", sample_time, _measurement_interval);
+        }
+        else
+        {
+            delay = _measurement_interval - sample_time;
+        }
+        ScheduleDelayed(delay);
         break;
   }
 }

@@ -166,6 +166,7 @@ private:
     PX4_DEBUG("\txz angle: %f\tyz angle: %f", (double)xz_angle * rad2deg, (double)yz_angle * rad2deg);
   }
 
+	const hrt_abstime _measurement_interval{ 2500 };
 	PCA9546 _mux;
 	const float _rangeXY{ XY_AXIS_RANGE ? 80.0f : 40.0f };
 	const float _rangeZ{ Z_AXIS_RANGE ? 80.0f : 40.0f };
