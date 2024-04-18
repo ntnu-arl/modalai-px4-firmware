@@ -158,7 +158,7 @@ parameters:
         
         CA_SENSOR${i}_PX:
             description:
-                short: Position of rotor ${i} along X body axis
+                short: Position of hall sensor ${i} along X body axis
             type: float
             decimal: 2
             increment: 0.1
@@ -169,7 +169,7 @@ parameters:
             default: 0.0
         CA_SENSOR${i}_PY:
             description:
-                short: Position of rotor ${i} along Y body axis
+                short: Position of hall sensor ${i} along Y body axis
             type: float
             decimal: 2
             increment: 0.1
@@ -180,7 +180,7 @@ parameters:
             default: 0.0
         CA_SENSOR${i}_PZ:
             description:
-                short: Position of rotor ${i} along Z body axis
+                short: Position of hall sensor ${i} along Z body axis
             type: float
             decimal: 2
             increment: 0.1
@@ -189,7 +189,7 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-
+        
         CA_ROTOR${i}_AX:
             description:
                 short: Axis of rotor ${i} thrust vector, X body axis component

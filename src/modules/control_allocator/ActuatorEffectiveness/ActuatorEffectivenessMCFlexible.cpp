@@ -2,7 +2,7 @@
 
 ActuatorEffectivenessMCFlexible::ActuatorEffectivenessMCFlexible(ModuleParams* parent)
 	: ModuleParams(parent),
-	_mc_rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards)
+	_mc_rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards, false, true)
 {
 	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
 		char buffer[17];
@@ -53,11 +53,11 @@ bool ActuatorEffectivenessMCFlexible::updateHallEffect(const matrix::Vector3f* m
   {
     return false;
   }
-
   for (int i = 0; i < count; ++i)
   {
 		_hall_effect[i] = measurements[i];
   }
+  	// PX4_INFO("%f %f",(double)_hall_effect[0](0), (double)_hall_effect[0](1));
 
 	return true;
 }
