@@ -388,7 +388,7 @@ ControlAllocator::Run()
 	}
 
 	// Also run allocator if arm deflections update
-	{
+	if (_effectiveness_source_id == EffectivenessSource::MULTIROTOR_FLEXIBLE) {
 		sensor_mag_mux_s sensor_mag_mux;
 		if (_sensor_mag_mux_sub.update(&sensor_mag_mux))
 		{
