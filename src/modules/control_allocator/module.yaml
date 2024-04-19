@@ -155,7 +155,8 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        
+
+        # Hall sensor Position
         CA_SENSOR${i}_PX:
             description:
                 short: Position of hall sensor ${i} along X body axis
@@ -189,7 +190,42 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        
+
+        # Hall sensor Max value
+        CA_SENSOR${i}_MAXX:
+            description:
+                short: maximum X value calibrated of hall sensor ${i}
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 8.0
+        CA_SENSOR${i}_MAXY:
+            description:
+                short: maximum Y value calibrated of hall sensor ${i}
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 8.0
+        CA_SENSOR${i}_MAXZ:
+            description:
+                short: maximum Z value calibrated of hall sensor ${i}
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 32.0
+            
         CA_ROTOR${i}_AX:
             description:
                 short: Axis of rotor ${i} thrust vector, X body axis component

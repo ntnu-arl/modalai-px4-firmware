@@ -148,7 +148,7 @@ void ActuatorEffectivenessRotors::updateParams()
 			param_get(_param_handles[i].sensor_x, &O_t_OS(0));
 			param_get(_param_handles[i].sensor_y, &O_t_OS(1));
 			param_get(_param_handles[i].sensor_z, &O_t_OS(2));
-   			
+
 			// PX4_INFO("O_t_OS: %f %f %f ",(double)O_t_OS(0), (double)O_t_OS(1), (double)O_t_OS(2) );
 
 			_geometry.sensors[i].O_t_OR = _geometry.rotors[i].position;

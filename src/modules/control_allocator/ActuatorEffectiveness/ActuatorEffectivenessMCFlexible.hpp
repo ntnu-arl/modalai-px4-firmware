@@ -19,7 +19,7 @@ public:
 
 	struct Calibration {
 		matrix::Vector3f center;
-		matrix::Vector3f max;
+		matrix::Vector3f max_val;
 	};
 
   ActuatorEffectivenessMCFlexible(ModuleParams* parent);
@@ -52,6 +52,9 @@ private:
 		param_t position_x;
 		param_t position_y;
 		param_t position_z;
+		param_t cal_max_x;
+		param_t cal_max_y;
+		param_t cal_max_z;
 	};
 	ParamHandles _param_handles[NUM_SENSORS_MAX];
 
