@@ -392,15 +392,15 @@ ControlAllocator::Run()
 		sensor_mag_mux_s sensor_mag_mux;
 		if (_sensor_mag_mux_sub.update(&sensor_mag_mux))
 		{
-			const int count = sensor_mag_mux.NUMBER_SENSORS;
+			const int num_sensor = sensor_mag_mux.NUMBER_SENSORS;
 
-			Vector3f measurements[count];
-			for (int i = 0; i < count; ++i)
+			Vector3f measurements[num_sensor];
+			for (int i = 0; i < num_sensor; ++i)
 			{
 				measurements[i] = Vector3f(sensor_mag_mux.mags[i].x, sensor_mag_mux.mags[i].y, sensor_mag_mux.mags[i].z);
 			}
 
-			if (_actuator_effectiveness->updateHallEffect(measurements, count))
+			if (_actuator_effectiveness->updateHallEffect(measurements, num_sensor))
 			{
 				ActuatorEffectiveness::Configuration config{};
 				EffectivenessUpdateReason reason = EffectivenessUpdateReason::CONFIGURATION_UPDATE;

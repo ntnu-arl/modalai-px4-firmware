@@ -49,15 +49,37 @@ ActuatorEffectivenessMCFlexible::getEffectivenessMatrix(Configuration &configura
 
 bool ActuatorEffectivenessMCFlexible::updateHallEffect(const matrix::Vector3f* measurements, const int& count)
 {
-  if (count > NUM_SENSORS_MAX)
-  {
-    return false;
-  }
+	if (count > NUM_SENSORS_MAX)
+	{
+		return false;
+	}
+
+	static int msg_cnt = 0;
+	static Calibration calib_buffer[NUM_SENSORS_MAX];
+	static bool center_calib_set = false;
+	if (msg_cnt < _calibration_count) {
+		for (int i=0; i<count; ++i){
+			calib_buffer[i].center += measurements[i];
+		}
+	} else {
+		if (!center_calib_set) {
+			for (int i=0; i<count; ++i){
+				_calib[i].center = calib_buffer[i].center / _calibration_count;
+				_calib[i].center(2) = 0.0f; // setting z to 0, assuming magnet in nominal configuration points along z
+			}
+			center_calib_set = true;
+		}
+	}
+	msg_cnt++;
+
   for (int i = 0; i < count; ++i)
   {
-		_hall_effect[i] = measurements[i];
+		_hall_effect[i] = measurements[i] - _calib[i].center;
   }
-  	// PX4_INFO("%f %f",(double)_hall_effect[0](0), (double)_hall_effect[0](1));
+	// PX4_INFO("raw: %f %f %f", (double)measurements[0](0), (double)measurements[0](1), (double)measurements[0](2));
+	// PX4_INFO("center buffer: %f %f %f", (double)calib_buffer[0].center(0), (double)calib_buffer[0].center(1), (double)calib_buffer[0].center(2));
+	// PX4_INFO("center: %f %f %f", (double)_calib[0].center(0), (double)_calib[0].center(1), (double)_calib[0].center(2));
+	// PX4_INFO("result: %f %f %f", (double)_hall_effect[0](0), (double)_hall_effect[0](1), (double)_hall_effect[0](2));
 
 	return true;
 }

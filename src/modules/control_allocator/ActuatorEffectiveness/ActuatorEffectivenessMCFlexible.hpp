@@ -17,6 +17,11 @@ public:
 		int num_sensors{0};
   };
 
+	struct Calibration {
+		matrix::Vector3f center;
+		matrix::Vector3f max;
+	};
+
   ActuatorEffectivenessMCFlexible(ModuleParams* parent);
   virtual ~ActuatorEffectivenessMCFlexible() = default;
 
@@ -52,4 +57,7 @@ private:
 
 	Sensor _geometry{};
   matrix::Vector3f _hall_effect[NUM_SENSORS_MAX]{};
+
+	Calibration _calib[NUM_SENSORS_MAX]{};
+	const int _calibration_count {100}; // TODO: make param
 };
