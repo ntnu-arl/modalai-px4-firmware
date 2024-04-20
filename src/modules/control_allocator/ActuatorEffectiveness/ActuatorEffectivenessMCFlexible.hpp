@@ -3,6 +3,9 @@
 #include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
+#include <uORB/Publication.hpp>
+#include <uORB/topics/sensor_mag_mux_calib.h>
+
 class ActuatorEffectivenessMCFlexible : public ModuleParams, public ActuatorEffectiveness
 {
 public:
@@ -47,6 +50,8 @@ protected:
 private:
 // REVIEW: does tis need params?
 	void updateParams() override;
+
+	uORB::Publication<sensor_mag_mux_calib_s> _sensor_mag_mux_calib_pub{ORB_ID(sensor_mag_mux_calib)};
 
 	struct ParamHandles {
 		param_t position_x;

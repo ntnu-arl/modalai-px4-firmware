@@ -180,6 +180,8 @@ set(msg_files
 	SensorHygrometer.msg
 	SensorMag.msg
 	SensorMagMux.msg
+	SensorMagCalib.msg
+	SensorMagMuxCalib.msg
 	SensorOpticalFlow.msg
 	SensorPreflightMag.msg
 	SensorSelection.msg
@@ -201,8 +203,8 @@ set(msg_files
 	UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
-	UwbDistance.msg
-	UwbGrid.msg
+	# UwbDistance.msg
+	# UwbGrid.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
 	VehicleAngularAccelerationSetpoint.msg

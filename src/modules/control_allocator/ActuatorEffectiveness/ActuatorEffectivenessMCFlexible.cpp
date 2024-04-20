@@ -93,5 +93,18 @@ bool ActuatorEffectivenessMCFlexible::updateHallEffect(const matrix::Vector3f* m
 		// PX4_INFO("%d %f %f %f ", i, (double)_hall_effect[i](0), (double)_hall_effect[i](1), (double)_hall_effect[i](2)   );
 	}
 
+	sensor_mag_mux_calib_s report;
+	report.timestamp = hrt_absolute_time();
+	for (int i = 0; i < count; ++i)
+	{
+		for (int j = 0; j < 3; ++j)
+		{
+			report.mags[i].xyz[j] = _hall_effect[i](j);
+			report.mags[i].center[j] = _calib[i].center(j);
+			report.mags[i].max[j] = _calib[i].max_val(j);
+		}
+	}
+	_sensor_mag_mux_calib_pub.publish(report);
+
 	return true;
 }
