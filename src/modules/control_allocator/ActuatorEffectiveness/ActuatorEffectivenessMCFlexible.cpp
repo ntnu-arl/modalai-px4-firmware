@@ -82,7 +82,8 @@ bool ActuatorEffectivenessMCFlexible::updateHallEffect(const matrix::Vector3f* m
 		// _hall_effect[i] = measurements[i] - _calib[i].center;
 		for(int j=0; j<3;j++)
 		{
-			_hall_effect[i](j) = (measurements[i](j) - _calib[i].center(j))/(_calib[i].center(j) - _calib[i].max_val(j) );
+			// _hall_effect[i](j) = (measurements[i](j) - _calib[i].center(j))/(_calib[i].center(j) - _calib[i].max_val(j) );
+			_hall_effect[i](j) = (measurements[i](j) - _calib[i].center(j))/( _calib[i].max_val(j) - _calib[i].center(j));
 			// clip for safety
 			if(_hall_effect[i](j) >= 1.0f )
 				_hall_effect[i](j) = 1.0f;

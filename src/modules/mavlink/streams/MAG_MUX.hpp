@@ -37,10 +37,10 @@
 // #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_mag_mux.h>
 
-class MavlinkStreamMagMagMux : public MavlinkStream
+class MavlinkStreamMagMux : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamMagMagMux(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamMagMux(mavlink); }
 
 	static constexpr const char *get_name_static() { return "MAG_MUX"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_MAG_MUX; }
@@ -55,7 +55,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamMagMagMux(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamMagMux(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _sensor_mag_mux_sub{ORB_ID(sensor_mag_mux)};
 	uint8_t _number_of_batches{0};

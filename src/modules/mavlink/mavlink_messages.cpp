@@ -314,8 +314,11 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamMagCalReport>(),
 #endif // MAG_CAL_REPORT_HPP
 #if defined(MAG_MUX_HPP)
-	create_stream_list_item<MavlinkStreamMagMagMux>(),
+	create_stream_list_item<MavlinkStreamMagMux>(),
 #endif // MAG_MUX_HPP
+#if defined(MAG_MUX_CALIB_HPP)
+	create_stream_list_item<MavlinkStreamMagMuxCalib>(),
+#endif // MAG_MUX_CALIB_HPP
 #if defined(ODOMETRY_HPP)
 	create_stream_list_item<MavlinkStreamOdometry>(),
 #endif // ODOMETRY_HPP
