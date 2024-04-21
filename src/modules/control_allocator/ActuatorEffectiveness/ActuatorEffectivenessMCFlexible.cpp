@@ -13,6 +13,13 @@ ActuatorEffectivenessMCFlexible::ActuatorEffectivenessMCFlexible(ModuleParams* p
 		_param_handles[i].cal_max_y = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_MAXZ", i);
 		_param_handles[i].cal_max_z = param_find(buffer);
+
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CX", i);
+		_param_handles[i].cal_center_x = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CY", i);
+		_param_handles[i].cal_center_y = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CZ", i);
+		_param_handles[i].cal_center_z = param_find(buffer);
 	}
 
 	updateParams();
@@ -34,6 +41,11 @@ void ActuatorEffectivenessMCFlexible::updateParams()
 		param_get(_param_handles[i].cal_max_x, &max_val(0));
 		param_get(_param_handles[i].cal_max_y, &max_val(1));
 		param_get(_param_handles[i].cal_max_z, &max_val(2));
+
+		matrix::Vector3f &center_val = _calib[i].center;
+		param_get(_param_handles[i].cal_center_x, &center_val(0));
+		param_get(_param_handles[i].cal_center_y, &center_val(1));
+		param_get(_param_handles[i].cal_center_z, &center_val(2));
 	}
 }
 
@@ -58,24 +70,6 @@ bool ActuatorEffectivenessMCFlexible::updateHallEffect(const matrix::Vector3f* m
 	{
 		return false;
 	}
-
-	static int msg_cnt = 0;
-	static Calibration calib_buffer[NUM_SENSORS_MAX];
-	static bool center_calib_set = false;
-	if (msg_cnt < _calibration_count) {
-		for (int i=0; i<count; ++i){
-			calib_buffer[i].center += measurements[i];
-		}
-	} else {
-		if (!center_calib_set) {
-			for (int i=0; i<count; ++i){
-				_calib[i].center = calib_buffer[i].center / _calibration_count;
-				_calib[i].center(2) = 0.0f; // setting z to 0, assuming magnet in nominal configuration points along z
-			}
-			center_calib_set = true;
-		}
-	}
-	msg_cnt++;
 
 	for (int i = 0; i < count; ++i)
 	{

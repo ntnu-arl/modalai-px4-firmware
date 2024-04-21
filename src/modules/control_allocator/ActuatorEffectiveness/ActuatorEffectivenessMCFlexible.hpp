@@ -60,6 +60,9 @@ private:
 		param_t cal_max_x;
 		param_t cal_max_y;
 		param_t cal_max_z;
+		param_t cal_center_x;
+		param_t cal_center_y;
+		param_t cal_center_z;
 	};
 	ParamHandles _param_handles[NUM_SENSORS_MAX];
 
@@ -67,5 +70,4 @@ private:
   matrix::Vector3f _hall_effect[NUM_SENSORS_MAX]{};
 
 	Calibration _calib[NUM_SENSORS_MAX]{};
-	const int _calibration_count {100}; // TODO: make param
 };
