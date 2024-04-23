@@ -779,12 +779,6 @@ ControlAllocator::apply_hall_effect_calib(matrix::Vector3f* measurements)
 	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
 		for (int j = 0; j < 3; ++j) {
 			measurements[i](j) = (measurements[i](j) - _calib[i].center(j)) / (_calib[i].max_val(j) - _calib[i].center(j));
-
-		// clip for safety
-		if(measurements[i](j) > 1.0f )
-			measurements[i](j) = 1.0f;
-		if(measurements[i](j) < -1.0f )
-			measurements[i](j) = -1.0f;
 		}
 	}
 }
