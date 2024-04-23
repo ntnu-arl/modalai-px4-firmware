@@ -78,6 +78,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/sensor_mag_mux.h>
+#include <uORB/topics/sensor_mag_mux_calib.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -87,6 +88,8 @@ public:
 
 	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
+
+	static constexpr int NUM_SENSORS_MAX = ActuatorEffectivenessMCFlexible::NUM_SENSORS_MAX;
 
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
 
@@ -111,16 +114,24 @@ public:
 	bool init();
 
 private:
-
 	struct ParamHandles {
 		param_t slew_rate_motors[MAX_NUM_MOTORS];
 		param_t slew_rate_servos[MAX_NUM_SERVOS];
+		param_t cal_max[NUM_SENSORS_MAX][3];
+		param_t cal_center[NUM_SENSORS_MAX][3];
 	};
 
 	struct Params {
 		float slew_rate_motors[MAX_NUM_MOTORS];
 		float slew_rate_servos[MAX_NUM_SERVOS];
 	};
+
+	struct Calibration {
+		matrix::Vector3f center;
+		matrix::Vector3f max_val;
+	};
+
+	Calibration _calib[NUM_SENSORS_MAX]{};
 
 	/**
 	 * initialize some vectors/matrices from parameters
@@ -137,6 +148,9 @@ private:
 	void publish_control_allocator_status(int matrix_index);
 
 	void publish_actuator_controls();
+
+	void apply_hall_effect_calib(matrix::Vector3f* measurements);
+	void publish_hall_effect(const matrix::Vector3f* measurements);
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
@@ -185,6 +199,7 @@ private:
 	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
 	uORB::Publication<actuator_servos_trim_s>	_actuator_servos_trim_pub{ORB_ID(actuator_servos_trim)};
+	uORB::Publication<sensor_mag_mux_calib_s> _sensor_mag_mux_calib_pub{ORB_ID(sensor_mag_mux_calib)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

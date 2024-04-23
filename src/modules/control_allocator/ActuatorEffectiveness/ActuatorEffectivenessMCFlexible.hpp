@@ -3,9 +3,6 @@
 #include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
-#include <uORB/Publication.hpp>
-#include <uORB/topics/sensor_mag_mux_calib.h>
-
 class ActuatorEffectivenessMCFlexible : public ModuleParams, public ActuatorEffectiveness
 {
 public:
@@ -19,11 +16,6 @@ public:
 		SensorGeometry sensors[NUM_SENSORS_MAX];
 		int num_sensors{0};
   };
-
-	struct Calibration {
-		matrix::Vector3f center;
-		matrix::Vector3f max_val;
-	};
 
   ActuatorEffectivenessMCFlexible(ModuleParams* parent);
   virtual ~ActuatorEffectivenessMCFlexible() = default;
@@ -51,23 +43,6 @@ private:
 // REVIEW: does tis need params?
 	void updateParams() override;
 
-	uORB::Publication<sensor_mag_mux_calib_s> _sensor_mag_mux_calib_pub{ORB_ID(sensor_mag_mux_calib)};
-
-	struct ParamHandles {
-		param_t position_x;
-		param_t position_y;
-		param_t position_z;
-		param_t cal_max_x;
-		param_t cal_max_y;
-		param_t cal_max_z;
-		param_t cal_center_x;
-		param_t cal_center_y;
-		param_t cal_center_z;
-	};
-	ParamHandles _param_handles[NUM_SENSORS_MAX];
-
 	Sensor _geometry{};
-  matrix::Vector3f _hall_effect[NUM_SENSORS_MAX]{};
-
-	Calibration _calib[NUM_SENSORS_MAX]{};
+	matrix::Vector3f _hall_effect[NUM_SENSORS_MAX]{};
 };

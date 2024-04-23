@@ -73,6 +73,24 @@ ControlAllocator::ControlAllocator() :
 		_param_handles.slew_rate_servos[i] = param_find(buffer);
 	}
 
+	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
+		char buffer[17];
+		// sensor position wrt COG
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_MAXX", i);
+		_param_handles.cal_max[i][0] = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_MAXY", i);
+		_param_handles.cal_max[i][1] = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_MAXZ", i);
+		_param_handles.cal_max[i][2] = param_find(buffer);
+
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CX", i);
+		_param_handles.cal_center[i][0] = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CY", i);
+		_param_handles.cal_center[i][1] = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CZ", i);
+		_param_handles.cal_center[i][2] = param_find(buffer);
+	}
+
 	parameters_updated();
 }
 
@@ -120,6 +138,15 @@ ControlAllocator::parameters_updated()
 	for (int i = 0; i < MAX_NUM_SERVOS; ++i) {
 		param_get(_param_handles.slew_rate_servos[i], &_params.slew_rate_servos[i]);
 		_has_slew_rate |= _params.slew_rate_servos[i] > FLT_EPSILON;
+	}
+
+	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
+		matrix::Vector3f &max_val = _calib[i].max_val;
+		matrix::Vector3f &center_val = _calib[i].center;
+		for (int j = 0; j < 3; ++j) {
+			param_get(_param_handles.cal_max[i][j], &max_val(j));
+			param_get(_param_handles.cal_center[i][j], &center_val(j));
+		}
 	}
 
 	// Allocation method & effectiveness source
@@ -388,7 +415,7 @@ ControlAllocator::Run()
 	}
 
 	// Also run allocator if arm deflections update
-	if (_effectiveness_source_id == EffectivenessSource::MULTIROTOR_FLEXIBLE) {
+	{
 		sensor_mag_mux_s sensor_mag_mux;
 		if (_sensor_mag_mux_sub.update(&sensor_mag_mux))
 		{
@@ -400,29 +427,35 @@ ControlAllocator::Run()
 				measurements[i] = Vector3f(sensor_mag_mux.mags[i].x, sensor_mag_mux.mags[i].y, sensor_mag_mux.mags[i].z);
 			}
 
-			if (_actuator_effectiveness->updateHallEffect(measurements, num_sensor))
-			{
-				ActuatorEffectiveness::Configuration config{};
-				EffectivenessUpdateReason reason = EffectivenessUpdateReason::CONFIGURATION_UPDATE;
+			apply_hall_effect_calib(measurements);
+			// publish calibrated values
+			publish_hall_effect(measurements);
 
-				if (_actuator_effectiveness->getEffectivenessMatrix(config, reason))
+			if (_effectiveness_source_id == EffectivenessSource::MULTIROTOR_FLEXIBLE) {
+				if (_actuator_effectiveness->updateHallEffect(measurements, num_sensor))
 				{
-					for (int i = 0; i < _num_control_allocation; ++i)
+					ActuatorEffectiveness::Configuration config{};
+					EffectivenessUpdateReason reason = EffectivenessUpdateReason::CONFIGURATION_UPDATE;
+
+					if (_actuator_effectiveness->getEffectivenessMatrix(config, reason))
 					{
-						// Assign control effectiveness matrix
-						_control_allocation[i]->setEffectivenessMatrix(
-								config.effectiveness_matrices[i], config.trim[i], config.linearization_point[i],
-								config.num_actuators_matrix[i], reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+						for (int i = 0; i < _num_control_allocation; ++i)
+						{
+							// Assign control effectiveness matrix
+							_control_allocation[i]->setEffectivenessMatrix(
+									config.effectiveness_matrices[i], config.trim[i], config.linearization_point[i],
+									config.num_actuators_matrix[i], reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+						}
+					}
+					else
+					{
+						PX4_WARN("Couldn't get effectiveness matrix");
 					}
 				}
 				else
 				{
-					PX4_WARN("Couldn't get effectiveness matrix");
+					PX4_WARN("New mag mux message but couldn't updateHallEffect");
 				}
-			}
-			else
-			{
-				PX4_WARN("New mag mux message but couldn't updateHallEffect");
 			}
 		}
 	}
@@ -738,6 +771,37 @@ ControlAllocator::publish_actuator_controls()
 
 		_actuator_servos_pub.publish(actuator_servos);
 	}
+}
+
+void
+ControlAllocator::apply_hall_effect_calib(matrix::Vector3f* measurements)
+{
+	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			measurements[i](j) = (measurements[i](j) - _calib[i].center(j)) / (_calib[i].max_val(j) - _calib[i].center(j));
+
+		// clip for safety
+		if(measurements[i](j) > 1.0f )
+			measurements[i](j) = 1.0f;
+		if(measurements[i](j) < -1.0f )
+			measurements[i](j) = -1.0f;
+		}
+	}
+}
+
+void 
+ControlAllocator::publish_hall_effect(const matrix::Vector3f* measurements)
+{
+	sensor_mag_mux_calib_s report;
+	report.timestamp = hrt_absolute_time();
+	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			report.mags[i].xyz[j] = measurements[i](j);
+			report.mags[i].center[j] = _calib[i].center(j);
+			report.mags[i].max[j] = _calib[i].max_val(j);
+		}
+	}
+	_sensor_mag_mux_calib_pub.publish(report);
 }
 
 void
