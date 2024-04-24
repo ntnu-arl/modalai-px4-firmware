@@ -87,6 +87,7 @@ private:
 		// float z{0.0f};
 		float xyz[3]{};
 		float temperature{};
+		hrt_abstime timestamp{};
 	} _mag_data[NUMBER_OF_TMAG5273]{};
 
 	int probe() override;

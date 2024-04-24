@@ -129,6 +129,7 @@ void TMAG5273Mux::RunImpl()
         for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
         {
             _mux.select(i);
+            _mag_data[i].timestamp = hrt_absolute_time();
             getXYZData(_mag_data[i].xyz);
             // getTemperature(_mag_data[i].temperature);
             
@@ -169,8 +170,8 @@ void TMAG5273Mux::publish(const hrt_abstime &timestamp)
     report.timestamp = timestamp;
     for (uint8_t i=0; i<NUMBER_OF_TMAG5273; ++i)
     {
-        report.mags[i].timestamp = timestamp;
-        report.mags[i].timestamp_sample = 0;
+        report.mags[i].timestamp = _mag_data[i].timestamp;
+        report.mags[i].timestamp_sample = _mag_data[i].timestamp;
         report.mags[i].x = _mag_data[i].xyz[0];
         report.mags[i].y = _mag_data[i].xyz[1];
         report.mags[i].z = _mag_data[i].xyz[2];
