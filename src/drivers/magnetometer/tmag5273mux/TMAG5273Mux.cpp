@@ -129,7 +129,7 @@ void TMAG5273Mux::RunImpl()
         for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
         {
             _mux.select(i);
-            _mag_data[i].timestamp = hrt_absolute_time();
+            _mag_data[i].timestamp = hrt_absolute_time() - 2500_us / 2; // assuming 32x averaging with 400hz
             getXYZData(_mag_data[i].xyz);
             // getTemperature(_mag_data[i].temperature);
             
