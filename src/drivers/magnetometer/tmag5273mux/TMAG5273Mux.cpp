@@ -216,6 +216,12 @@ bool TMAG5273Mux::ConfigureOne()
         return false;
     }
 
+    // set temperature compensation to NdBFe
+    if (setTemperatureCompensation(TMAG5273_MAG_TEMPCO_NdBFe) != 0)
+    {
+        return 0;
+    }
+
     // Check if there is any issue with the device status register
     if (getError() != 0)
     {
@@ -980,6 +986,31 @@ int8_t TMAG5273Mux::setConvAvg(uint8_t avgMode)
         bitWrite(mode, 4, 1);
         writeRegister(TMAG5273_REG_DEVICE_CONFIG_1, mode);
     }
+
+    return getError();
+}
+
+int8_t TMAG5273Mux::setTemperatureCompensation(uint8_t compMode)
+{
+    uint8_t mode = 0;
+    mode = readRegister(TMAG5273_REG_DEVICE_CONFIG_1);
+
+    if (compMode == TMAG5273_MAG_TEMPCO_NdBFe) // 0b01
+    {
+        bitWrite(mode, 5, 1);
+        bitWrite(mode, 6, 0);
+    }
+    else if (compMode == TMAG5273_MAG_TEMPCO_CERAMIC) // 0b10
+    {
+        bitWrite(mode, 5, 0);
+        bitWrite(mode, 6, 1);
+    }
+    else // 0b00
+    {
+        bitWrite(mode, 5, 0);
+        bitWrite(mode, 6, 0);
+    }
+    writeRegister(TMAG5273_REG_DEVICE_CONFIG_1, mode);
 
     return getError();
 }

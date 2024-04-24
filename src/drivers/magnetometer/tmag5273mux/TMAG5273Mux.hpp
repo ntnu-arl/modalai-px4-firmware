@@ -133,6 +133,7 @@ private:
 	uint8_t getZAxisRange();
 
 	int8_t setConvAvg(uint8_t avgMode);
+	int8_t setTemperatureCompensation(uint8_t compMode);
 
 
 	void cart2Sph(const float xyz[3])

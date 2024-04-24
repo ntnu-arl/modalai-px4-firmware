@@ -163,6 +163,9 @@ static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x35;
 #define TMAG5273_INT_ERROR_UNDETECTED 0X0 // No INT error detected
 #define TMAG5273_INT_ERROR_DETECTED 0X1   // INT error detected
 
+#define TMAG5273_MAG_TEMPCO_NONE 0x0
+#define TMAG5273_MAG_TEMPCO_NdBFe 0x1
+#define TMAG5273_MAG_TEMPCO_CERAMIC 0x3
 
 /********************************** Register Definitions **********************************/
 typedef uint8_t Register;
