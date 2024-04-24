@@ -130,6 +130,7 @@ void TMAG5273Mux::RunImpl()
         {
             _mux.select(i);
             getXYZData(_mag_data[i].xyz);
+            // getTemperature(_mag_data[i].temperature);
             
         }
         const hrt_abstime sample_time = hrt_absolute_time() - tic;
@@ -168,9 +169,12 @@ void TMAG5273Mux::publish(const hrt_abstime &timestamp)
     report.timestamp = timestamp;
     for (uint8_t i=0; i<NUMBER_OF_TMAG5273; ++i)
     {
+        report.mags[i].timestamp = timestamp;
+        report.mags[i].timestamp_sample = 0;
         report.mags[i].x = _mag_data[i].xyz[0];
         report.mags[i].y = _mag_data[i].xyz[1];
         report.mags[i].z = _mag_data[i].xyz[2];
+        report.mags[i].temperature = _mag_data[i].temperature;
     }
     // TODO: gain offset (see datasheet)
     _sensor_pub.publish(report);
@@ -858,6 +862,20 @@ uint8_t TMAG5273Mux::getAngleEn()
     }
 
     return 0;
+}
+
+void TMAG5273Mux::getTemperature(float& temperature)
+{
+    // Variable to store full temperature value
+    int16_t temp = 0;
+    const uint8_t bytes = 2;
+    uint8_t databuffer[bytes];
+    // Read in the MSB and LSB registers
+    RegisterReadMultiple(TMAG5273_REG_T_MSB_RESULT, databuffer, bytes);
+    // Combines the two in one register where the MSB is shifted to the correct location
+    temp = ((int16_t) databuffer[0] << 8) | ((int16_t) databuffer[1]);
+    // Formula for correct output value
+    temperature = TMAG5273_TSENSE_T0 + (((float)temp - TMAG5273_TADC_T0) / (TMAG5273_TADC_RES));
 }
 
 void TMAG5273Mux::getXYZData(float* xyz){

@@ -86,6 +86,7 @@ private:
 		// float y{0.0f};
 		// float z{0.0f};
 		float xyz[3]{};
+		float temperature{};
 	} _mag_data[NUMBER_OF_TMAG5273]{};
 
 	int probe() override;
@@ -128,6 +129,7 @@ private:
 	uint8_t getTemperatureEn();
 	uint8_t getAngleEn();
 
+	void getTemperature(float& temperature);
 	void getXYZData(float* xyz);
 	uint8_t getXYAxisRange();
 	uint8_t getZAxisRange();
