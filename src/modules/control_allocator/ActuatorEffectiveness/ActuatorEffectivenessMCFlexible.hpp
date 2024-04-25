@@ -52,7 +52,9 @@ public:
 
 	const char *name() const override { return "MC Flexible"; }
 
-	bool updateHallEffect(const matrix::Vector3f* measurements, const int& count) override;
+	bool updateHallEffect(const uint64_t& timestamp, const matrix::Vector3f* measurements, const int& count) override;
+
+	void publishAngles(const uint64_t& timestamp);
 
 protected:
 	ActuatorEffectivenessRotors _mc_rotors;
@@ -62,8 +64,6 @@ private:
 	void updateParams() override;
 
 	void applyRegression(const matrix::Vector3f& mag, const RegressionParameters& params, float& angle);
-
-	void publishAngles();
 
 	uORB::Publication<sensor_angles_s>	_sensor_angles_pub{ORB_ID(sensor_angles)};
 	
