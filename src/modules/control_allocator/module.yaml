@@ -203,7 +203,7 @@ parameters:
             min: -80
             max: 80
             default: 0
-        CA_SENSOR${i}_AZ_x:
+        CA_SENSOR${i}_AZ_X:
             description:
                 short: azimuth regression parameter b_x
             type: float
@@ -214,7 +214,7 @@ parameters:
             min: -80
             max: 80
             default: 0
-        CA_SENSOR${i}_AZ_y:
+        CA_SENSOR${i}_AZ_Y:
             description:
                 short: azimuth regression parameter b_y
             type: float
@@ -225,7 +225,7 @@ parameters:
             min: -80
             max: 80
             default: 0
-        CA_SENSOR${i}_AZ_z:
+        CA_SENSOR${i}_AZ_Z:
             description:
                 short: azimuth regression parameter b_z
             type: float
@@ -248,7 +248,7 @@ parameters:
             min: -80
             max: 80
             default: 0
-        CA_SENSOR${i}_EL_x:
+        CA_SENSOR${i}_EL_X:
             description:
                 short: elevation regression parameter b_x
             type: float
@@ -259,7 +259,7 @@ parameters:
             min: -80
             max: 80
             default: 0
-        CA_SENSOR${i}_EL_y:
+        CA_SENSOR${i}_EL_Y:
             description:
                 short: elevation regression parameter b_y
             type: float
@@ -270,7 +270,7 @@ parameters:
             min: -80
             max: 80
             default: 0
-        CA_SENSOR${i}_EL_z:
+        CA_SENSOR${i}_EL_Z:
             description:
                 short: elevation regression parameter b_z
             type: float

@@ -98,6 +98,7 @@ void ActuatorEffectivenessMCFlexible::publishAngles()
 {
 	sensor_angles_s report;
 	report.timestamp = hrt_absolute_time();
+	report.timestamp_sample = 0;
 	for (int i = 0; i < NUM_SENSORS_MAX; ++i)
 	{
 		report.azimuth[i] = _angle_measurement[i].azimuth;
