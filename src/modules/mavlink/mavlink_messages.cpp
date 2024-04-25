@@ -91,7 +91,6 @@
 #include "streams/LOCAL_POSITION_NED.hpp"
 #include "streams/MAG_CAL_REPORT.hpp"
 #include "streams/MAG_MUX.hpp"
-#include "streams/MAG_MUX_CALIB.hpp"
 #include "streams/MANUAL_CONTROL.hpp"
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
@@ -316,9 +315,6 @@ static const StreamListItem streams_list[] = {
 #if defined(MAG_MUX_HPP)
 	create_stream_list_item<MavlinkStreamMagMux>(),
 #endif // MAG_MUX_HPP
-#if defined(MAG_MUX_CALIB_HPP)
-	create_stream_list_item<MavlinkStreamMagMuxCalib>(),
-#endif // MAG_MUX_CALIB_HPP
 #if defined(ODOMETRY_HPP)
 	create_stream_list_item<MavlinkStreamOdometry>(),
 #endif // ODOMETRY_HPP

@@ -427,9 +427,6 @@ ControlAllocator::Run()
 				measurements[i] = Vector3f(sensor_mag_mux.mags[i].x, sensor_mag_mux.mags[i].y, sensor_mag_mux.mags[i].z);
 			}
 
-			apply_hall_effect_calib(measurements);
-			// publish calibrated values
-			publish_hall_effect(measurements);
 
 			if (_effectiveness_source_id == EffectivenessSource::MULTIROTOR_FLEXIBLE) {
 				if (_actuator_effectiveness->updateHallEffect(measurements, num_sensor))
@@ -773,30 +770,6 @@ ControlAllocator::publish_actuator_controls()
 	}
 }
 
-void
-ControlAllocator::apply_hall_effect_calib(matrix::Vector3f* measurements)
-{
-	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			measurements[i](j) = (measurements[i](j) - _calib[i].center(j)) / (_calib[i].max_val(j) - _calib[i].center(j));
-		}
-	}
-}
-
-void 
-ControlAllocator::publish_hall_effect(const matrix::Vector3f* measurements)
-{
-	sensor_mag_mux_calib_s report;
-	report.timestamp = hrt_absolute_time();
-	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			report.mags[i].xyz[j] = measurements[i](j);
-			report.mags[i].center[j] = _calib[i].center(j);
-			report.mags[i].max[j] = _calib[i].max_val(j);
-		}
-	}
-	_sensor_mag_mux_calib_pub.publish(report);
-}
 
 void
 ControlAllocator::check_for_motor_failures()
