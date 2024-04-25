@@ -3,6 +3,9 @@
 #include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
+#include <uORB/Publication.hpp>
+#include <uORB/topics/sensor_angles.h>
+
 class ActuatorEffectivenessMCFlexible : public ModuleParams, public ActuatorEffectiveness
 {
 public:
@@ -16,6 +19,21 @@ public:
 		SensorGeometry sensors[NUM_SENSORS_MAX];
 		int num_sensors{0};
   };
+
+	struct RegressionParameters {
+		float b0;
+		float bx;
+		float by;
+		float bz;
+	};
+	struct AngleRegression {
+		RegressionParameters azimuth;
+		RegressionParameters elevation;
+	};
+	struct SphericalAngles {
+		float azimuth;
+		float elevation;
+	};
 
   ActuatorEffectivenessMCFlexible(ModuleParams* parent);
   virtual ~ActuatorEffectivenessMCFlexible() = default;
@@ -43,6 +61,26 @@ private:
 // REVIEW: does tis need params?
 	void updateParams() override;
 
+	void applyRegression(const matrix::Vector3f& mag, const RegressionParameters& params, float& angle);
+
+	void publishAngles();
+
+	uORB::Publication<sensor_angles_s>	_sensor_angles_pub{ORB_ID(sensor_angles)};
+	
+	struct ParamHandles {
+		param_t azimuth_0;
+		param_t azimuth_x;
+		param_t azimuth_y;
+		param_t azimuth_z;
+		param_t elevation_0;
+		param_t elevation_x;
+		param_t elevation_y;
+		param_t elevation_z;
+	};
+	ParamHandles _param_handles[NUM_SENSORS_MAX];
+
 	Sensor _geometry{};
 	matrix::Vector3f _hall_effect[NUM_SENSORS_MAX]{};
+	AngleRegression _angle_params[NUM_SENSORS_MAX]{};
+	SphericalAngles _angle_measurement[NUM_SENSORS_MAX]{};
 };

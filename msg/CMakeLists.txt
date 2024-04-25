@@ -180,8 +180,9 @@ set(msg_files
 	SensorHygrometer.msg
 	SensorMag.msg
 	SensorMagMux.msg
-	SensorMagCalib.msg
-	SensorMagMuxCalib.msg
+	SensorAngles.msg
+	# SensorMagCalib.msg
+	# SensorMagMuxCalib.msg
 	SensorOpticalFlow.msg
 	SensorPreflightMag.msg
 	SensorSelection.msg

@@ -426,7 +426,7 @@ ControlAllocator::Run()
 			{
 				measurements[i] = Vector3f(sensor_mag_mux.mags[i].x, sensor_mag_mux.mags[i].y, sensor_mag_mux.mags[i].z);
 			}
-
+			[[maybe_unused]] hrt_abstime timestamp = sensor_mag_mux.timestamp;
 
 			if (_effectiveness_source_id == EffectivenessSource::MULTIROTOR_FLEXIBLE) {
 				if (_actuator_effectiveness->updateHallEffect(measurements, num_sensor))

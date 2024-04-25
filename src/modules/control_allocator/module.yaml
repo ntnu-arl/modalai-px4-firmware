@@ -29,7 +29,7 @@ parameters:
                 9: Custom
                 10: Helicopter
                 11: Flexible Multirotor
-            default: 0
+            default: 11
 
         CA_METHOD:
             description:
@@ -190,6 +190,97 @@ parameters:
             min: -100
             max: 100
             default: 0.0
+
+        # Hall sensor regression parameters
+        CA_SENSOR${i}_AZ_0:
+            description:
+                short: azimuth regression parameter b_0
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_AZ_x:
+            description:
+                short: azimuth regression parameter b_x
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_AZ_y:
+            description:
+                short: azimuth regression parameter b_y
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_AZ_z:
+            description:
+                short: azimuth regression parameter b_z
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 0
+
+        CA_SENSOR${i}_EL_0:
+            description:
+                short: elevation regression parameter b_0
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_EL_x:
+            description:
+                short: elevation regression parameter b_x
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_EL_y:
+            description:
+                short: elevation regression parameter b_y
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_EL_z:
+            description:
+                short: elevation regression parameter b_z
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -80
+            max: 80
+            default: 0
 
         # Hall sensor Max value
         CA_SENSOR${i}_MAXX:
