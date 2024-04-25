@@ -69,7 +69,6 @@ private:
 			mavlink_mag_mux_angles_t msg{};
 
 			msg.time_usec = sensor_angles.timestamp;
-			// PX4_INFO("%lu ", msg.time_usec);
 
 			for(int i=0; i<4; i++)
 			{

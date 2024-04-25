@@ -159,8 +159,12 @@ void ActuatorEffectivenessRotors::updateParams()
 			// create rotation for nominal case
 			// asuming pitch and roll are 0
 			float yaw = 0;
+			param_get(math::radians(_param_handles[i].sensor_yaw), &yaw);
+			// const float tilt_direction = math::radians((float)tilt.tilt_direction);
+
 			param_get(_param_handles[i].sensor_yaw, &yaw);
-			_geometry.sensors[i].O_rot_S = matrix::Quaternionf(matrix::Eulerf(0.0f, 0.0f, yaw));
+
+			_geometry.sensors[i].O_rot_S = matrix::Quaternionf(matrix::Eulerf(0.0f, 0.0f, math::radians(yaw)));
 			// _geometry.sensors[i].O_rot_S =
 			//     matrix::Quaternionf(matrix::Vector3f(1.0f, 0.0f, 0.0f), matrix::Vector3f(sensor(0), sensor(1), 0.0f));
 

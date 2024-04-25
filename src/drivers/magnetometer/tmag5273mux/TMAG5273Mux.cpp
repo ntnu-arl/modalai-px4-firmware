@@ -217,8 +217,7 @@ bool TMAG5273Mux::ConfigureOne()
     }
 
     // set conv avg for 400hz
-    // if (setConvAvg(0x5) != 0){
-    if (setConvAvg(0x1) != 0){
+    if (setConvAvg(0x5) != 0){
         return false;
     }
 
