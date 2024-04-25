@@ -122,7 +122,7 @@ void TMAG5273Mux::RunImpl()
 
     case STATE::MEASURE:
         // REVIEW not sure if allowed?
-        // ScheduleDelayed(_measurement_interval); 
+        // ScheduleDelayed(_measurement_interval);
 
   		const hrt_abstime tic = hrt_absolute_time();
         // mag_xyz_t data[NUMBER_OF_TMAG5273] {};
@@ -132,7 +132,7 @@ void TMAG5273Mux::RunImpl()
             _mag_data[i].timestamp = hrt_absolute_time() - 2500_us / 2; // assuming 32x averaging with 400hz
             getXYZData(_mag_data[i].xyz);
             // getTemperature(_mag_data[i].temperature);
-            
+
         }
         const hrt_abstime sample_time = hrt_absolute_time() - tic;
         PX4_DEBUG("%llu us", sample_time); // avg: approx 2200us
@@ -199,7 +199,7 @@ bool TMAG5273Mux::ConfigureOne()
 	bool success = true;
 
 	if (!isConnected()){
-		return false;	
+		return false;
 	}
 
 	// Following the Detailed Design Prodedure on page 42 of the datasheet
@@ -217,7 +217,8 @@ bool TMAG5273Mux::ConfigureOne()
     }
 
     // set conv avg for 400hz
-    if (setConvAvg(0x5) != 0){
+    // if (setConvAvg(0x5) != 0){
+    if (setConvAvg(0x1) != 0){
         return false;
     }
 

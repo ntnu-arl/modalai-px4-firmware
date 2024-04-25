@@ -125,13 +125,6 @@ private:
 		float slew_rate_servos[MAX_NUM_SERVOS];
 	};
 
-	struct Calibration {
-		matrix::Vector3f center;
-		matrix::Vector3f max_val;
-	};
-
-	Calibration _calib[NUM_SENSORS_MAX]{};
-
 	/**
 	 * initialize some vectors/matrices from parameters
 	 */

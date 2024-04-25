@@ -73,23 +73,6 @@ ControlAllocator::ControlAllocator() :
 		_param_handles.slew_rate_servos[i] = param_find(buffer);
 	}
 
-	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
-		char buffer[17];
-		// sensor position wrt COG
-		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_MAXX", i);
-		_param_handles.cal_max[i][0] = param_find(buffer);
-		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_MAXY", i);
-		_param_handles.cal_max[i][1] = param_find(buffer);
-		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_MAXZ", i);
-		_param_handles.cal_max[i][2] = param_find(buffer);
-
-		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CX", i);
-		_param_handles.cal_center[i][0] = param_find(buffer);
-		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CY", i);
-		_param_handles.cal_center[i][1] = param_find(buffer);
-		snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_CZ", i);
-		_param_handles.cal_center[i][2] = param_find(buffer);
-	}
 
 	parameters_updated();
 }
@@ -138,15 +121,6 @@ ControlAllocator::parameters_updated()
 	for (int i = 0; i < MAX_NUM_SERVOS; ++i) {
 		param_get(_param_handles.slew_rate_servos[i], &_params.slew_rate_servos[i]);
 		_has_slew_rate |= _params.slew_rate_servos[i] > FLT_EPSILON;
-	}
-
-	for (int i = 0; i < NUM_SENSORS_MAX; ++i) {
-		matrix::Vector3f &max_val = _calib[i].max_val;
-		matrix::Vector3f &center_val = _calib[i].center;
-		for (int j = 0; j < 3; ++j) {
-			param_get(_param_handles.cal_max[i][j], &max_val(j));
-			param_get(_param_handles.cal_center[i][j], &center_val(j));
-		}
 	}
 
 	// Allocation method & effectiveness source
