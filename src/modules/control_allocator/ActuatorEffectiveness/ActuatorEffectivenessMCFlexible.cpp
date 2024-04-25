@@ -58,13 +58,13 @@ ActuatorEffectivenessMCFlexible::getEffectivenessMatrix(Configuration &configura
 	}
 
 	// Motors
-	_mc_rotors.updateRotorsFromSensors(_hall_effect);
+	_mc_rotors.updateRotorsFromSensors(_angle_measurement);
 	const bool rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	return rotors_added_successfully;
 }
 
-bool ActuatorEffectivenessMCFlexible::updateHallEffect(const matrix::Vector3f* measurements, const int& count)
+bool ActuatorEffectivenessMCFlexible::updateHallEffect(const uint64_t& timestamp, const matrix::Vector3f* measurements, const int& count)
 {
   if (count > NUM_SENSORS_MAX)
   {
@@ -79,11 +79,11 @@ bool ActuatorEffectivenessMCFlexible::updateHallEffect(const matrix::Vector3f* m
       _hall_effect[i](j) = measurements[i](j);
     }
 		// apply model
-		applyRegression(_hall_effect[i], _angle_params[i].azimuth, _angle_measurement[i].azimuth);
-		applyRegression(_hall_effect[i], _angle_params[i].elevation, _angle_measurement[i].elevation);
+		applyRegression(_hall_effect[i], _angle_params[i].azimuth, _angle_measurement[i](0));
+		applyRegression(_hall_effect[i], _angle_params[i].elevation, _angle_measurement[i](1));
   }
 
-	publishAngles();
+	publishAngles(timestamp);
 
   return true;
 }
@@ -94,15 +94,15 @@ void ActuatorEffectivenessMCFlexible::applyRegression(const matrix::Vector3f& ma
   angle = params.b0 + params.bx * mag(0) + params.by * mag(1) + params.bz * mag(2);
 }
 
-void ActuatorEffectivenessMCFlexible::publishAngles()
+void ActuatorEffectivenessMCFlexible::publishAngles(const uint64_t& timestamp)
 {
 	sensor_angles_s report;
 	report.timestamp = hrt_absolute_time();
-	report.timestamp_sample = 0;
+	report.timestamp_sample = timestamp;
 	for (int i = 0; i < NUM_SENSORS_MAX; ++i)
 	{
-		report.azimuth[i] = _angle_measurement[i].azimuth;
-		report.elevation[i] = _angle_measurement[i].elevation;
+		report.azimuth[i] = _angle_measurement[i](0);
+		report.elevation[i] = _angle_measurement[i](1);
 	}
 	_sensor_angles_pub.publish(report);
 }

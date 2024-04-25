@@ -190,6 +190,17 @@ parameters:
             min: -100
             max: 100
             default: 0.0
+        CA_SENSOR${i}_YAW:
+            description:
+                short: Yaw of hall sensor ${i}
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: deg
+            num_instances: *max_num_mc_motors
+            min: -180
+            max: 180
+            default: 0.0
 
         # Hall sensor regression parameters
         CA_SENSOR${i}_AZ_0:

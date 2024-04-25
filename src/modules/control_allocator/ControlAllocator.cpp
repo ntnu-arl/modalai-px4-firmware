@@ -403,7 +403,7 @@ ControlAllocator::Run()
 			[[maybe_unused]] hrt_abstime timestamp = sensor_mag_mux.timestamp;
 
 			if (_effectiveness_source_id == EffectivenessSource::MULTIROTOR_FLEXIBLE) {
-				if (_actuator_effectiveness->updateHallEffect(measurements, num_sensor))
+				if (_actuator_effectiveness->updateHallEffect(static_cast<uint64_t>(timestamp), measurements, num_sensor))
 				{
 					ActuatorEffectiveness::Configuration config{};
 					EffectivenessUpdateReason reason = EffectivenessUpdateReason::CONFIGURATION_UPDATE;

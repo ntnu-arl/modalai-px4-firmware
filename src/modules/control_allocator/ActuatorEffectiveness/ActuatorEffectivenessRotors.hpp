@@ -119,7 +119,7 @@ public:
 	 */
 	uint32_t updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control);
 
-	void updateRotorsFromSensors(const matrix::Vector3f* mag_meas);
+	void updateRotorsFromSensors(const matrix::Vector2f* angles);
 
 	const Geometry &geometry() const { return _geometry; }
 
@@ -158,6 +158,7 @@ private:
 		param_t sensor_x;
 		param_t sensor_y;
 		param_t sensor_z;
+		param_t sensor_yaw;
 	};
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
 	param_t _count_handle;
