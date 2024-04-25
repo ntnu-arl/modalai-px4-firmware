@@ -301,34 +301,33 @@ matrix::Vector3f sph2cart(const float& azimuth, const float& elevation)
                           std::sin(elevation));
 }
 
-void ActuatorEffectivenessRotors::updateRotorsFromSensors(const matrix::Vector3f* hall_effect)
+void ActuatorEffectivenessRotors::updateRotorsFromSensors(const matrix::Vector2f* angles)
 {
 	for (int i=0; i < _geometry.num_rotors; ++i) {
-		// TODO: get from sensors
 		// REVIEW: does spherical2cartesian make sense?
-	// PX4_INFO("---------------");
-	// rotation of rotor deflection
-    const matrix::Quaternionf Sd_rot_S(matrix::Vector3f(1.0f, 0.0f, 0.0f), hall_effect[i]);
-	// PX4_INFO("Sd_rot_S: %f %f %f ",(double)Sd_rot_S(0), (double)Sd_rot_S(1), (double)Sd_rot_S(2)  );
+		// rotation of rotor deflection
+		const matrix::Vector3f mag_xyz = sph2cart(angles[i](0), angles[i](1));
+		const matrix::Quaternionf Sd_rot_S(matrix::Vector3f(1.0f, 0.0f, 0.0f), mag_xyz);
+		// PX4_INFO("Sd_rot_S: %f %f %f ",(double)Sd_rot_S(0), (double)Sd_rot_S(1), (double)Sd_rot_S(2)  );
 
-    const matrix::Quaternionf& O_rot_S = _geometry.sensors[i].O_rot_S;
-	// PX4_INFO("O_rot_S: %f %f %f %f ",(double)O_rot_S(0), (double)O_rot_S(1), (double)O_rot_S(2), (double)O_rot_S(3)  );
+		const matrix::Quaternionf& O_rot_S = _geometry.sensors[i].O_rot_S;
+		// PX4_INFO("O_rot_S: %f %f %f %f ",(double)O_rot_S(0), (double)O_rot_S(1), (double)O_rot_S(2), (double)O_rot_S(3)  );
 
-    // update position
+		// update position
 		// TODO: update notation, shouldn't be S_t_SRd, should probably be Sd_t_SR
-    const matrix::Vector3f S_t_SRd = Sd_rot_S.rotateVector(_geometry.sensors[i].S_t_SR); // deflected rotor
-   	// PX4_INFO("S_t_SRd: %f %f %f ",(double)S_t_SRd(0), (double)S_t_SRd(1), (double)S_t_SRd(2)  );
+		const matrix::Vector3f S_t_SRd = Sd_rot_S.rotateVector(_geometry.sensors[i].S_t_SR); // deflected rotor
+		// PX4_INFO("S_t_SRd: %f %f %f ",(double)S_t_SRd(0), (double)S_t_SRd(1), (double)S_t_SRd(2)  );
 
-	const matrix::Vector3f O_t_SRd = O_rot_S.rotateVector(S_t_SRd);
-    _geometry.rotors[i].position = O_t_SRd + _geometry.sensors[i].O_t_OS;
-	// PX4_INFO("_geometry.rotors[0].position: %f %f %f ", (double)_geometry.rotors[0].position(0), (double)_geometry.rotors[0].position(1), (double)_geometry.rotors[0].position(2)  );
+		const matrix::Vector3f O_t_SRd = O_rot_S.rotateVector(S_t_SRd);
+			_geometry.rotors[i].position = O_t_SRd + _geometry.sensors[i].O_t_OS;
+		// PX4_INFO("_geometry.rotors[0].position: %f %f %f ", (double)_geometry.rotors[0].position(0), (double)_geometry.rotors[0].position(1), (double)_geometry.rotors[0].position(2)  );
 
-	// PX4_INFO("%f %f",(double)S_t_SRd(0,0) , (double)S_t_SRd(0,0));
-	// PX4_INFO("%f %f %f ",(double)S_t_SRd(0), (double)S_t_SRd(1), (double)S_t_SRd(2)  );
+		// PX4_INFO("%f %f",(double)S_t_SRd(0,0) , (double)S_t_SRd(0,0));
+		// PX4_INFO("%f %f %f ",(double)S_t_SRd(0), (double)S_t_SRd(1), (double)S_t_SRd(2)  );
 
-    // update axis
-    _geometry.rotors[i].axis = O_rot_S.rotateVector(Sd_rot_S.rotateVector(_geometry.sensors[i].axis)); // assuming prop-vertical thrust
-  }
+		// update axis
+		_geometry.rotors[i].axis = O_rot_S.rotateVector(Sd_rot_S.rotateVector(_geometry.sensors[i].axis)); // assuming prop-vertical thrust
+	}
 }
 
 Vector3f ActuatorEffectivenessRotors::tiltedAxis(float tilt_angle, float tilt_direction)

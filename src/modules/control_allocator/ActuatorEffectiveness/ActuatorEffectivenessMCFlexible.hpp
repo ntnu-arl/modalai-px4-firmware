@@ -30,10 +30,6 @@ public:
 		RegressionParameters azimuth;
 		RegressionParameters elevation;
 	};
-	struct SphericalAngles {
-		float azimuth;
-		float elevation;
-	};
 
   ActuatorEffectivenessMCFlexible(ModuleParams* parent);
   virtual ~ActuatorEffectivenessMCFlexible() = default;
@@ -82,5 +78,5 @@ private:
 	Sensor _geometry{};
 	matrix::Vector3f _hall_effect[NUM_SENSORS_MAX]{};
 	AngleRegression _angle_params[NUM_SENSORS_MAX]{};
-	SphericalAngles _angle_measurement[NUM_SENSORS_MAX]{};
+	matrix::Vector2f _angle_measurement[NUM_SENSORS_MAX]{};
 };

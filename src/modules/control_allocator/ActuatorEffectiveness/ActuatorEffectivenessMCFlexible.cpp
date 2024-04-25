@@ -58,7 +58,7 @@ ActuatorEffectivenessMCFlexible::getEffectivenessMatrix(Configuration &configura
 	}
 
 	// Motors
-	_mc_rotors.updateRotorsFromSensors(_hall_effect);
+	_mc_rotors.updateRotorsFromSensors(_angle_measurement);
 	const bool rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	return rotors_added_successfully;
@@ -79,8 +79,8 @@ bool ActuatorEffectivenessMCFlexible::updateHallEffect(const uint64_t& timestamp
       _hall_effect[i](j) = measurements[i](j);
     }
 		// apply model
-		applyRegression(_hall_effect[i], _angle_params[i].azimuth, _angle_measurement[i].azimuth);
-		applyRegression(_hall_effect[i], _angle_params[i].elevation, _angle_measurement[i].elevation);
+		applyRegression(_hall_effect[i], _angle_params[i].azimuth, _angle_measurement[i](0));
+		applyRegression(_hall_effect[i], _angle_params[i].elevation, _angle_measurement[i](1));
   }
 
 	publishAngles(timestamp);
@@ -101,8 +101,8 @@ void ActuatorEffectivenessMCFlexible::publishAngles(const uint64_t& timestamp)
 	report.timestamp_sample = timestamp;
 	for (int i = 0; i < NUM_SENSORS_MAX; ++i)
 	{
-		report.azimuth[i] = _angle_measurement[i].azimuth;
-		report.elevation[i] = _angle_measurement[i].elevation;
+		report.azimuth[i] = _angle_measurement[i](0);
+		report.elevation[i] = _angle_measurement[i](1);
 	}
 	_sensor_angles_pub.publish(report);
 }

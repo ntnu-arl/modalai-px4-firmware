@@ -119,7 +119,7 @@ public:
 	 */
 	uint32_t updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control);
 
-	void updateRotorsFromSensors(const matrix::Vector3f* mag_meas);
+	void updateRotorsFromSensors(const matrix::Vector2f* angles);
 
 	const Geometry &geometry() const { return _geometry; }
 
