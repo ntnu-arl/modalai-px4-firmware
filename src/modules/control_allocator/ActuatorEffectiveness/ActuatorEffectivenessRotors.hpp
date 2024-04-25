@@ -158,6 +158,7 @@ private:
 		param_t sensor_x;
 		param_t sensor_y;
 		param_t sensor_z;
+		param_t sensor_yaw;
 	};
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
 	param_t _count_handle;
