@@ -305,7 +305,7 @@ uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectiv
 matrix::Vector3f sph2cart(const float& azimuth, const float& elevation)
 {
   return matrix::Vector3f(std::cos(azimuth) * std::cos(elevation), std::sin(azimuth) * std ::cos(elevation),
-                          std::sin(elevation));
+                        - std::sin(elevation));
 }
 
 void ActuatorEffectivenessRotors::updateRotorsFromSensors(const matrix::Vector2f* angles)
@@ -314,15 +314,14 @@ void ActuatorEffectivenessRotors::updateRotorsFromSensors(const matrix::Vector2f
 		// REVIEW: does spherical2cartesian make sense?
 		// rotation of rotor deflection
 		const matrix::Vector3f mag_xyz = sph2cart(angles[i](0), angles[i](1));
-		const matrix::Quaternionf Sd_rot_S(matrix::Vector3f(1.0f, 0.0f, 0.0f), mag_xyz);
-		// PX4_INFO("Sd_rot_S: %f %f %f ",(double)Sd_rot_S(0), (double)Sd_rot_S(1), (double)Sd_rot_S(2)  );
+		const matrix::Quaternionf Sd_rot_S(matrix::Vector3f(1.0f, 0.0f, 0.0f), mag_xyz);   // rotation from S (sensor) to Sd (sensor deflected)
 
 		const matrix::Quaternionf& O_rot_S = _geometry.sensors[i].O_rot_S;
 		// PX4_INFO("O_rot_S: %f %f %f %f ",(double)O_rot_S(0), (double)O_rot_S(1), (double)O_rot_S(2), (double)O_rot_S(3)  );
 
 		// update position
 		// TODO: update notation, shouldn't be S_t_SRd, should probably be Sd_t_SR
-		const matrix::Vector3f S_t_SRd = Sd_rot_S.rotateVector(_geometry.sensors[i].S_t_SR); // deflected rotor
+		const matrix::Vector3f S_t_SRd = Sd_rot_S.rotateVector(_geometry.sensors[i].S_t_SR); // deflected rotor wrt to sensor
 		// PX4_INFO("S_t_SRd: %f %f %f ",(double)S_t_SRd(0), (double)S_t_SRd(1), (double)S_t_SRd(2)  );
 
 		const matrix::Vector3f O_t_SRd = O_rot_S.rotateVector(S_t_SRd);
