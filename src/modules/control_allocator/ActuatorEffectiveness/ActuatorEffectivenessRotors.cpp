@@ -86,8 +86,6 @@ ActuatorEffectivenessRotors::ActuatorEffectivenessRotors(ModuleParams *parent, A
 			_param_handles[i].sensor_y = param_find(buffer);
 			snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_PZ", i);
 			_param_handles[i].sensor_z = param_find(buffer);
-			snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_YAW", i);
-			_param_handles[i].sensor_yaw = param_find(buffer);
 		}
 	}
 
@@ -156,22 +154,16 @@ void ActuatorEffectivenessRotors::updateParams()
 			_geometry.sensors[i].O_t_OR = _geometry.rotors[i].position;
 			_geometry.sensors[i].axis = _geometry.rotors[i].axis;
 
+			const Vector3f &O_t_OR = _geometry.rotors[i].position;
+			const Vector3f O_t_SR = O_t_OR - O_t_OS;
+
 			// create rotation for nominal case
 			// asuming pitch and roll are 0
-			float yaw = 0;
-			param_get(math::radians(_param_handles[i].sensor_yaw), &yaw);
-			// const float tilt_direction = math::radians((float)tilt.tilt_direction);
-
-			param_get(_param_handles[i].sensor_yaw, &yaw);
-
-			_geometry.sensors[i].O_rot_S = matrix::Quaternionf(matrix::Eulerf(0.0f, 0.0f, math::radians(yaw)));
-			// _geometry.sensors[i].O_rot_S =
-			//     matrix::Quaternionf(matrix::Vector3f(1.0f, 0.0f, 0.0f), matrix::Vector3f(sensor(0), sensor(1), 0.0f));
+			const float yaw = math::atan2(O_t_SR(1), O_t_SR(0));
+			_geometry.sensors[i].O_rot_S = matrix::Quaternionf(matrix::Eulerf(0.0f, 0.0f, yaw));
 
 			// position of rotor with respect to sensor
 			Vector3f &S_t_SR = _geometry.sensors[i].S_t_SR;
-			const Vector3f &O_t_OR = _geometry.rotors[i].position;
-			const Vector3f O_t_SR = O_t_OR - O_t_OS;
 			S_t_SR = _geometry.sensors[i].O_rot_S.rotateVectorInverse(O_t_SR);
 		}
 	}
