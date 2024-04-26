@@ -73,7 +73,10 @@ private:
 	// 0 for 40mT and 1 for 80mT
 	static constexpr uint8_t XY_AXIS_RANGE = 1;
 	static constexpr uint8_t Z_AXIS_RANGE = 1;
-	
+
+	// mapping between sensor index and px4 motor index
+	static constexpr int _sensor_rotor_table[] = { 3, 0, 2, 1 };
+
 	// Sensor Configuration
 	struct register_config_t {
 		Register reg;

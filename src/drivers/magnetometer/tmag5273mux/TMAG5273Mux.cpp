@@ -170,12 +170,13 @@ void TMAG5273Mux::publish(const hrt_abstime &timestamp)
     report.timestamp = timestamp;
     for (uint8_t i=0; i<NUMBER_OF_TMAG5273; ++i)
     {
-        report.mags[i].timestamp = _mag_data[i].timestamp;
-        report.mags[i].timestamp_sample = _mag_data[i].timestamp;
-        report.mags[i].x = _mag_data[i].xyz[0];
-        report.mags[i].y = _mag_data[i].xyz[1];
-        report.mags[i].z = _mag_data[i].xyz[2];
-        report.mags[i].temperature = _mag_data[i].temperature;
+        const uint8_t j = _sensor_rotor_table[i];
+        report.mags[j].timestamp = _mag_data[i].timestamp;
+        report.mags[j].timestamp_sample = _mag_data[i].timestamp;
+        report.mags[j].x = _mag_data[i].xyz[0];
+        report.mags[j].y = _mag_data[i].xyz[1];
+        report.mags[j].z = _mag_data[i].xyz[2];
+        report.mags[j].temperature = _mag_data[i].temperature;
     }
     // TODO: gain offset (see datasheet)
     _sensor_pub.publish(report);
