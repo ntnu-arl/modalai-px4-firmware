@@ -159,7 +159,7 @@ void ActuatorEffectivenessRotors::updateParams()
 
 			// create rotation for nominal case
 			// asuming pitch and roll are 0
-			const float yaw = math::atan2(O_t_SR(1), O_t_SR(0));
+			const float yaw = atan2(O_t_SR(1), O_t_SR(0));
 			_geometry.sensors[i].O_rot_S = matrix::Quaternionf(matrix::Eulerf(0.0f, 0.0f, yaw));
 
 			// position of rotor with respect to sensor
