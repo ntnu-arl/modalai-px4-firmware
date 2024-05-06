@@ -1,0 +1,95 @@
+__max_num_sensors: &max_num_sensors 4
+
+parameters:
+    - group: TMAG5273Mux
+      definitions:
+        # Hall sensor regression parameters
+        CA_SENSOR${i}_AZ_0:
+            description:
+                short: azimuth regression parameter b_0
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_sensors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_AZ_X:
+            description:
+                short: azimuth regression parameter b_x
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_sensors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_AZ_Y:
+            description:
+                short: azimuth regression parameter b_y
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_sensors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_AZ_Z:
+            description:
+                short: azimuth regression parameter b_z
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_sensors
+            min: -80
+            max: 80
+            default: 0
+
+        CA_SENSOR${i}_EL_0:
+            description:
+                short: elevation regression parameter b_0
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_sensors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_EL_X:
+            description:
+                short: elevation regression parameter b_x
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_sensors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_EL_Y:
+            description:
+                short: elevation regression parameter b_y
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_sensors
+            min: -80
+            max: 80
+            default: 0
+        CA_SENSOR${i}_EL_Z:
+            description:
+                short: elevation regression parameter b_z
+            type: float
+            decimal: 4
+            increment: 0.001
+            unit: m
+            num_instances: *max_num_sensors
+            min: -80
+            max: 80
+            default: 0
