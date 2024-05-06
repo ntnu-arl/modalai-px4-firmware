@@ -222,6 +222,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic("sensor_mag_mux", 5);
 	add_topic("sensor_angles", 5);
+	add_topic("effectiveness_status",1000);
 	// add_topic_multi("sensor_optical_flow", 1000, 2);
 	// add_topic("sensor_optical_flow");
 
