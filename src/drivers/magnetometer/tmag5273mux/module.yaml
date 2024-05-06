@@ -11,7 +11,7 @@ parameters:
             type: float
             decimal: 4
             increment: 0.001
-            unit: rad
+            unit: m
             num_instances: *max_num_sensors
             min: -80
             max: 80
@@ -22,7 +22,7 @@ parameters:
             type: float
             decimal: 4
             increment: 0.001
-            unit: rad
+            unit: m
             num_instances: *max_num_sensors
             min: -80
             max: 80
@@ -33,7 +33,7 @@ parameters:
             type: float
             decimal: 4
             increment: 0.001
-            unit: rad
+            unit: m
             num_instances: *max_num_sensors
             min: -80
             max: 80
@@ -44,7 +44,7 @@ parameters:
             type: float
             decimal: 4
             increment: 0.001
-            unit: rad
+            unit: m
             num_instances: *max_num_sensors
             min: -80
             max: 80
@@ -56,7 +56,7 @@ parameters:
             type: float
             decimal: 4
             increment: 0.001
-            unit: rad
+            unit: m
             num_instances: *max_num_sensors
             min: -80
             max: 80
@@ -67,7 +67,7 @@ parameters:
             type: float
             decimal: 4
             increment: 0.001
-            unit: rad
+            unit: m
             num_instances: *max_num_sensors
             min: -80
             max: 80
@@ -78,7 +78,7 @@ parameters:
             type: float
             decimal: 4
             increment: 0.001
-            unit: rad
+            unit: m
             num_instances: *max_num_sensors
             min: -80
             max: 80
@@ -89,7 +89,7 @@ parameters:
             type: float
             decimal: 4
             increment: 0.001
-            unit: rad
+            unit: m
             num_instances: *max_num_sensors
             min: -80
             max: 80
