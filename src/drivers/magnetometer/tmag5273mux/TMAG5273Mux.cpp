@@ -226,7 +226,7 @@ void TMAG5273Mux::publishMags(const hrt_abstime &timestamp)
     {
         report.mags[i].timestamp = _mag_data[i].timestamp;
         report.mags[i].timestamp_sample = _mag_data[i].timestamp;
-        report.mags[i].x = -_mag_data[i].xyz[0];
+        report.mags[i].x = _mag_data[i].xyz[0];
         report.mags[i].y = _mag_data[i].xyz[1];
         report.mags[i].z = _mag_data[i].xyz[2];
         report.mags[i].temperature = _mag_data[i].temperature;
@@ -956,7 +956,8 @@ void TMAG5273Mux::getXYZData(float* xyz){
     const int16_t zData = (int16_t) buffer[5] | ((int16_t) buffer[4] << 8);
 
     const float div = 32768;
-    xyz[0] = ((float)xData) * _rangeXY / div;
+    // ensure NED frame
+    xyz[0] = -((float)xData) * _rangeXY / div;
     xyz[1] = ((float)yData) * _rangeXY / div;
     xyz[2] = ((float)zData) * _rangeZ / div;
     // PX4_DEBUG("%f\t%f\t%f", (double)xyz[0], (double)xyz[1], (double)xyz[2]);
