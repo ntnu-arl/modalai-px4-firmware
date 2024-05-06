@@ -91,7 +91,7 @@ bool ActuatorEffectivenessMCFlexible::updateHallEffect(const uint64_t& timestamp
 void ActuatorEffectivenessMCFlexible::applyRegression(const matrix::Vector3f& mag, const RegressionParameters& params, float& angle)
 {
 	// assuming angle = constant + bx*x + by*y + bz*z
-	// {
+	angle = params.b0 + params.bx*mag(0) + params.by*mag(1) + params.bz*mag(2);
 }
 
 void ActuatorEffectivenessMCFlexible::publishAngles(const uint64_t& timestamp)
