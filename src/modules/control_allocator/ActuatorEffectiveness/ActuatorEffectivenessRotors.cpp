@@ -297,7 +297,7 @@ uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectiv
 matrix::Vector3f sph2cart(const float& azimuth, const float& elevation)
 {
   return matrix::Vector3f(std::cos(azimuth) * std::cos(elevation), std::sin(azimuth) * std ::cos(elevation),
-                        - std::sin(elevation));
+                         std::sin(elevation));
 }
 
 void ActuatorEffectivenessRotors::updateRotorsFromSensors(const matrix::Vector2f* angles)
