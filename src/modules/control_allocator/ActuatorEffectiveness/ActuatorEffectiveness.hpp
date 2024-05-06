@@ -211,7 +211,7 @@ public:
 	 */
 	virtual void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) {}
 
-	virtual bool updateHallEffect(const uint64_t& timestamp, const matrix::Vector3f* measurements, const int& count) { return false; }
+	virtual bool updateAngles(const matrix::Vector2f* measurements, const int& count) { return false; }
 
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase

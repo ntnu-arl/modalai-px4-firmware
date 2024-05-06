@@ -20,17 +20,6 @@ public:
 		int num_sensors{0};
   };
 
-	struct RegressionParameters {
-		float b0;
-		float bx;
-		float by;
-		float bz;
-	};
-	struct AngleRegression {
-		RegressionParameters azimuth;
-		RegressionParameters elevation;
-	};
-
   ActuatorEffectivenessMCFlexible(ModuleParams* parent);
   virtual ~ActuatorEffectivenessMCFlexible() = default;
 
@@ -48,9 +37,7 @@ public:
 
 	const char *name() const override { return "MC Flexible"; }
 
-	bool updateHallEffect(const uint64_t& timestamp, const matrix::Vector3f* measurements, const int& count) override;
-
-	void publishAngles(const uint64_t& timestamp);
+	bool updateAngles(const matrix::Vector2f* measurements, const int& count) override;
 
 protected:
 	ActuatorEffectivenessRotors _mc_rotors;
@@ -59,24 +46,6 @@ private:
 // REVIEW: does tis need params?
 	void updateParams() override;
 
-	void applyRegression(const matrix::Vector3f& mag, const RegressionParameters& params, float& angle);
-
-	uORB::Publication<sensor_angles_s>	_sensor_angles_pub{ORB_ID(sensor_angles)};
-	
-	struct ParamHandles {
-		param_t azimuth_0;
-		param_t azimuth_x;
-		param_t azimuth_y;
-		param_t azimuth_z;
-		param_t elevation_0;
-		param_t elevation_x;
-		param_t elevation_y;
-		param_t elevation_z;
-	};
-	ParamHandles _param_handles[NUM_SENSORS_MAX];
-
 	Sensor _geometry{};
-	matrix::Vector3f _hall_effect[NUM_SENSORS_MAX]{};
-	AngleRegression _angle_params[NUM_SENSORS_MAX]{};
-	matrix::Vector2f _angle_measurement[NUM_SENSORS_MAX]{};
+	matrix::Vector2f _angles[NUM_SENSORS_MAX]{};
 };

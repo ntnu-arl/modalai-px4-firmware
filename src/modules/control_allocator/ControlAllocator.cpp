@@ -396,20 +396,19 @@ ControlAllocator::Run()
 
 	// Also run allocator if arm deflections update
 	{
-		sensor_mag_mux_s sensor_mag_mux;
-		if (_sensor_mag_mux_sub.update(&sensor_mag_mux))
+		sensor_angles_s sensor_angles;
+		if (_sensor_angles_sub.update(&sensor_angles))
 		{
-			const int num_sensor = sensor_mag_mux.NUMBER_SENSORS;
+			const int num_sensor = 4;
 
-			Vector3f measurements[num_sensor];
+			Vector2f measurements[num_sensor];
 			for (int i = 0; i < num_sensor; ++i)
 			{
-				measurements[i] = Vector3f(sensor_mag_mux.mags[i].x, sensor_mag_mux.mags[i].y, sensor_mag_mux.mags[i].z);
+				measurements[i] = Vector2f(sensor_angles.azimuth[i], sensor_angles.elevation[i]);
 			}
-			[[maybe_unused]] hrt_abstime timestamp = sensor_mag_mux.timestamp;
 
 			if (_effectiveness_source_id == EffectivenessSource::MULTIROTOR_FLEXIBLE) {
-				if (_actuator_effectiveness->updateHallEffect(static_cast<uint64_t>(timestamp), measurements, num_sensor))
+				if (_actuator_effectiveness->updateAngles(measurements, num_sensor))
 				{
 					ActuatorEffectiveness::Configuration config{};
 					EffectivenessUpdateReason reason = EffectivenessUpdateReason::CONFIGURATION_UPDATE;

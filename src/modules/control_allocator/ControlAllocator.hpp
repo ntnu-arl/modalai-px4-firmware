@@ -77,7 +77,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
-#include <uORB/topics/sensor_mag_mux.h>
+#include <uORB/topics/sensor_angles.h>
 #include <uORB/topics/effectiveness_status.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
@@ -181,7 +181,7 @@ private:
 	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
 	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
 
-	uORB::Subscription _sensor_mag_mux_sub{ORB_ID(sensor_mag_mux)};
+	uORB::Subscription _sensor_angles_sub{ORB_ID(sensor_angles)};
 
 	// Outputs
 	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub[2] {ORB_ID(control_allocator_status), ORB_ID(control_allocator_status)};

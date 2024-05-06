@@ -50,13 +50,16 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/module_params.h>
 
+#include <uORB/Publication.hpp>
 #include <uORB/topics/sensor_mag_mux.h>
+#include <uORB/topics/sensor_angles.h>
 
 using namespace TI_TMAG5273;
 #define NUMBER_OF_TMAG5273 4
 
-class TMAG5273Mux : public device::I2C, public I2CSPIDriver<TMAG5273Mux>
+class TMAG5273Mux : public ModuleParams, public device::I2C, public I2CSPIDriver<TMAG5273Mux>
 {
 public:
 	TMAG5273Mux(const I2CSPIDriverConfig &config);
@@ -77,6 +80,17 @@ private:
 	// mapping between sensor index and px4 motor index
 	static constexpr int _sensor_rotor_table[] = { 3, 0, 2, 1 };
 
+	struct RegressionParameters {
+		float b0;
+		float bx;
+		float by;
+		float bz;
+	};
+	struct AngleRegression {
+		RegressionParameters azimuth;
+		RegressionParameters elevation;
+	} _angle_params[NUMBER_OF_TMAG5273]{};
+
 	// Sensor Configuration
 	struct register_config_t {
 		Register reg;
@@ -93,6 +107,18 @@ private:
 		hrt_abstime timestamp{};
 	} _mag_data[NUMBER_OF_TMAG5273]{};
 
+	struct ParamHandles {
+		param_t azimuth_0;
+		param_t azimuth_x;
+		param_t azimuth_y;
+		param_t azimuth_z;
+		param_t elevation_0;
+		param_t elevation_x;
+		param_t elevation_y;
+		param_t elevation_z;
+	};
+	ParamHandles _param_handles[NUMBER_OF_TMAG5273];
+
 	int probe() override;
 
 	bool Reset();
@@ -100,7 +126,9 @@ private:
 	bool ConfigureOne();
 	bool ConfigureAll();
 
-	void publish(const hrt_abstime &timestamp);
+	void publishMags(const hrt_abstime &timestamp);
+	void publishAngles(const hrt_abstime& timestamp);
+	void applyRegression(const float* mag, const RegressionParameters& params, float& angle);
 
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
@@ -141,44 +169,16 @@ private:
 	int8_t setConvAvg(uint8_t avgMode);
 	int8_t setTemperatureCompensation(uint8_t compMode);
 
-
-	void cart2Sph(const float xyz[3])
-	{
-		// given mounting configuration vs typical spherical coords
-		// forward (x) should be mag z coord
-		// left (y) should be mag x coord
-		// up (z) should be mag -y coord
-		const float x = xyz[2];
-		const float y = xyz[0];
-		const float z = -xyz[1];
-
-		const float azimuth = std::atan2(y, x);
-    const float elevation = std::asin(z / std::sqrt(x * x + y * y + z * z));  // elevation 0 == straight forward
-
-		const double rad2deg = 180.0 / M_PI_PRECISE;
-    PX4_DEBUG("\tazimuth: %f\televation: %f", (double)azimuth * rad2deg, (double)elevation * rad2deg);
-  }
-
-	// calc angles between XZ and YZ
-	void calcAngles(const float xyz[3])
-	{
-		const float x = xyz[0];
-		const float y = -xyz[1];
-		const float z = xyz[2];
-
-		const float xz_angle = std::atan2(x, z);
-    const float yz_angle = std::atan2(y, z);
-
-		const double rad2deg = 180 / M_PI_PRECISE;
-    PX4_DEBUG("\txz angle: %f\tyz angle: %f", (double)xz_angle * rad2deg, (double)yz_angle * rad2deg);
-  }
+	void update_params();
 
 	const hrt_abstime _measurement_interval{ 2500 };
 	PCA9546 _mux;
 	const float _rangeXY{ XY_AXIS_RANGE ? 80.0f : 40.0f };
 	const float _rangeZ{ Z_AXIS_RANGE ? 80.0f : 40.0f };
+	matrix::Vector2f _angle_measurement[NUMBER_OF_TMAG5273]{};
 
-	uORB::PublicationMulti<sensor_mag_mux_s> _sensor_pub{ORB_ID(sensor_mag_mux)};
+	uORB::Publication<sensor_mag_mux_s> _sensor_mag_mux_pub{ORB_ID(sensor_mag_mux)};
+	uORB::Publication<sensor_angles_s> _sensor_angles_pub{ORB_ID(sensor_angles)};
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};

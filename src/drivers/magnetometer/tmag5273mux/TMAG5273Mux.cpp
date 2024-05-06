@@ -41,13 +41,38 @@ using namespace time_literals;
 // }
 
 TMAG5273Mux::TMAG5273Mux(const I2CSPIDriverConfig& config)
-  : I2C(config), I2CSPIDriver(config), _mux(config, I2C_SPEED, NUMBER_OF_TMAG5273)
+  : ModuleParams(nullptr), 
+    I2C(config), 
+    I2CSPIDriver(config), 
+    _mux(config, I2C_SPEED, NUMBER_OF_TMAG5273)
 {
+    for (int i = 0; i < NUMBER_OF_TMAG5273; ++i) {
+        char buffer[17];
+        snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_AZ_0", i);
+        _param_handles[i].azimuth_0 = param_find(buffer);
+        snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_AZ_X", i);
+        _param_handles[i].azimuth_x = param_find(buffer);
+        snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_AZ_Y", i);
+        _param_handles[i].azimuth_y = param_find(buffer);
+        snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_AZ_Z", i);
+        _param_handles[i].azimuth_z = param_find(buffer);
+        snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_EL_0", i);
+        _param_handles[i].elevation_0 = param_find(buffer);
+        snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_EL_X", i);
+        _param_handles[i].elevation_x = param_find(buffer);
+        snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_EL_Y", i);
+        _param_handles[i].elevation_y = param_find(buffer);
+        snprintf(buffer, sizeof(buffer), "CA_SENSOR%u_EL_Z", i);
+        _param_handles[i].elevation_z = param_find(buffer);
+    }
+
+    update_params();
 }
 
 TMAG5273Mux::~TMAG5273Mux()
 {
-    _sensor_pub.unadvertise();
+    _sensor_mag_mux_pub.unadvertise();
+    _sensor_angles_pub.unadvertise();
 
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
@@ -129,8 +154,9 @@ void TMAG5273Mux::RunImpl()
         for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
         {
             _mux.select(i);
-            _mag_data[i].timestamp = hrt_absolute_time() - 2500_us / 2; // assuming 32x averaging with 400hz
-            getXYZData(_mag_data[i].xyz);
+            const uint8_t j = _sensor_rotor_table[i]; // get rotor index
+            _mag_data[j].timestamp = hrt_absolute_time() - 2500_us / 2; // assuming 32x averaging with 400hz
+            getXYZData(_mag_data[j].xyz);
             // getTemperature(_mag_data[i].temperature);
 
         }
@@ -140,12 +166,14 @@ void TMAG5273Mux::RunImpl()
         PX4_DEBUG("\tx: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[0], (double)_mag_data[1].xyz[0], (double)_mag_data[2].xyz[0], (double)_mag_data[3].xyz[0]);
         PX4_DEBUG("\ty: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[1], (double)_mag_data[1].xyz[1], (double)_mag_data[2].xyz[1], (double)_mag_data[3].xyz[1]);
         PX4_DEBUG("\tz: [%.2f %.2f %.2f %.2f]", (double)_mag_data[0].xyz[2], (double)_mag_data[1].xyz[2], (double)_mag_data[2].xyz[2], (double)_mag_data[3].xyz[2]);
-        // for (uint8_t i=0; i<NUMBER_OF_TMAG5273; ++i){
-        //     cart2Sph(_mag_data[i].xyz);
-        //     calcAngles(_mag_data[i].xyz);
-        // }
 
-        publish(now);
+        for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i){
+            applyRegression(_mag_data[i].xyz, _angle_params[i].azimuth, _angle_measurement[i](0));
+            applyRegression(_mag_data[i].xyz, _angle_params[i].elevation, _angle_measurement[i](1));
+        }
+
+        publishMags(now);
+        publishAngles(now);
 
         // initiate next measurement
         hrt_abstime delay;
@@ -163,23 +191,61 @@ void TMAG5273Mux::RunImpl()
   }
 }
 
-void TMAG5273Mux::publish(const hrt_abstime &timestamp)
+void TMAG5273Mux::update_params()
+{
+    updateParams();
+
+	for (int i = 0; i < NUMBER_OF_TMAG5273; ++i)
+	{
+		RegressionParameters &azimuth = _angle_params[i].azimuth;
+		param_get(_param_handles[i].azimuth_0, &azimuth.b0);
+		param_get(_param_handles[i].azimuth_x, &azimuth.bx);
+		param_get(_param_handles[i].azimuth_y, &azimuth.by);
+		param_get(_param_handles[i].azimuth_z, &azimuth.bz);
+
+		RegressionParameters &elevation = _angle_params[i].elevation;
+		param_get(_param_handles[i].elevation_0, &elevation.b0);
+		param_get(_param_handles[i].elevation_x, &elevation.bx);
+		param_get(_param_handles[i].elevation_y, &elevation.by);
+		param_get(_param_handles[i].elevation_z, &elevation.bz);
+	}
+}
+
+void TMAG5273Mux::applyRegression(const float* mag, const RegressionParameters& params, float& angle)
+{	
+    // assuming angle = constant + bx*x + by*y + bz*z
+	angle = params.b0 + params.bx*mag[0] + params.by*mag[1] + params.bz*mag[2];
+}
+
+void TMAG5273Mux::publishMags(const hrt_abstime &timestamp)
 {
     sensor_mag_mux_s report;
     assert(report.NUMBER_SENSORS >= NUMBER_OF_TMAG5273);
     report.timestamp = timestamp;
     for (uint8_t i=0; i<NUMBER_OF_TMAG5273; ++i)
     {
-        const uint8_t j = _sensor_rotor_table[i];
-        report.mags[j].timestamp = _mag_data[i].timestamp;
-        report.mags[j].timestamp_sample = _mag_data[i].timestamp;
-        report.mags[j].x = -_mag_data[i].xyz[0];
-        report.mags[j].y = _mag_data[i].xyz[1];
-        report.mags[j].z = _mag_data[i].xyz[2];
-        report.mags[j].temperature = _mag_data[i].temperature;
+        report.mags[i].timestamp = _mag_data[i].timestamp;
+        report.mags[i].timestamp_sample = _mag_data[i].timestamp;
+        report.mags[i].x = -_mag_data[i].xyz[0];
+        report.mags[i].y = _mag_data[i].xyz[1];
+        report.mags[i].z = _mag_data[i].xyz[2];
+        report.mags[i].temperature = _mag_data[i].temperature;
     }
     // TODO: gain offset (see datasheet)
-    _sensor_pub.publish(report);
+    _sensor_mag_mux_pub.publish(report);
+}
+
+void TMAG5273Mux::publishAngles(const hrt_abstime& timestamp)
+{
+    sensor_angles_s report;
+    report.timestamp = timestamp;
+    report.timestamp_sample = 0;
+    for (uint8_t i = 0; i < NUMBER_OF_TMAG5273; ++i)
+    {
+        report.azimuth[i] = _angle_measurement[i](0);
+        report.elevation[i] = _angle_measurement[i](1);
+    }
+    _sensor_angles_pub.publish(report);
 }
 
 bool TMAG5273Mux::ConfigureAll()
