@@ -57,6 +57,8 @@ void
 ControlAllocationPseudoInverse::updatePseudoInverse()
 {
 	if (_mix_update_needed) {
+		_effectiveness.setRow(3, 0.0f);
+		_effectiveness.setRow(4, 0.0f);
 		matrix::geninv(_effectiveness, _mix);
 
 		if (_normalization_needs_update && !_had_actuator_failure) {
