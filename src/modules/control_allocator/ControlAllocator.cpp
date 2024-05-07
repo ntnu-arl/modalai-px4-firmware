@@ -285,6 +285,12 @@ ControlAllocator::update_effectiveness_source()
 
 			// Save source id
 			_effectiveness_source_id = source;
+
+			// publish source id
+			effectiveness_status_s report;
+			report.timestamp = hrt_absolute_time();
+			report.source_id = static_cast<int8_t>(source);
+			_effectiveness_status_pub.publish(report);
 		}
 
 		return true;
@@ -429,12 +435,6 @@ ControlAllocator::Run()
 			}
 		}
 	}
-
-	// publish source id
-	effectiveness_status_s report;
-	report.timestamp = hrt_absolute_time();
-	report.source_id = static_cast<int8_t>(_effectiveness_source_id);
-	_effectiveness_status_pub.publish(report);
 
 	if (do_update) {
 		_last_run = now;
