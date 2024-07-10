@@ -64,8 +64,8 @@ VoxlEsc2::VoxlEsc2() :
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 
 	for (unsigned i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
-    const unsigned j = i + VOXL_ESC_OUTPUT_CHANNELS;  // offset for second ESC
-    _esc_status.esc[j].timestamp       = 0;
+		const unsigned j = i + VOXL_ESC_OUTPUT_CHANNELS;  // offset for second ESC
+		_esc_status.esc[j].timestamp       = 0;
 		_esc_status.esc[j].esc_address     = 0;
 		_esc_status.esc[j].esc_rpm         = 0;
 		_esc_status.esc[j].esc_state       = 0;
