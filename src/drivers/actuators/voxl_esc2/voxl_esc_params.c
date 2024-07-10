@@ -129,7 +129,7 @@ PARAM_DEFINE_INT32(VOXL_ESC2_SDIR1, 0);
  * @value 0 - Default
  * @value 1 - Reverse
  */
-PARAM_DEFINE_INT32(VOXL_ES2_SDIR2, 0);
+PARAM_DEFINE_INT32(VOXL_ESC2_SDIR2, 0);
 
 /**
  * UART ESC ID 3 Spin Direction Flag

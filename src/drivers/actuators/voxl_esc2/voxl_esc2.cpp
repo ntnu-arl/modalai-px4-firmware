@@ -64,17 +64,18 @@ VoxlEsc2::VoxlEsc2() :
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 
 	for (unsigned i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
-		_esc_status.esc[i].timestamp       = 0;
-		_esc_status.esc[i].esc_address     = 0;
-		_esc_status.esc[i].esc_rpm         = 0;
-		_esc_status.esc[i].esc_state       = 0;
-		_esc_status.esc[i].esc_cmdcount    = 0;
-		_esc_status.esc[i].esc_voltage     = 0;
-		_esc_status.esc[i].esc_current     = 0;
-		_esc_status.esc[i].esc_temperature = 0;
-		_esc_status.esc[i].esc_errorcount  = 0;
-		_esc_status.esc[i].failures        = 0;
-		_esc_status.esc[i].esc_power       = 0;
+		const unsigned j = i; // offset for second ESC
+		_esc_status.esc[j].timestamp       = 0;
+		_esc_status.esc[j].esc_address     = 0;
+		_esc_status.esc[j].esc_rpm         = 0;
+		_esc_status.esc[j].esc_state       = 0;
+		_esc_status.esc[j].esc_cmdcount    = 0;
+		_esc_status.esc[j].esc_voltage     = 0;
+		_esc_status.esc[j].esc_current     = 0;
+		_esc_status.esc[j].esc_temperature = 0;
+		_esc_status.esc[j].esc_errorcount  = 0;
+		_esc_status.esc[j].failures        = 0;
+		_esc_status.esc[j].esc_power       = 0;
 	}
 
 	qc_esc_packet_init(&_fb_packet);
@@ -197,7 +198,7 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	}
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
-		if (params->function_map[i] < (int)OutputFunction::Motor1 || params->function_map[i] > (int)OutputFunction::Motor4) {
+		if (params->function_map[i] < (int)OutputFunction::Motor5 || params->function_map[i] > (int)OutputFunction::Motor8) {
 			PX4_ERR("Invalid parameter VOXL_ESC_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
 			params->function_map[i] = 0;
 			ret = PX4_ERROR;
@@ -208,7 +209,7 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 			// This motor_map array represents ESC IDs 0-3 (matching the silkscreen)
 			// This array will hold ESC ID to Motor ID (e.g. motor_map[0] = 1, means ESC ID0 wired to motor 1)
 			//
-			params->motor_map[i] = (params->function_map[i] - (int)OutputFunction::Motor1) + 1;
+			params->motor_map[i] = (params->function_map[i] - (int)OutputFunction::Motor5) + 1;
 		}
 	}
 
@@ -399,10 +400,10 @@ int VoxlEsc2::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 					//print ESC status just for debugging
 					/*
-					PX4_INFO("[%lld] ID=%d, ADDR %d, STATE=%d, RPM=%5d, PWR=%3d%%, V=%.2fdV, I=%.2fA, T=%+3dC, CNT %d, FAIL %d",
+					PX4_INFO("[%lu] ID=%d, ADDR %d, STATE=%d, RPM=%5d, PWR=%3d%%, V=%.2fdV, I=%.2fA, T=%+3fC, CNT %d, FAIL %d",
 						_esc_status.esc[id].timestamp, id, _esc_status.esc[id].esc_address,
 						_esc_status.esc[id].esc_state, _esc_status.esc[id].esc_rpm, _esc_status.esc[id].esc_power,
-						(double)_esc_status.esc[id].esc_voltage, (double)_esc_status.esc[id].esc_current, _esc_status.esc[id].esc_temperature,
+						(double)_esc_status.esc[id].esc_voltage, (double)_esc_status.esc[id].esc_current, (double)_esc_status.esc[id].esc_temperature,
 					  _esc_status.esc[id].esc_cmdcount, _esc_status.esc[id].failures);
 					*/
 				}
@@ -1068,9 +1069,9 @@ bool VoxlEsc2::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
 
-	if (num_outputs != VOXL_ESC_OUTPUT_CHANNELS) {
-		return false;
-	}
+	// if (num_outputs != VOXL_ESC_OUTPUT_CHANNELS) {
+	// 	return false;
+	// }
 
 	// don't use mixed values... recompute now.
 	if (_turtle_mode_en) {
@@ -1078,21 +1079,23 @@ bool VoxlEsc2::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	}
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
+		const int j = i;  // offset for second ESC
+
 		if (!_outputs_on || stop_motors) {
 			_esc_chans[i].rate_req = 0;
 
 		} else {
 			if (_extended_rpm) {
-				if (outputs[i] > VOXL_ESC_RPM_MAX_EXT) outputs[i] = VOXL_ESC_RPM_MAX_EXT;
+				if (outputs[j] > VOXL_ESC_RPM_MAX_EXT) outputs[j] = VOXL_ESC_RPM_MAX_EXT;
 			} else {
-				if (outputs[i] > VOXL_ESC_RPM_MAX) outputs[i] = VOXL_ESC_RPM_MAX;
+				if (outputs[j] > VOXL_ESC_RPM_MAX) outputs[j] = VOXL_ESC_RPM_MAX;
 			}
 			if (!_turtle_mode_en) {
-				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction;
+				_esc_chans[i].rate_req = outputs[j] * _output_map[i].direction;
 
 			} else {
 				// mapping updated in mixTurtleMode, no remap needed here, but reverse direction
-				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction * (-1);
+				_esc_chans[i].rate_req = outputs[j] * _output_map[i].direction * (-1);
 			}
 		}
 	}
