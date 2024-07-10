@@ -141,15 +141,15 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_T_MINF"),  &params->turtle_stick_minf);
 	param_get(param_find("VOXL_ESC_T_COSP"),  &params->turtle_cosphi);
 
-	param_get(param_find("VOXL_ESC_FUNC5"),  &params->function_map[0]);
-	param_get(param_find("VOXL_ESC_FUNC6"),  &params->function_map[1]);
-	param_get(param_find("VOXL_ESC_FUNC7"),  &params->function_map[2]);
-	param_get(param_find("VOXL_ESC_FUNC8"),  &params->function_map[3]);
+	param_get(param_find("VOXL_ESC2_FUNC1"),  &params->function_map[0]);
+	param_get(param_find("VOXL_ESC2_FUNC2"),  &params->function_map[1]);
+	param_get(param_find("VOXL_ESC2_FUNC3"),  &params->function_map[2]);
+	param_get(param_find("VOXL_ESC2_FUNC4"),  &params->function_map[3]);
 
-	param_get(param_find("VOXL_ESC_SDIR5"),  &params->direction_map[0]);
-	param_get(param_find("VOXL_ESC_SDIR6"),  &params->direction_map[1]);
-	param_get(param_find("VOXL_ESC_SDIR7"),  &params->direction_map[2]);
-	param_get(param_find("VOXL_ESC_SDIR8"),  &params->direction_map[3]);
+	param_get(param_find("VOXL_ESC2_SDIR1"),  &params->direction_map[0]);
+	param_get(param_find("VOXL_ESC2_SDIR2"),  &params->direction_map[1]);
+	param_get(param_find("VOXL_ESC2_SDIR3"),  &params->direction_map[2]);
+	param_get(param_find("VOXL_ESC2_SDIR4"),  &params->direction_map[3]);
 
 	param_get(param_find("VOXL_ESC_RPM_MIN"), &params->rpm_min);
 	param_get(param_find("VOXL_ESC_RPM_MAX"), &params->rpm_max);

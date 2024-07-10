@@ -1201,7 +1201,7 @@ void VoxlEsc::Run()
 			Command cmd;
 			cmd.len = qc_esc_create_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			if (_uart_port->uart_write(cmd.buf, cmd.len) == cmd.len) {
-				// if (read_response(&_current_cmd) != 0) PX4_ERR("Failed to parse version request response packet!");
+				if (read_response(&_current_cmd) != 0) PX4_ERR("Failed to parse version request response packet!");
 			} else {
 				PX4_ERR("Failed to send version request packet!");
 			}
