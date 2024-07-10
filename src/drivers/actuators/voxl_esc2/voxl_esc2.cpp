@@ -35,22 +35,25 @@
 
 #include <px4_platform_common/getopt.h>
 
-#include "voxl_esc.hpp"
+#include "voxl_esc2.hpp"
 #include "voxl_esc_serial.hpp"
 
 // future use:
-#define MODALAI_PUBLISH_ESC_STATUS	0
+// #define MODALAI_PUBLISH_ESC_STATUS	0
+namespace voxl2esc
+{
+const char* _device;
+}
+using namespace voxl2esc;
 
-const char *_device;
-
-VoxlEsc::VoxlEsc() :
+VoxlEsc2::VoxlEsc2() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(VOXL_ESC_DEFAULT_PORT)),
-	_mixing_output{"VOXL_ESC", VOXL_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
+	_mixing_output{"VOXL_ESC2", VOXL_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")),
 	_battery(1, nullptr, _battery_report_interval, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
-	_device = VOXL_ESC_DEFAULT_PORT;
+	_device = "6";
 
 	_mixing_output.setAllFailsafeValues(0);
 	_mixing_output.setAllDisarmedValues(0);
@@ -79,7 +82,7 @@ VoxlEsc::VoxlEsc() :
 	_fb_idx = 0;
 }
 
-VoxlEsc::~VoxlEsc()
+VoxlEsc2::~VoxlEsc2()
 {
 	_outputs_on = false;
 
@@ -92,7 +95,7 @@ VoxlEsc::~VoxlEsc()
 	perf_free(_output_update_perf);
 }
 
-int VoxlEsc::init()
+int VoxlEsc2::init()
 {
 
 	/* Getting initial parameter values */
@@ -117,7 +120,7 @@ int VoxlEsc::init()
 	return 0;
 }
 
-int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
+int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 {
 	int ret = PX4_OK;
 
@@ -138,15 +141,15 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_T_MINF"),  &params->turtle_stick_minf);
 	param_get(param_find("VOXL_ESC_T_COSP"),  &params->turtle_cosphi);
 
-	param_get(param_find("VOXL_ESC_FUNC1"),  &params->function_map[0]);
-	param_get(param_find("VOXL_ESC_FUNC2"),  &params->function_map[1]);
-	param_get(param_find("VOXL_ESC_FUNC3"),  &params->function_map[2]);
-	param_get(param_find("VOXL_ESC_FUNC4"),  &params->function_map[3]);
+	param_get(param_find("VOXL_ESC_FUNC5"),  &params->function_map[0]);
+	param_get(param_find("VOXL_ESC_FUNC6"),  &params->function_map[1]);
+	param_get(param_find("VOXL_ESC_FUNC7"),  &params->function_map[2]);
+	param_get(param_find("VOXL_ESC_FUNC8"),  &params->function_map[3]);
 
-	param_get(param_find("VOXL_ESC_SDIR1"),  &params->direction_map[0]);
-	param_get(param_find("VOXL_ESC_SDIR2"),  &params->direction_map[1]);
-	param_get(param_find("VOXL_ESC_SDIR3"),  &params->direction_map[2]);
-	param_get(param_find("VOXL_ESC_SDIR4"),  &params->direction_map[3]);
+	param_get(param_find("VOXL_ESC_SDIR5"),  &params->direction_map[0]);
+	param_get(param_find("VOXL_ESC_SDIR6"),  &params->direction_map[1]);
+	param_get(param_find("VOXL_ESC_SDIR7"),  &params->direction_map[2]);
+	param_get(param_find("VOXL_ESC_SDIR8"),  &params->direction_map[3]);
 
 	param_get(param_find("VOXL_ESC_RPM_MIN"), &params->rpm_min);
 	param_get(param_find("VOXL_ESC_RPM_MAX"), &params->rpm_max);
@@ -226,7 +229,7 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	return ret;
 }
 
-int VoxlEsc::task_spawn(int argc, char *argv[])
+int VoxlEsc2::task_spawn(int argc, char *argv[])
 {
 	int myoptind = 0;
 	int ch;
@@ -243,7 +246,7 @@ int VoxlEsc::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	VoxlEsc *instance = new VoxlEsc();
+	VoxlEsc2 *instance = new VoxlEsc2();
 
 	if (instance) {
 		_object.store(instance);
@@ -266,14 +269,14 @@ int VoxlEsc::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int VoxlEsc::flush_uart_rx()
+int VoxlEsc2::flush_uart_rx()
 {
 	while (_uart_port->uart_read(_read_buf, sizeof(_read_buf)) > 0) {}
 
 	return 0;
 }
 
-bool VoxlEsc::check_versions_updated(){
+bool VoxlEsc2::check_versions_updated(){
 	for (int esc_id=0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id){
 		if (_version_info[esc_id].sw_version == UINT16_MAX) return false;
 	}
@@ -287,7 +290,7 @@ bool VoxlEsc::check_versions_updated(){
 	return true;
 }
 
-int VoxlEsc::read_response(Command *out_cmd)
+int VoxlEsc2::read_response(Command *out_cmd)
 {
 	px4_usleep(_current_cmd.resp_delay_us);
 
@@ -310,7 +313,7 @@ int VoxlEsc::read_response(Command *out_cmd)
 	return 0;
 }
 
-int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
+int VoxlEsc2::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 {
 	hrt_abstime tnow = hrt_absolute_time();
 
@@ -470,7 +473,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 	return 0;
 }
 
-int VoxlEsc::check_for_esc_timeout()
+int VoxlEsc2::check_for_esc_timeout()
 {
 	hrt_abstime tnow = hrt_absolute_time();
 
@@ -495,7 +498,7 @@ int VoxlEsc::check_for_esc_timeout()
 
 }
 
-int VoxlEsc::send_cmd_thread_safe(Command *cmd)
+int VoxlEsc2::send_cmd_thread_safe(Command *cmd)
 {
 	cmd->id = _cmd_id++;
 	_pending_cmd.store(cmd);
@@ -510,7 +513,7 @@ int VoxlEsc::send_cmd_thread_safe(Command *cmd)
 
 
 
-int VoxlEsc::custom_command(int argc, char *argv[])
+int VoxlEsc2::custom_command(int argc, char *argv[])
 {
 	int myoptind = 0;
 	int ch;
@@ -536,7 +539,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 	/* start the FMU if not running */
 	if (!strcmp(verb, "start")) {
 		if (!is_running()) {
-			return VoxlEsc::task_spawn(argc, argv);
+			return VoxlEsc2::task_spawn(argc, argv);
 		}
 	}
 
@@ -760,7 +763,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int VoxlEsc::update_params()
+int VoxlEsc2::update_params()
 {
 	int ret = PX4_ERROR;
 
@@ -779,7 +782,7 @@ int VoxlEsc::update_params()
 	return ret;
 }
 
-void VoxlEsc::update_leds(vehicle_control_mode_s mode, led_control_s control)
+void VoxlEsc2::update_leds(vehicle_control_mode_s mode, led_control_s control)
 {
 	int i = 0;
 	uint8_t led_mask = _led_rsc.led_mask;
@@ -884,7 +887,7 @@ void VoxlEsc::update_leds(vehicle_control_mode_s mode, led_control_s control)
 	}
 }
 
-void VoxlEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
+void VoxlEsc2::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 {
 	bool use_pitch = true;
 	bool use_roll  = true;
@@ -1059,7 +1062,7 @@ void VoxlEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool VoxlEsc2::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
@@ -1172,7 +1175,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 }
 
 
-void VoxlEsc::Run()
+void VoxlEsc2::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -1201,7 +1204,7 @@ void VoxlEsc::Run()
 			Command cmd;
 			cmd.len = qc_esc_create_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			if (_uart_port->uart_write(cmd.buf, cmd.len) == cmd.len) {
-				// if (read_response(&_current_cmd) != 0) PX4_ERR("Failed to parse version request response packet!");
+				if (read_response(&_current_cmd) != 0) PX4_ERR("Failed to parse version request response packet!");
 			} else {
 				PX4_ERR("Failed to send version request packet!");
 			}
@@ -1330,7 +1333,7 @@ void VoxlEsc::Run()
 }
 
 
-int VoxlEsc::print_usage(const char *reason)
+int VoxlEsc2::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -1388,7 +1391,7 @@ $ todo
 	return 0;
 }
 
-int VoxlEsc::print_status()
+int VoxlEsc2::print_status()
 {
 	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
@@ -1435,9 +1438,9 @@ int VoxlEsc::print_status()
 	return 0;
 }
 
-extern "C" __EXPORT int voxl_esc_main(int argc, char *argv[]);
+extern "C" __EXPORT int voxl_esc2_main(int argc, char *argv[]);
 
-int voxl_esc_main(int argc, char *argv[])
+int voxl_esc2_main(int argc, char *argv[])
 {
-	return VoxlEsc::main(argc, argv);
+	return VoxlEsc2::main(argc, argv);
 }
