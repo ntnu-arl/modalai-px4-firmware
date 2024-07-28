@@ -198,7 +198,9 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	}
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
-		if (params->function_map[i] < (int)OutputFunction::Motor5 || params->function_map[i] > (int)OutputFunction::Motor8) {
+		if (params->function_map[i] == (int)OutputFunction::Disabled){
+			params->motor_map[i] = VOXL_ESC_OUTPUT_DISABLED;
+		}	else if (params->function_map[i] < (int)OutputFunction::Motor5 || params->function_map[i] > (int)OutputFunction::Motor8) {
 			PX4_ERR("Invalid parameter VOXL_ESC_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
 			params->function_map[i] = 0;
 			ret = PX4_ERROR;
@@ -214,7 +216,7 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	}
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
-		if (params->motor_map[i] == VOXL_ESC_OUTPUT_DISABLED ||
+		if (/* params->motor_map[i] == VOXL_ESC_OUTPUT_DISABLED || */
 		    params->motor_map[i] < -(VOXL_ESC_OUTPUT_CHANNELS) ||
 		    params->motor_map[i] > VOXL_ESC_OUTPUT_CHANNELS) {
 			PX4_ERR("Invalid parameter VOXL_ESC_MOTORX.  Please verify parameters.");
