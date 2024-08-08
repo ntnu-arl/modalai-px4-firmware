@@ -1,0 +1,12 @@
+menuconfig MODULES_MC_NEURAL_CONTROL
+	bool "mc_neural_control"
+	default n
+	---help---
+		Enable support for mc_neural_control
+
+menuconfig USER_MC_NEURAL_CONTROL
+	bool "mc_neural_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_MC_NEURAL_CONTROL
+	---help---
+		Put mc_neural_control in userspace memory
