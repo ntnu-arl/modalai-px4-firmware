@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,292 +31,387 @@
  *
  ****************************************************************************/
 
+/**
+ * @file mc_sm_att_control.cpp
+ * Multicopter attitude controller.
+ *
+ * @author Lorenz Meier		<lorenz@px4.io>
+ * @author Anton Babushkin	<anton.babushkin@me.com>
+ * @author Sander Smeets	<sander@droneslab.com>
+ * @author Matthias Grob	<maetugr@gmail.com>
+ * @author Beat Küng		<beat-kueng@gmx.net>
+ *
+ */
+
 #include "MulticopterNeuralControl.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
-#include <px4_platform_common/events.h>
 
 using namespace matrix;
-using namespace time_literals;
-using math::radians;
 
 MulticopterNeuralControl::MulticopterNeuralControl(bool vtol) :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-	_vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_mc) : ORB_ID(vehicle_torque_setpoint)),
-	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_mc) : ORB_ID(vehicle_thrust_setpoint)),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	// _vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-
 	parameters_updated();
-	_controller_status_pub.advertise();
-	_takeoff_time_set = false;
+	// Rate of change 5% per second -> 1.6 seconds to ramp to default 8% MPC_MANTHR_MIN
+	//_manual_throttle_minimum.setSlewRate(0.05f);
+	// Rate of change 50% per second -> 2 seconds to ramp to 100%
+	//_manual_throttle_maximum.setSlewRate(0.5f);
 }
 
 MulticopterNeuralControl::~MulticopterNeuralControl()
 {
-	perf_free(_loop_perf);
+  perf_free(_loop_perf);
 }
 
-bool
-MulticopterNeuralControl::init()
+bool MulticopterNeuralControl::init()
 {
-	if (!_vehicle_angular_velocity_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
+  if (!_vehicle_angular_velocity_sub.registerCallback())
+  {
+    PX4_ERR("callback registration failed");
+    return false;
+  }
 
-	return true;
+  return true;
 }
 
-void
-MulticopterNeuralControl::parameters_updated()
+void MulticopterNeuralControl::parameters_updated()
 {
-	// rate control parameters
-	// The controller gain K is used to convert the parallel (P + I/s + sD) form
-	// to the ideal (K * [1 + 1/sTi + sTd]) form
-	const Vector3f rate_k = Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
+  // Store some of the parameters in a more convenient way & precompute often-used values
+  // PD
+  const float posKp3x3[] = { _param_pd_kp_xyz.get(), 0, 0, 0, _param_pd_kp_xyz.get(), 0, 0, 0, _param_pd_kp_xyz.get() };
+  _pd_position_control.setKp(Matrix3f(posKp3x3));
 
-	_rate_control.setGains(
-		rate_k.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get())),
-		rate_k.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get())),
-		rate_k.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get())));
+  const float posKd3x3[] = { _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get(), 0, 0, 0, _param_pd_kd_xyz.get() };
+  _pd_position_control.setKd(Matrix3f(posKd3x3));
 
-	_rate_control.setIntegratorLimit(
-		Vector3f(_param_mc_rr_int_lim.get(), _param_mc_pr_int_lim.get(), _param_mc_yr_int_lim.get()));
+  const float attKp3x3[] = { _param_pd_kp_rp.get(), 0, 0, 0, _param_pd_kp_rp.get(), 0, 0, 0, _param_pd_kp_y.get() };
+  _pd_attitude_control.setKp(Matrix3f(attKp3x3));
 
-	_rate_control.setFeedForwardGain(
-		Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
+  const float attKd3x3[] = { _param_pd_kd_rp.get(), 0, 0, 0, _param_pd_kd_rp.get(), 0, 0, 0, _param_pd_kd_y.get() };
+  _pd_attitude_control.setKd(Matrix3f(attKd3x3));
 
-
-	// manual rate control acro mode rate limits
-	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
-				  radians(_param_mc_acro_y_max.get()));
+  _pd_position_control.setMass(_param_mass.get());
+  const float inertia3x3[] = { _param_inertia_xx.get(), 0, 0, 0, _param_inertia_yy.get(), 0, 0, 0,
+                               _param_inertia_zz.get() };
+  _pd_attitude_control.setInertia(Matrix3f(inertia3x3));
 }
 
-float
-MulticopterNeuralControl::throttle_curve_acro(float throttle_stick_input)
+float MulticopterNeuralControl::throttle_curve(float throttle_stick_input)
 {
-	// throttle_stick_input is in range [0, 1]
-	switch (_param_mc_thr_curve_acr.get()) {
-	case 2:
-		return throttle_stick_input;
-
-	case 1: // no rescaling to hover throttle
-		return math::interpolate(throttle_stick_input, 0.f, 1.f, _param_mpc_manthr_min.get(), _param_mpc_thr_max.get());
-
-	default: // 0 or other: rescale to hover throttle at 0.5 stick
-		return math::interpolateN(throttle_stick_input, {_param_mpc_manthr_min.get(), _param_mpc_thr_hover.get(), _param_mpc_thr_max.get()});
-	}
+  return (throttle_stick_input + 1.0f) / 2.0f;
 }
 
-void
-MulticopterNeuralControl::Run()
+void MulticopterNeuralControl::generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp, const Vector3f& position,
+                                                      const Quatf& attitude)
 {
-	if (should_exit()) {
-		_vehicle_angular_velocity_sub.unregisterCallback();
-		exit_and_cleanup();
-		return;
-	}
+  // set position/yaw to current position/yaw
+  position.copyTo(traj_sp.position);
+  traj_sp.yaw = Eulerf(attitude).psi();
 
-	perf_begin(_loop_perf);
+  // set derivatives to zero
+  const Vector3f zero(0.0f, 0.0f, 0.0f);
+  zero.copyTo(traj_sp.velocity);
+  zero.copyTo(traj_sp.acceleration);
+  traj_sp.yawspeed = 0.0f;
+}
 
-	// Check if parameters have changed
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
+void MulticopterNeuralControl::Run()
+{
+  if (should_exit())
+  {
+    _vehicle_angular_velocity_sub.unregisterCallback();
+    exit_and_cleanup();
+    return;
+  }
 
-		updateParams();
-		parameters_updated();
-	}
+  perf_begin(_loop_perf);
 
-	/* run controller on gyro changes */
-	vehicle_angular_velocity_s angular_velocity;
+  // Check if parameters have changed
+  if (_parameter_update_sub.updated())
+  {
+    // clear update
+    parameter_update_s param_update;
+    _parameter_update_sub.copy(&param_update);
 
-	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
+    updateParams();
+    parameters_updated();
+  }
 
-		const hrt_abstime now = angular_velocity.timestamp_sample;
+  // run controller on angular rate updates
+  vehicle_angular_velocity_s vehicle_angular_velocity;
+  if (_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity))
+  {
+    // Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
+    // const float dt = math::constrain(((vehicle_attitude.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
+    _last_run = vehicle_angular_velocity.timestamp_sample;
+    _neural_control.setAngularVelocity(Vector3f(vehicle_angular_velocity.xyz));
 
-		// Guard against too small (< 0.125ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.000125f, 0.02f);
-		_last_run = now;
+    _pd_attitude_control.setAngularVelocity(Vector3f(vehicle_angular_velocity.xyz));
+    _pd_attitude_control.setAngularAcceleration(Vector3f(vehicle_angular_velocity.xyz));
 
-		const Vector3f rates{angular_velocity.xyz};
-		const Vector3f angular_accel{angular_velocity.xyz_derivative};
+    // update vehicle attitude
+    if (_vehicle_attitude_sub.updated())
+    {
+      vehicle_attitude_s vehicle_attitude;
+      if (_vehicle_attitude_sub.copy(&vehicle_attitude))
+      {
+        _attitude = Quatf(vehicle_attitude.q);
+        _neural_control.setAttitude(_attitude);
 
-		/* check for updates in other topics */
-		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
+        _pd_position_control.setAttitude(_attitude);
+        _pd_attitude_control.setAttitude(_attitude);
+      }
+    }
 
-		if (_vehicle_land_detected_sub.updated()) {
-			vehicle_land_detected_s vehicle_land_detected;
+    // update position
+    vehicle_local_position_s vehicle_local_position;
+    if (_vehicle_local_position_sub.update(&vehicle_local_position))
+    {
+        // PX4_INFO("vehicle_local_position: %f | %f | %f", (double)vehicle_local_position.x,
+        // (double)vehicle_local_position.y, (double)vehicle_local_position.z);
 
-			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
-				_landed = vehicle_land_detected.landed;
-				_maybe_landed = vehicle_land_detected.maybe_landed;
-			}
-		}
+      _neural_control.setPosition(
+          Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z));
+      _neural_control.setLinearVelocity(
+          Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
 
-		_vehicle_status_sub.update(&_vehicle_status);
+      _pd_position_control.setPosition(
+          Vector3f(vehicle_local_position.x, vehicle_local_position.y,vehicle_local_position.z));
+      _pd_position_control.setLinearVelocity(
+          Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
+      _pd_position_control.setLinearAcceleration(
+          Vector3f(vehicle_local_position.ax, vehicle_local_position.ay, vehicle_local_position.az));
+    }
 
-		// use rates setpoint topic
-		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
+    /* check for updates in other topics */
+    //_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+    if (_vehicle_control_mode_sub.updated())
+    {
+      const bool previous_offboard_enabled = _vehicle_control_mode.flag_control_offboard_enabled;
 
-		if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_attitude_enabled) {
-			// generate the rate setpoint from sticks
-			manual_control_setpoint_s manual_control_setpoint;
+      if (_vehicle_control_mode_sub.update(&_vehicle_control_mode))
+      {
+        if (!previous_offboard_enabled && _vehicle_control_mode.flag_control_offboard_enabled)
+        {
+          _time_offboard_enabled = _vehicle_control_mode.timestamp;
+        }
+        else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled)
+        {
+          PX4_INFO("implement empty setpoint");
+          generateFailsafeTrajectory(_trajectory_setpoint, _pd_position_control.getPosition(),
+                                     _pd_position_control.getAttitude()); // should be the same for _pd_position_control and neural control
+        }
+        /* PX4_INFO("%lu", _vehicle_control_mode.timestamp);
+        PX4_INFO("offboard %d", _vehicle_control_mode.flag_control_offboard_enabled);
+        PX4_INFO("manual %d", _vehicle_control_mode.flag_control_manual_enabled);
+        PX4_INFO("position %d", _vehicle_control_mode.flag_control_position_enabled);
+        PX4_INFO("velocity %d", _vehicle_control_mode.flag_control_velocity_enabled);
+        PX4_INFO("altitude %d", _vehicle_control_mode.flag_control_altitude_enabled);
+        PX4_INFO("climb rate %d", _vehicle_control_mode.flag_control_climb_rate_enabled);
+        PX4_INFO("accerl %d", _vehicle_control_mode.flag_control_acceleration_enabled);
+        PX4_INFO("attitude %d", _vehicle_control_mode.flag_control_attitude_enabled);
+        PX4_INFO("rates %d", _vehicle_control_mode.flag_control_rates_enabled); */
+      }
 
-			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				// manual rates control - ACRO mode
-				const Vector3f man_rate_sp{
-					math::superexpo(manual_control_setpoint.roll, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(-manual_control_setpoint.pitch, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(manual_control_setpoint.yaw, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
+    }
 
-				_rates_setpoint = man_rate_sp.emult(_acro_rate_max);
-				_thrust_setpoint(2) = -throttle_curve_acro((manual_control_setpoint.throttle + 1.f) * .5f);
-				_thrust_setpoint(0) = _thrust_setpoint(1) = 0.f;
+    if (_manual_control_setpoint_sub.updated())
+    {
+      manual_control_setpoint_s manual_control_setpoint;
+      if (_manual_control_setpoint_sub.copy(&manual_control_setpoint))
+      {
+        _manual_thrust = manual_control_setpoint.throttle;
+        _manual_roll = manual_control_setpoint.roll;
+        _manual_pitch = -manual_control_setpoint.pitch;
+        _manual_yaw = manual_control_setpoint.yaw;
+      }
+    }
 
-				// publish rate setpoint
-				vehicle_rates_setpoint.roll = _rates_setpoint(0);
-				vehicle_rates_setpoint.pitch = _rates_setpoint(1);
-				vehicle_rates_setpoint.yaw = _rates_setpoint(2);
-				_thrust_setpoint.copyTo(vehicle_rates_setpoint.thrust_body);
-				vehicle_rates_setpoint.timestamp = hrt_absolute_time();
+    if (_trajectory_setpoint_sub.updated()){
 
-				_vehicle_rates_setpoint_pub.publish(vehicle_rates_setpoint);
-			}
+      // trajectory_setpoint_s trajectory_setpoint;
+      _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
+      // if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
+      // {
+        // PX4_INFO("setpoint received: %f %f %f", double(_trajectory_setpoint.position[0]),
+        //       double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+      // }
+    }
+    // _trajectory_setpoint_sub.update(&_trajectory_setpoint);
+    if (_vehicle_control_mode.flag_control_offboard_enabled)
+    {
+      // set failsafe setpoint if there hasn't been a new
+      // trajectory setpoint since offboard control started
+      if ((_trajectory_setpoint.timestamp < _time_offboard_enabled) &&
+          (vehicle_angular_velocity.timestamp_sample > _time_offboard_enabled))
+      {
+        PX4_WARN("invalid setpoint, impl failsafe: %f %f %f", double(_trajectory_setpoint.position[0]),
+                 double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+        generateFailsafeTrajectory(_trajectory_setpoint, _pd_position_control.getPosition(),
+                                   _pd_position_control.getAttitude());
+        _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
+      }
+      else {
+        // PX4_INFO("setpoint: %f %f %f", double(_trajectory_setpoint.position[0]),
+        //         double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+        // PX4_INFO("vel: %f %f %f", double(_trajectory_setpoint.velocity[0]),
+        //         double(_trajectory_setpoint.velocity[1]), double(_trajectory_setpoint.velocity[2]));
+        // PX4_INFO("acc: %f %f %f", double(_trajectory_setpoint.acceleration[0]),
+        //         double(_trajectory_setpoint.acceleration[1]), double(_trajectory_setpoint.acceleration[2]));
+        //         PX4_INFO("yaw yawspeed: %f %f", double(_trajectory_setpoint.yaw), double(_trajectory_setpoint.yawspeed));
+      }
+    }
 
-		} else if (_vehicle_rates_setpoint_sub.update(&vehicle_rates_setpoint)) {
-			if (_vehicle_rates_setpoint_sub.copy(&vehicle_rates_setpoint)) {
-				_rates_setpoint(0) = PX4_ISFINITE(vehicle_rates_setpoint.roll)  ? vehicle_rates_setpoint.roll  : rates(0);
-				_rates_setpoint(1) = PX4_ISFINITE(vehicle_rates_setpoint.pitch) ? vehicle_rates_setpoint.pitch : rates(1);
-				_rates_setpoint(2) = PX4_ISFINITE(vehicle_rates_setpoint.yaw)   ? vehicle_rates_setpoint.yaw   : rates(2);
-				_thrust_setpoint = Vector3f(vehicle_rates_setpoint.thrust_body);
-			}
-		}
+    // =================================
+    // publish offboard control commands
+    // =================================
+    offboard_control_mode_s ocm{};
+    ocm.position = false;
+    ocm.velocity = false;
+    ocm.acceleration = false;
+    ocm.attitude = false;
+    ocm.body_rate = false;
+    ocm.actuator = true;
+    // ocm.thrust_and_torque = true;
+    // ocm.direct_actuator = false;
+    ocm.timestamp = hrt_absolute_time();
+    _offboard_control_mode_pub.publish(ocm);
 
-		// run the rate controller
-		if (_vehicle_control_mode.flag_control_rates_enabled) {
+    // compute control torques and thrust
+    if (_vehicle_control_mode.flag_control_offboard_enabled &&
+        (_param_manual_ctrl.get() || (_trajectory_setpoint.timestamp >= _time_offboard_enabled)))
+    {
+      float thrust_setpoint = 0.0f;
+      Quatf attitude_setpoint{};
 
-			// reset integral if disarmed
-			if (!_vehicle_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				_rate_control.resetIntegral();
-			}
+      // attitude_setpoint.print();
 
-			// update saturation status from control allocation feedback
-			control_allocator_status_s control_allocator_status;
+      // ====================================
+      // manual attitude setpoint feedthrough
+      // ====================================
+      if (_param_manual_ctrl.get())
+      {
+        // get an attitude setpoint from the current manual inputs
+        float roll_ref = 1.f * _manual_roll * M_PI_4_F;
+        float pitch_ref = 1.f * _manual_pitch * M_PI_4_F;
+        float yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
+        float yaw_ref = Eulerf(_attitude).psi();
 
-			if (_control_allocator_status_sub.update(&control_allocator_status)) {
-				Vector<bool, 3> saturation_positive;
-				Vector<bool, 3> saturation_negative;
+        Quatf q_sp(Eulerf(roll_ref, pitch_ref, yaw_ref));
 
-				if (!control_allocator_status.torque_setpoint_achieved) {
-					for (size_t i = 0; i < 3; i++) {
-						if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
-							saturation_positive(i) = true;
+        vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+        const Eulerf euler_sp(q_sp);
+        vehicle_attitude_setpoint.roll_body = euler_sp(0);
+        vehicle_attitude_setpoint.pitch_body = euler_sp(1);
+        vehicle_attitude_setpoint.yaw_body = euler_sp(2);
+        q_sp.copyTo(vehicle_attitude_setpoint.q_d);
+        vehicle_attitude_setpoint.yaw_sp_move_rate = yawspeed_ref;
 
-						} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
-							saturation_negative(i) = true;
-						}
-					}
-				}
+        vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+        _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
 
-				// TODO: send the unallocated value directly for better anti-windup
-				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
-			}
+        // not sure if this has to be here
+        // ?????????????????????????? //
+        //_neural_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        // ?????????????????????????? //
 
-			// run rate controller
-			Vector3f att_control = _rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
+        // run attitude controller
+        _pd_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, yawspeed_ref));
+        _pd_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
+        _pd_attitude_control.setAttitudeSetpoint(q_sp);
+        thrust_setpoint = throttle_curve(_manual_thrust);
+      }
+      // TODO: setpoint from mocap
+      else
+      {
+        vehicle_local_position_setpoint_s local_pos_sp{};
+        local_pos_sp.timestamp = hrt_absolute_time();
+        _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
 
-			// low pass filter the roll, pitch, and yaw actuator controls just before publishing
-			if(_param_mc_roll_cutoff.get() > 0.01f) {
-				_act_control_roll_filter.setParameters(dt, 1.f/(_param_mc_roll_cutoff.get() * M_TWOPI_F));
+        _neural_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
 
-				att_control(0) = _act_control_roll_filter.update(att_control(0));
-			}
-			else {
-				_act_control_roll_filter.reset(att_control(0));
-			}
+        _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        _pd_position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
+        _pd_position_control.setLinearAcceleration(Vector3f(_trajectory_setpoint.acceleration));
+        _pd_position_control.setYawSetpoint(_trajectory_setpoint.yaw);
 
-			if(_param_mc_pitch_cutoff.get() > 0.01f) {
-				_act_control_pitch_filter.setParameters(dt, 1.f/(_param_mc_pitch_cutoff.get() * M_TWOPI_F));
+        switch (_param_controller.get())
+        {
+          case NONLINEAR_PD:
+            _pd_position_control.updatePD(thrust_setpoint, attitude_setpoint);
+            break;
 
-				att_control(1) = _act_control_pitch_filter.update(att_control(1));
-			}
-			else {
-				_act_control_pitch_filter.reset(att_control(1));
-			}
+          case NEURAL:
+            break;
 
-			if(_param_mc_yaw_cutoff.get() > 0.01f) {
-				_act_control_yaw_filter.setParameters(dt, 1.f/(_param_mc_yaw_cutoff.get() * M_TWOPI_F));
+          default:
+            PX4_ERR("Invalid controller selected: %i", _param_controller.get());
+            break;
+        }
+        if (_param_verbose.get())
+        {
+          PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
+        }
+        thrust_setpoint /= _param_thrust_max.get();
 
-				att_control(2) = _act_control_yaw_filter.update(att_control(2));
-			}
-			else {
-				_act_control_yaw_filter.reset(att_control(2));
-			}
-			// End low pass filtering of actuator controls
+        // run attitude controller
+        _pd_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, _trajectory_setpoint.yawspeed));
+        _pd_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
+        _pd_attitude_control.setAttitudeSetpoint(attitude_setpoint);
+      }
 
-			// START add in sine injection for system id here
-			if (_param_mc_inject_en.get()) {
-				if (!_vehicle_control_mode.flag_armed) {
-					_takeoff_time_set = false;
-				} else {
-					if (!_takeoff_time_set && _thrust_setpoint(2) < -0.2f) {
-						_takeoff_time_set = true;
-						_takeoff_time = hrt_absolute_time();
-					} else if (_takeoff_time_set) {
-						const float time_start = 5.0f;
-						float time_since_start = (float)(hrt_absolute_time() - _takeoff_time) / 1.e6f - time_start;
+      // run attitude controller
+      Vector3f torque_setpoint;
+      switch (_param_controller.get())
+      {
+        case NONLINEAR_PD:
+          torque_setpoint = _pd_attitude_control.updatePD();
+          
+          break;
 
-						if (time_since_start > 0) {
-							int freq_idx = floor(time_since_start / (_param_mc_inject_sine_t.get() + _param_mc_inject_rest_t.get()));
+        case NEURAL:
+          _neural_control.updateNeural(thrust_setpoint, attitude_setpoint);
+          break;
 
-							if (freq_idx < _param_mc_inject_cnt.get()) {
-								float freq_time = time_since_start - (_param_mc_inject_sine_t.get() + _param_mc_inject_rest_t.get()) * freq_idx;
-								float freq_now = _param_mc_inject_start.get() + _param_mc_inject_inc.get() * freq_idx;
+        default:
+          PX4_ERR("Invalid controller selected: %i", _param_controller.get());
+          break;
+      }
+      if (_param_verbose.get())
+      {
+        PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
+                 (double)torque_setpoint(2));
+      }
+      torque_setpoint(0) /= _param_moment_rp_max.get();
+      torque_setpoint(1) /= _param_moment_rp_max.get();
+      torque_setpoint(2) /= _param_moment_y_max.get();
 
-								if (freq_time < _param_mc_inject_sine_t.get()) {
-									float injection = _param_mc_inject_amp.get() * (float) sin(freq_now * M_TWOPI_F * freq_time);
+      // publish thrust and attitude setpoints
+      vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
+      vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 
-									if (_param_mc_inject_rpy.get() == 0) {
-										att_control(0) += injection;
-									} else if (_param_mc_inject_rpy.get() == 1) {
-										att_control(1) += injection;
-									} else if (_param_mc_inject_rpy.get() == 2) {
-										att_control(2) += injection;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			// END addition of sine injection
+      // set default thrust to hover percentage
+      thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover.get();
+      thrust_setpoint = -constrain(thrust_setpoint, 0.0f, 1.0f);
+      for (int i = 0; i < 3; i++)
+      {
+        torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
+        vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
+      }
 
-
-			// publish rate controller status
-			rate_ctrl_status_s rate_ctrl_status{};
-			_rate_control.getRateControlStatus(rate_ctrl_status);
-			rate_ctrl_status.timestamp = hrt_absolute_time();
-			_controller_status_pub.publish(rate_ctrl_status);
-
-			// publish thrust and torque setpoints
-			vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-			vehicle_torque_setpoint_s vehicle_torque_setpoint{};
-
-			_thrust_setpoint.copyTo(vehicle_thrust_setpoint.xyz);
-			vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(att_control(0)) ? att_control(0) : 0.f;
-			vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(att_control(1)) ? att_control(1) : 0.f;
-			vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.f;
+      // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
+      vehicle_thrust_setpoint.xyz[0] = 0.0f;
+      vehicle_thrust_setpoint.xyz[1] = 0.0f;
+      vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
 
 			// scale setpoints by battery status if enabled
-			if (_param_mc_bat_scale_en.get()) {
+			if (_param_bat_scale_en.get()) {
 				if (_battery_status_sub.updated()) {
 					battery_status_s battery_status;
 
@@ -333,44 +428,28 @@ MulticopterNeuralControl::Run()
 				}
 			}
 
-			vehicle_thrust_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
-			vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
-			_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
+      vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
+      vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+      vehicle_attitude_setpoint.thrust_body[0] = vehicle_thrust_setpoint.xyz[0];
+      vehicle_attitude_setpoint.thrust_body[1] = vehicle_thrust_setpoint.xyz[1];
+      vehicle_attitude_setpoint.thrust_body[2] = vehicle_thrust_setpoint.xyz[2];
+      attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
+      const Eulerf euler{ attitude_setpoint };
+      vehicle_attitude_setpoint.roll_body = euler.phi();
+      vehicle_attitude_setpoint.pitch_body = euler.theta();
+      vehicle_attitude_setpoint.yaw_body = euler.psi();
+      _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
 
-			vehicle_torque_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
-			vehicle_torque_setpoint.timestamp = hrt_absolute_time();
-			_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
+      vehicle_thrust_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
+      vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+      _vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 
-			updateActuatorControlsStatus(vehicle_torque_setpoint, dt);
-
-		}
-	}
-
-	perf_end(_loop_perf);
-}
-
-void MulticopterNeuralControl::updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint,
-		float dt)
-{
-	for (int i = 0; i < 3; i++) {
-		_control_energy[i] += vehicle_torque_setpoint.xyz[i] * vehicle_torque_setpoint.xyz[i] * dt;
-	}
-
-	_energy_integration_time += dt;
-
-	if (_energy_integration_time > 500e-3f) {
-
-		actuator_controls_status_s status;
-		status.timestamp = vehicle_torque_setpoint.timestamp;
-
-		for (int i = 0; i < 3; i++) {
-			status.control_power[i] = _control_energy[i] / _energy_integration_time;
-			_control_energy[i] = 0.f;
-		}
-
-		_actuator_controls_status_pub.publish(status);
-		_energy_integration_time = 0.f;
-	}
+      vehicle_torque_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
+      vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+      _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
+    }
+  }
+  perf_end(_loop_perf);
 }
 
 int MulticopterNeuralControl::task_spawn(int argc, char *argv[])
@@ -418,10 +497,17 @@ int MulticopterNeuralControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This implements the multicopter rate controller. It takes rate setpoints (in acro mode
-via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
+This implements the multicopter attitude controller. It takes attitude
+setpoints (`vehicle_attitude_setpoint`) as inputs and outputs a rate setpoint.
 
-The controller has a PID loop for angular rate error.
+The controller has a P loop for angular error
+
+Publication documenting the implemented Quaternion Attitude Control:
+Nonlinear Quadrocopter Attitude Control (2013)
+by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
+Institute for Dynamic Systems and Control (IDSC), ETH Zurich
+
+https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf
 
 )DESCR_STR");
 
@@ -433,6 +519,10 @@ The controller has a PID loop for angular rate error.
 	return 0;
 }
 
+
+/**
+ * Multicopter attitude control app start / stop handling function
+ */
 extern "C" __EXPORT int mc_neural_control_main(int argc, char *argv[])
 {
 	return MulticopterNeuralControl::main(argc, argv);

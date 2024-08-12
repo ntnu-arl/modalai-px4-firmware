@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+add_subdirectory(NeuralControl)
+add_subdirectory(PDPositionControl)
+add_subdirectory(PDAttitudeControl)
+
 px4_add_module(
 	MODULE modules__mc_neural_control
 	MAIN mc_neural_control
@@ -40,6 +44,9 @@ px4_add_module(
 		MulticopterNeuralControl.cpp
 		MulticopterNeuralControl.hpp
 	DEPENDS
+		NeuralControl
+		PDPositionControl
+		PDAttitudeControl
 		circuit_breaker
 		mathlib
 		RateControl
