@@ -200,8 +200,8 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		if (params->function_map[i] == (int)OutputFunction::Disabled){
 			params->motor_map[i] = VOXL_ESC_OUTPUT_DISABLED;
-		}	else if (params->function_map[i] < (int)OutputFunction::Motor5 || params->function_map[i] > (int)OutputFunction::Motor8) {
-			PX4_ERR("Invalid parameter VOXL_ESC_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
+		}	else if (params->function_map[i] < (int)OutputFunction::Motor4 || params->function_map[i] > (int)OutputFunction::Motor6) {
+			PX4_ERR("Invalid parameter VOXL_ESC_FUNCX.  Only supports motors 4-6.  Please verify parameters.");
 			params->function_map[i] = 0;
 			ret = PX4_ERROR;
 
@@ -211,7 +211,7 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 			// This motor_map array represents ESC IDs 0-3 (matching the silkscreen)
 			// This array will hold ESC ID to Motor ID (e.g. motor_map[0] = 1, means ESC ID0 wired to motor 1)
 			//
-			params->motor_map[i] = (params->function_map[i] - (int)OutputFunction::Motor5) + 1;
+			params->motor_map[i] = (params->function_map[i] - (int)OutputFunction::Motor4) + 1;
 		}
 	}
 
