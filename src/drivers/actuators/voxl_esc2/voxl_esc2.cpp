@@ -196,7 +196,8 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 		params->turtle_cosphi = 0.0f;
 		ret = PX4_ERROR;
 	}
-
+	
+	int minimum_motor = (int) OutputFunction::MotorMax;
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		if (params->function_map[i] == (int)OutputFunction::Disabled){
 			params->motor_map[i] = VOXL_ESC_OUTPUT_DISABLED;
@@ -211,7 +212,9 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 			// This motor_map array represents ESC IDs 0-3 (matching the silkscreen)
 			// This array will hold ESC ID to Motor ID (e.g. motor_map[0] = 1, means ESC ID0 wired to motor 1)
 			//
-			params->motor_map[i] = (params->function_map[i] - (int)OutputFunction::Motor4) + 1;
+			params->motor_map[i] = (params->function_map[i] - (int)OutputFunction::Motor5) + 1;
+			// get min8mum motor number that's not disabled
+			minimum_motor = (int)std::min(minimum_motor, params->function_map[i]);
 		}
 	}
 
@@ -224,10 +227,18 @@ int VoxlEsc2::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 			ret = PX4_ERROR;
 		}
 
-		// Keep tabs on motor map for turtle mode where we mix ourselves
-		map[i].number = params->motor_map[i];
-		map[i].direction = (params->direction_map[i] > 0) ? -1 : 1;
-	}
+    // Keep tabs on motor map for turtle mode where we mix ourselves
+    if (params->motor_map[i] == VOXL_ESC_OUTPUT_DISABLED)
+    {
+      map[i].number = (int)OutputFunction::Disabled;
+    }
+    else
+    {
+      // set motor number to function map - minimum + 1
+      map[i].number = params->function_map[i] - minimum_motor + 1;
+      map[i].direction = (params->direction_map[i] > 0) ? -1 : 1;
+    }
+  }
 
 	return ret;
 }
