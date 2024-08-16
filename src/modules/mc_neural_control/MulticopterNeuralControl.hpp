@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/battery_status.h>
 
@@ -125,6 +126,7 @@ private:
 	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<vehicle_attitude_setpoint_s> _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _vehicle_local_position_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
 	// =================================================
 
   // manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */

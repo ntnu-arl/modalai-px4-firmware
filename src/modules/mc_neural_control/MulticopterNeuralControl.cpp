@@ -368,15 +368,15 @@ void MulticopterNeuralControl::Run()
 
       // run attitude controller
       Vector3f torque_setpoint;
+      matrix::Vector4f scaled_motor_thrusts;
       switch (_param_controller.get())
       {
         case NONLINEAR_PD:
           torque_setpoint = _pd_attitude_control.updatePD();
-          
           break;
 
         case NEURAL:
-          _neural_control.updateNeural(thrust_setpoint, attitude_setpoint);
+          scaled_motor_thrusts = _neural_control.updateNeural();
           break;
 
         default:
@@ -388,65 +388,85 @@ void MulticopterNeuralControl::Run()
         PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
                  (double)torque_setpoint(2));
       }
-      torque_setpoint(0) /= _param_moment_rp_max.get();
-      torque_setpoint(1) /= _param_moment_rp_max.get();
-      torque_setpoint(2) /= _param_moment_y_max.get();
-
-      // publish thrust and attitude setpoints
-      vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-      vehicle_torque_setpoint_s vehicle_torque_setpoint{};
-
-      // set default thrust to hover percentage
-      thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover.get();
-      thrust_setpoint = -constrain(thrust_setpoint, 0.0f, 1.0f);
-      for (int i = 0; i < 3; i++)
+      
+      if (NONLINEAR_PD)
       {
-        torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
-        vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
+        torque_setpoint(0) /= _param_moment_rp_max.get();
+        torque_setpoint(1) /= _param_moment_rp_max.get();
+        torque_setpoint(2) /= _param_moment_y_max.get();
+
+        // publish thrust and attitude setpoints
+        vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
+        vehicle_torque_setpoint_s vehicle_torque_setpoint{};
+
+        // set default thrust to hover percentage
+        thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover.get();
+        thrust_setpoint = -constrain(thrust_setpoint, 0.0f, 1.0f);
+        for (int i = 0; i < 3; i++)
+        {
+          torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
+          vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
+        }
+
+        // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
+        vehicle_thrust_setpoint.xyz[0] = 0.0f;
+        vehicle_thrust_setpoint.xyz[1] = 0.0f;
+        vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
+
+        // scale setpoints by battery status if enabled
+        if (_param_bat_scale_en.get()) {
+          if (_battery_status_sub.updated()) {
+            battery_status_s battery_status;
+
+            if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+              _battery_status_scale = battery_status.scale;
+            }
+          }
+
+          if (_battery_status_scale > 0.f) {
+            for (int i = 0; i < 3; i++) {
+              vehicle_thrust_setpoint.xyz[i] = math::constrain(vehicle_thrust_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
+              vehicle_torque_setpoint.xyz[i] = math::constrain(vehicle_torque_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
+            }
+          }
+        }
+
+        vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
+        vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+        vehicle_attitude_setpoint.thrust_body[0] = vehicle_thrust_setpoint.xyz[0];
+        vehicle_attitude_setpoint.thrust_body[1] = vehicle_thrust_setpoint.xyz[1];
+        vehicle_attitude_setpoint.thrust_body[2] = vehicle_thrust_setpoint.xyz[2];
+        attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
+        const Eulerf euler{ attitude_setpoint };
+        vehicle_attitude_setpoint.roll_body = euler.phi();
+        vehicle_attitude_setpoint.pitch_body = euler.theta();
+        vehicle_attitude_setpoint.yaw_body = euler.psi();
+        _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
+
+        vehicle_thrust_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
+        vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+        _vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
+
+        vehicle_torque_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
+        vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+        _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
       }
+      else if (NEURAL)
+      {
+        actuator_motors_s actuator_motors;
+        actuator_motors.timestamp = hrt_absolute_time();
+        
+        actuator_motors.control[0] = PX4_ISFINITE(scaled_motor_thrusts(0)) ? scaled_motor_thrusts(0) : NAN;
+        actuator_motors.control[1] = PX4_ISFINITE(scaled_motor_thrusts(1)) ? scaled_motor_thrusts(1) : NAN;
+        actuator_motors.control[2] = PX4_ISFINITE(scaled_motor_thrusts(2)) ? scaled_motor_thrusts(2) : NAN;
+        actuator_motors.control[3] = PX4_ISFINITE(scaled_motor_thrusts(3)) ? scaled_motor_thrusts(3) : NAN;
 
-      // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
-      vehicle_thrust_setpoint.xyz[0] = 0.0f;
-      vehicle_thrust_setpoint.xyz[1] = 0.0f;
-      vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
-
-			// scale setpoints by battery status if enabled
-			if (_param_bat_scale_en.get()) {
-				if (_battery_status_sub.updated()) {
-					battery_status_s battery_status;
-
-					if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
-						_battery_status_scale = battery_status.scale;
-					}
-				}
-
-				if (_battery_status_scale > 0.f) {
-					for (int i = 0; i < 3; i++) {
-						vehicle_thrust_setpoint.xyz[i] = math::constrain(vehicle_thrust_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
-						vehicle_torque_setpoint.xyz[i] = math::constrain(vehicle_torque_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
-					}
-				}
-			}
-
-      vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
-      vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
-      vehicle_attitude_setpoint.thrust_body[0] = vehicle_thrust_setpoint.xyz[0];
-      vehicle_attitude_setpoint.thrust_body[1] = vehicle_thrust_setpoint.xyz[1];
-      vehicle_attitude_setpoint.thrust_body[2] = vehicle_thrust_setpoint.xyz[2];
-      attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
-      const Eulerf euler{ attitude_setpoint };
-      vehicle_attitude_setpoint.roll_body = euler.phi();
-      vehicle_attitude_setpoint.pitch_body = euler.theta();
-      vehicle_attitude_setpoint.yaw_body = euler.psi();
-      _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
-
-      vehicle_thrust_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
-      vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
-      _vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
-
-      vehicle_torque_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
-      vehicle_torque_setpoint.timestamp = hrt_absolute_time();
-      _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
+        _actuator_motors_pub.publish(actuator_motors);
+      }
+      else
+      {
+        PX4_ERR("Invalid controller selected: %i", _param_controller.get());
+      }
     }
   }
   perf_end(_loop_perf);
