@@ -100,7 +100,7 @@ matrix::Vector4f NeuralControl::updateNeural() const
   // forward path
   Eigen::VectorXf co1 = _weight_control_net_layer_1 * input + _bias_control_net_layer_1;
   Eigen::VectorXf ca1 = co1.array().tanh();
-  Eigen::VectorXf co2 = _weight_control_net_layer_2 * ca1 + _bias_control_net_layer_2;z
+  Eigen::VectorXf co2 = _weight_control_net_layer_2 * ca1 + _bias_control_net_layer_2;
   Eigen::VectorXf ca2 = co2.array().tanh();
   Eigen::VectorXf co3 = _weight_control_net_layer_3 * ca2 + _bias_control_net_layer_3;
   Eigen::VectorXf ca3 = co3.array().tanh();
