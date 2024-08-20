@@ -1,5 +1,5 @@
-find_package(Eigen3 REQUIRED)
 add_compile_options(-Wno-error=float-equal)
+find_package(Eigen3 REQUIRED)
 #find_package(Eigen3 PATHS "/usr/local/workspace/px4-firmware/src/lib/eigen/build" NO_DEFAULT_PATH REQUIRED)
 
 px4_add_library(NeuralControl
