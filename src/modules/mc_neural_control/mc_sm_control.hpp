@@ -56,7 +56,6 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/battery_status.h>
 
@@ -65,21 +64,20 @@
 #include <lib/slew_rate/SlewRate.hpp>
 #include <uORB/topics/offboard_control_mode.h>
 
-#include <NeuralControl.hpp>
-#include <PDAttitudeControl.hpp>
-#include <PDPositionControl.hpp>
+#include <SMPositionControl.hpp>
+#include <SMAttitudeControl.hpp>
 
 using namespace time_literals;
 
-class MulticopterNeuralControl : public ModuleBase<MulticopterNeuralControl>, public ModuleParams,
+class MulticopterSMControl : public ModuleBase<MulticopterSMControl>, public ModuleParams,
 	public px4::WorkItem
 {
 public:
 	#define NONLINEAR_PD 0
-	#define NEURAL 1
+	#define SLIDING_MODE 1
 
-	MulticopterNeuralControl(bool vtol = false);
-	~MulticopterNeuralControl() override;
+	MulticopterSMControl(bool vtol = false);
+	~MulticopterSMControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -104,9 +102,8 @@ private:
 
 	void generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp, const Vector3f& position, const Quatf& attitude);
 
-	NeuralControl _neural_control; /**< class for position control calculations */
-	PDAttitudeControl _pd_attitude_control; /**< class for attitude control calculations */	
-	PDPositionControl _pd_position_control; /**< class for position control calculations */
+	SMPositionControl _position_control; /**< class for position control calculations */
+	SMAttitudeControl _attitude_control;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -126,7 +123,6 @@ private:
 	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<vehicle_attitude_setpoint_s> _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _vehicle_local_position_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
-	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
 	// =================================================
 
   // manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
@@ -153,11 +149,25 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SM_MANUAL_CTRL>)	_param_manual_ctrl,
+		(ParamFloat<px4::params::SM_POS_LAM_X>)		_param_pos_lam_x,
+		(ParamFloat<px4::params::SM_POS_LAM_Y>)		_param_pos_lam_y,
+		(ParamFloat<px4::params::SM_POS_LAM_Z>)		_param_pos_lam_z,
+		(ParamFloat<px4::params::SM_POS_GAIN_X>)	_param_pos_gain_x,
+		(ParamFloat<px4::params::SM_POS_GAIN_Y>)	_param_pos_gain_y,
+		(ParamFloat<px4::params::SM_POS_GAIN_Z>)	_param_pos_gain_z,
+		(ParamFloat<px4::params::SM_POS_TANH>)		_param_pos_tanh_factor,
 		(ParamFloat<px4::params::SM_POS_MASS>)		_param_mass,
 		(ParamFloat<px4::params::SM_POS_T_MAX>)		_param_thrust_max,
-		(ParamFloat<px4::params::SM_HOVER>)			_param_hover,
+		(ParamFloat<px4::params::SM_HOVER>)		_param_hover,
 		(ParamFloat<px4::params::SM_M_RP_MAX>)		_param_moment_rp_max,
 		(ParamFloat<px4::params::SM_M_Y_MAX>)		_param_moment_y_max,
+		(ParamFloat<px4::params::SM_ATT_LAM_X>)		_param_att_lam_x,
+		(ParamFloat<px4::params::SM_ATT_LAM_Y>)		_param_att_lam_y,
+		(ParamFloat<px4::params::SM_ATT_LAM_Z>)		_param_att_lam_z,
+		(ParamFloat<px4::params::SM_ATT_GAIN_X>)	_param_att_gain_x,
+		(ParamFloat<px4::params::SM_ATT_GAIN_Y>)	_param_att_gain_y,
+		(ParamFloat<px4::params::SM_ATT_GAIN_Z>)	_param_att_gain_z,
+		(ParamFloat<px4::params::SM_ATT_TANH>)		_param_att_tanh_factor,
 		(ParamFloat<px4::params::SM_ATT_I_XX>)		_param_inertia_xx,
 		(ParamFloat<px4::params::SM_ATT_I_YY>)		_param_inertia_yy,
 		(ParamFloat<px4::params::SM_ATT_I_ZZ>)		_param_inertia_zz,
@@ -169,12 +179,7 @@ private:
 		(ParamFloat<px4::params::SM_PD_KD_RP>)		_param_pd_kd_rp,
 		(ParamFloat<px4::params::SM_PD_KD_Y>)		_param_pd_kd_y,
 		(ParamInt<px4::params::SM_CONTROLLER>) 		_param_controller,
-		(ParamBool<px4::params::SM_VERBOSE>)		_param_verbose,
-		(ParamInt<px4::params::SM_MIN_RPM>) 		_min_rpm,
-		(ParamBool<px4::params::SM_MAX_RPM>)		_max_rpm,
-		(ParamFloat<px4::params::SM_CT>)			_thrust_coefficient,
-		(ParamFloat<px4::params::SM_RPM_POW_REL_M>)			_rpm_power_relation_m,
-		(ParamFloat<px4::params::SM_RPM_POW_REL_B>)			_rpm_power_relation_b
+		(ParamBool<px4::params::SM_VERBOSE>)		_param_verbose
 	)
 };
 

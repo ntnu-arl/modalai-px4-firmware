@@ -48,97 +48,6 @@
 PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 0);
 
 /**
- * X sliding surface dynamics
- *
- * ...
- *
- * @min 0.0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Control
- */
-PARAM_DEFINE_FLOAT(SM_POS_LAM_X, 0.2f);
-
-/**
- * Y sliding surface dynamics
- *
- * ...
- *
- * @min 0.0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Control
- */
-PARAM_DEFINE_FLOAT(SM_POS_LAM_Y, 0.2f);
-
-/**
- * Z sliding surface dynamics
- *
- * ...
- *
- * @min 0.0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Control
- */
-PARAM_DEFINE_FLOAT(SM_POS_LAM_Z, 0.2f);
-
-/**
- * X switching gain
- *
- * ...
- *
- * @min 0.0
- * @max 10000
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Control
- */
-PARAM_DEFINE_FLOAT(SM_POS_GAIN_X, 2.0f);
-
-/**
- * Y switching gain
- *
- * ...
- *
- * @min 0.0
- * @max 10000
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Control
- */
-PARAM_DEFINE_FLOAT(SM_POS_GAIN_Y, 2.0f);
-
-/**
- * Z switching gain
- *
- * ...
- *
- * @min 0.0
- * @max 10000
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Control
- */
-PARAM_DEFINE_FLOAT(SM_POS_GAIN_Z, 2.0f);
-
-/**
- * tanh factor
- *
- * ...
- *
- * @min 0.0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Control
- */
-PARAM_DEFINE_FLOAT(SM_POS_TANH, 10.0f);
-
-/**
  * mass [kg]
  *
  * ...
@@ -149,7 +58,7 @@ PARAM_DEFINE_FLOAT(SM_POS_TANH, 10.0f);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
+PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.317f);
 
 /**
  * Thrust max
@@ -162,7 +71,7 @@ PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.25f);
  * @increment 0.01
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 14.0f);
+PARAM_DEFINE_FLOAT(SM_POS_T_MAX, 32.0f);
 
 /**
  * Moment max roll/pitch
@@ -188,7 +97,7 @@ PARAM_DEFINE_FLOAT(SM_M_RP_MAX, 0.26f);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_M_Y_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(SM_M_Y_MAX, 0.20f); // 1.0f
 
 /**
  * Hover percentage
@@ -204,108 +113,17 @@ PARAM_DEFINE_FLOAT(SM_M_Y_MAX, 1.0f);
 PARAM_DEFINE_FLOAT(SM_HOVER, 0.5f);
 
 /**
- * Roll sliding surface dynamics
- *
- * ...
- *
- * @min 0.0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Attitude Control
- */
-PARAM_DEFINE_FLOAT(SM_ATT_LAM_X, 10.0f);
-
-/**
- * Pitch sliding surface dynamics
- *
- * ...
- *
- * @min 0.0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Attitude Control
- */
-PARAM_DEFINE_FLOAT(SM_ATT_LAM_Y, 10.0f);
-
-/**
- * Yaw sliding surface dynamics
- *
- * ...
- *
- * @min 0.0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Attitude Control
- */
-PARAM_DEFINE_FLOAT(SM_ATT_LAM_Z, 5.0f);
-
-/**
- * Roll switching gain
- *
- * ...
- *
- * @min 0.0
- * @max 10000
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Attitude Control
- */
-PARAM_DEFINE_FLOAT(SM_ATT_GAIN_X, 25.0f);
-
-/**
- * Pitch switching gain
- *
- * ...
- *
- * @min 0.0
- * @max 10000
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Attitude Control
- */
-PARAM_DEFINE_FLOAT(SM_ATT_GAIN_Y, 25.0f);
-
-/**
- * Yaw switching gain
- *
- * ...
- *
- * @min 0.0
- * @max 10000
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Attitude Control
- */
-PARAM_DEFINE_FLOAT(SM_ATT_GAIN_Z, 5.0f);
-
-/**
- * tanh factor
- *
- * ...
- *
- * @min 0.0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group Multicopter SM Attitude Control
- */
-PARAM_DEFINE_FLOAT(SM_ATT_TANH, 1.0f);
-
-/**
  * inertia xx
  *
  * ...
  *
  * @min 0.0
  * @max 1
- * @decimal 5
+ * @decimal 9
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.00085f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.0004933f);
 
 /**
  * inertia yy
@@ -314,11 +132,11 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.00085f);
  *
  * @min 0.0
  * @max 1
- * @decimal 5
+ * @decimal 9
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.00087f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.0005977f);
 
 /**
  * inertia zz
@@ -327,11 +145,11 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.00087f);
  *
  * @min 0.0
  * @max 1
- * @decimal 5
+ * @decimal 9
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.00162f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.0008339f);
 
 /**
  * Battery power level scaler
@@ -358,6 +176,7 @@ PARAM_DEFINE_INT32(SM_BAT_SCALE_EN, 0);
  * @increment 0.001
  * @group Multicopter PD Position Control
  */
+
 PARAM_DEFINE_FLOAT(SM_PD_KP_XYZ, 1.6f);
 
 /**
@@ -371,6 +190,7 @@ PARAM_DEFINE_FLOAT(SM_PD_KP_XYZ, 1.6f);
  * @increment 0.001
  * @group Multicopter PD Position Control
  */
+
 PARAM_DEFINE_FLOAT(SM_PD_KD_XYZ, 2.26f);
 
 /**
@@ -384,6 +204,7 @@ PARAM_DEFINE_FLOAT(SM_PD_KD_XYZ, 2.26f);
  * @increment 0.001
  * @group Multicopter PD Position Control
  */
+
 PARAM_DEFINE_FLOAT(SM_PD_KP_RP, 2.0f);
 
 /**
@@ -442,4 +263,70 @@ PARAM_DEFINE_INT32(SM_CONTROLLER, 0);
  * @boolean
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_INT32(SM_VERBOSE, 0);
+PARAM_DEFINE_INT32(SM_VERBOSE, 1);
+
+/**
+ * Minimal RPM for the motors
+ *
+ * ...
+ *
+ * @min 0
+ * @max 5000
+ * @group Multicopter Neural Control
+ */
+
+PARAM_DEFINE_INT32(SM_MIN_RPM, 1000);
+
+/**
+ * Maximal RPM for the motors
+ *
+ * ...
+ *
+ * @min 15000
+ * @max 30000
+ * @group Multicopter Neural Control
+ */
+
+PARAM_DEFINE_INT32(SM_MAX_RPM, 26000);
+
+
+/**
+ * Thrust Coefficient
+ *
+ * ...
+ *
+ * @min 0.000004
+ * @max 0.00001
+ * @decimal 9
+ * @increment 0.00000001
+ * @group Multicopter Neural Control
+ */
+PARAM_DEFINE_FLOAT(SM_CT, 0.000006514f);
+
+
+/**
+ * m parameter of the RPM to power relation
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 0.1
+ * @decimal 9
+ * @increment 0.0000001
+ * @group Multicopter Neural Control
+ */
+PARAM_DEFINE_FLOAT(SM_RPM_POW_REL_M, 0.0022275f);
+
+
+/**
+ * b parameter of the RPM to power relation
+ *
+ * ...
+ *
+ * @min -100.0
+ * @max 100.00
+ * @decimal 3
+ * @increment 0.001
+ * @group Multicopter Neural Control
+ */
+PARAM_DEFINE_FLOAT(SM_RPM_POW_REL_B, -0.125f);

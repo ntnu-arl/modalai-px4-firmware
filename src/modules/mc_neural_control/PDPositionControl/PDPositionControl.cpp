@@ -7,6 +7,18 @@ Vector3f PDPositionControl::calculateAccelerationPD() const
   const Vector3f error_position = _position - _position_setpoint;
   const Vector3f error_velocity = _linear_velocity - _linear_velocity_setpoint;
 
+  PX4_INFO("position: %f %f %f", (double)_position(0), (double)_position(1),
+                 (double)_position(2));
+
+  PX4_INFO("position setpoint: %f %f %f", (double)_position_setpoint(0), (double)_position_setpoint(1),
+                 (double)_position_setpoint(2));
+
+  PX4_INFO("velocity: %f %f %f", (double)_linear_velocity(0), (double)_linear_velocity(1),
+                 (double)_linear_velocity(2));
+
+  PX4_INFO("velocity setpoint: %f %f %f", (double)_linear_velocity_setpoint(0), (double)_linear_velocity_setpoint(1),
+                 (double)_linear_velocity_setpoint(2));
+
   const Vector3f gravity(0, 0, 9.80665);
 
   const Vector3f acceleration =

@@ -50,7 +50,7 @@
  * @increment 0.1
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.5f);
+PARAM_DEFINE_FLOAT(MC_ROLL_P, 2.5f);
 
 /**
  * Pitch P gain
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.5f);
  * @increment 0.1
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.5f);
+PARAM_DEFINE_FLOAT(MC_PITCH_P, 2.5f);
 
 /**
  * Yaw P gain
@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.5f);
  * @increment 0.1
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
+PARAM_DEFINE_FLOAT(MC_YAW_P, 0.1f);
 
 /**
  * Yaw weight

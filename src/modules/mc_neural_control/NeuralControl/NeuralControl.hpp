@@ -22,13 +22,21 @@ public:
 
 	void setPositionSetpoint(const Vector3f &position_setpoint) { _position_setpoint = position_setpoint; }
 
-	void setAttitude(const Quatf &quaternion) { _attitude = Dcmf(quaternion);	}
+	void setAttitude(const Quatf &quaternion) { _attitude = quaternion;	}
 
 	void setAngularVelocity(const matrix::Vector3f &angular_velocity) {_angular_velocity = angular_velocity; }
 
 	void setPosition(const Vector3f &position) { _position = position;	}
 
 	void setLinearVelocity(const Vector3f &linear_velocity) { _linear_velocity = linear_velocity;	}
+
+  void setMaxRPM(int max_rpm) { _max_rpm = max_rpm; }
+
+  void setMinRPM(int min_rpm) { _min_rpm = min_rpm; }
+
+  void setThrustCoefficient(const float thrust_coefficient) { _thrust_coefficient = thrust_coefficient; }
+
+  void setRPMpowerRelation(const float rpm_power_relation_m, const float rpm_power_relation_b) { _rpm_power_relation_m = rpm_power_relation_m; _rpm_power_relation_b = rpm_power_relation_b; }
 
 	Quatf getAttitude() { return Quatf(_attitude); }
 
@@ -57,17 +65,27 @@ private:
   Eigen::VectorXf _min_torque;
   float _min_u_training;
   float _max_u_training;
+  int _max_rpm;
+  int _min_rpm;
+  float _thrust_coefficient;
+  float _rpm_power_relation_m;
+  float _rpm_power_relation_b;
+
   // this are the min and max forces that the motor 
   // can generate and have to be estimated from the real system
-  float _min_u_deploy = 2.0f;
-  float _max_u_deploy = 0.0f;
 
   // setpoints
   Vector3f _position_setpoint{};
 
   // measurments
-  Dcmf _attitude{};
+  Quatf _attitude{};
   Vector3f _position{};
   Vector3f _linear_velocity{};
   Vector3f _angular_velocity;
+
+  //DEFINE_PARAMETERS(
+	//	(ParamInt<px4::params::SM_MIN_RPM>) 		_min_rpm,
+	//	(ParamInt<px4::params::SM_MAX_RPM>)		_max_rpm,
+	//	(ParamFloat<px4::params::SM_CT>)				_thrust_coefficient,
+	//)
 };

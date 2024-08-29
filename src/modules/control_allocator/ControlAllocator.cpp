@@ -363,6 +363,9 @@ ControlAllocator::Run()
 	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
 
+	//PX4_WARN("setpoint torque: %f %f %f ", double(vehicle_torque_setpoint.xyz[0]), double(vehicle_torque_setpoint.xyz[1]), double(vehicle_torque_setpoint.xyz[2]));
+	//PX4_WARN("setpoint thrust: %f %f %f ", double(vehicle_thrust_setpoint.xyz[0]), double(vehicle_thrust_setpoint.xyz[1]), double(vehicle_thrust_setpoint.xyz[2]));
+
 	// Run allocator on torque changes
 	if (_vehicle_torque_setpoint_sub.update(&vehicle_torque_setpoint)) {
 		_torque_sp = matrix::Vector3f(vehicle_torque_setpoint.xyz);
@@ -433,6 +436,7 @@ ControlAllocator::Run()
 
 	// Publish actuator setpoint and allocator status
 	publish_actuator_controls();
+	//PX4_DEBUG("ControlAllocator::Run()");
 
 	// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
 	// (i.e. anti-integrator windup)
@@ -671,6 +675,9 @@ ControlAllocator::publish_actuator_controls()
 	for (int i = motors_idx; i < actuator_motors_s::NUM_CONTROLS; i++) {
 		actuator_motors.control[i] = NAN;
 	}
+	
+	//PX4_WARN("control: %f %f %f %f", double(actuator_motors.control[0]),double(actuator_motors.control[1]),
+	//								  double(actuator_motors.control[2]),double(actuator_motors.control[3]));
 
 	_actuator_motors_pub.publish(actuator_motors);
 

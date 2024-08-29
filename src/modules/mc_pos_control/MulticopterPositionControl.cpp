@@ -339,6 +339,11 @@ void MulticopterPositionControl::Run()
 			math::constrain(((vehicle_local_position.timestamp_sample - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
 		_time_stamp_last_loop = vehicle_local_position.timestamp_sample;
 
+  		Vector3f position;
+		position(0) = vehicle_local_position.x;
+		position(1) = vehicle_local_position.y;
+		position(2) = vehicle_local_position.z;
+
 		// set _dt in controllib Block for BlockDerivative
 		setDt(dt);
 
@@ -369,6 +374,11 @@ void MulticopterPositionControl::Run()
 		}
 
 		_trajectory_setpoint_sub.update(&_setpoint);
+
+		/*PX4_WARN("setpoint: %f %f %f %f %f %f %f %f %f", double(_setpoint.position[0]),double(_setpoint.position[1]),double(_setpoint.position[2]), 
+														 double(_setpoint.velocity[0]),double(_setpoint.velocity[1]),double(_setpoint.velocity[2]),
+														 double(_setpoint.acceleration[0]),double(_setpoint.acceleration[1]),double(_setpoint.acceleration[2]));*/
+														 									
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
 		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
@@ -568,6 +578,12 @@ void MulticopterPositionControl::Run()
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			_control.getAttitudeSetpoint(attitude_setpoint);
 			attitude_setpoint.timestamp = hrt_absolute_time();
+			/*PX4_WARN("commanded: %f %f %f %f %f %f", double(attitude_setpoint.roll_body),
+													double(attitude_setpoint.pitch_body), 
+													double(attitude_setpoint.yaw_body), 
+													double(attitude_setpoint.thrust_body[0]),
+													double(attitude_setpoint.thrust_body[1]),
+													double(attitude_setpoint.thrust_body[2]));*/
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
 		} else {

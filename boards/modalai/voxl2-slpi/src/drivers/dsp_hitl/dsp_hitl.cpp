@@ -414,9 +414,15 @@ void send_esc_telemetry_dsp(mavlink_hil_actuator_controls_t hil_act_control)
 		esc_status.esc[i].esc_voltage = _battery_status.voltage_v;
 		esc_status.esc[i].esc_current = armed ? 1.0f + math::abs_t(hil_act_control.controls[i]) * 15.0f :
 						0.0f; // TODO: magic number
-		esc_status.esc[i].esc_rpm = hil_act_control.controls[i] * 6000;  // TODO: magic number
+		esc_status.esc[i].esc_rpm = hil_act_control.controls[i] * 720;//6000  // TODO: magic number
 		esc_status.esc[i].esc_temperature = 20.0 + math::abs_t((double)hil_act_control.controls[i]) * 40.0;
 	}
+
+	PX4_INFO("esc actuator signals: %f %f %f %f ",double(hil_act_control.controls[0]),double(hil_act_control.controls[1]),
+												  double(hil_act_control.controls[2]),double(hil_act_control.controls[3]));
+	
+	PX4_INFO("esc rpm: %f %f %f %f ",double(esc_status.esc[0].esc_rpm),double(esc_status.esc[1].esc_rpm),
+									  double(esc_status.esc[2].esc_rpm),double(esc_status.esc[3].esc_rpm));
 
 	esc_status.esc_count = max_esc_index + 1;
 	esc_status.esc_armed_flags = (1u << esc_status.esc_count) - 1;

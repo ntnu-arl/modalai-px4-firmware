@@ -147,6 +147,23 @@ MulticopterRateControl::Run()
 		_last_run = now;
 
 		const Vector3f rates{angular_velocity.xyz};
+
+		matrix::Dcmf frame_transf; //(0.0f, 3.14159265359f,  -3.14159265359f / 2.0f)); //-3.14159265359f / 2.0f
+		frame_transf(0,0) = 1.0f;
+		frame_transf(0,1) = 0.0f;
+		frame_transf(0,2) = 0.0f;
+		frame_transf(1,0) = 0.0f;
+		frame_transf(1,1) = -1.0f;
+		frame_transf(1,2) = 0.0f;
+		frame_transf(2,0) = 0.0f;
+		frame_transf(2,1) = 0.0f;
+		frame_transf(2,2) = -1.0f;
+
+		Vector3f angular_velocity_local = frame_transf * rates;
+
+		PX4_WARN("ang_vel: %f %f %f", double(angular_velocity_local(0)),
+                 double(angular_velocity_local(1)), double(angular_velocity_local(2)));
+
 		const Vector3f angular_accel{angular_velocity.xyz_derivative};
 
 		/* check for updates in other topics */

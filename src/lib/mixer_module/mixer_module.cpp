@@ -495,6 +495,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		actuator_outputs_s actuator_outputs{};
 		setAndPublishActuatorOutputs(_max_num_outputs, actuator_outputs);
 
+
 		updateLatencyPerfCounter(actuator_outputs);
 	}
 }
@@ -509,6 +510,11 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 	if (_reverse_output_mask & (1 << i)) {
 		value = -1.f * value;
 	}
+
+	//PX4_WARN("value: %f", double(value));
+
+	//PX4_WARN("min: %d", _min_value[i]);
+	//PX4_WARN("max: %d", _max_value[i]);
 
 	uint16_t effective_output = value * (_max_value[i] - _min_value[i]) / 2 + (_max_value[i] + _min_value[i]) / 2;
 
