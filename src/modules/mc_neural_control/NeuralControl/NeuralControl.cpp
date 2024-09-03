@@ -92,7 +92,7 @@ matrix::Vector4f NeuralControl::updateNeural() const
 {
 
   // transform observations in correct frame
-  matrix::Dcmf frame_transf; //(0.0f, 3.14159265359f,  -3.14159265359f / 2.0f)); //-3.14159265359f / 2.0f
+  matrix::Dcmf frame_transf; 
   frame_transf(0,0) = 1.0f;
   frame_transf(0,1) = 0.0f;
   frame_transf(0,2) = 0.0f;
@@ -104,46 +104,36 @@ matrix::Vector4f NeuralControl::updateNeural() const
   frame_transf(2,2) = -1.0f;
 
   Vector3f position_local;
-  position_local = frame_transf* _position; //frame_transf.rotateVector(_position);
+  position_local = frame_transf* _position;
 
   Vector3f position_setpoint_local;
-  position_setpoint_local = frame_transf * _position_setpoint; //frame_transf.rotateVector(_position_setpoint);
+  position_setpoint_local = frame_transf * _position_setpoint;
 
   Vector3f linear_velocity_local;
-  linear_velocity_local = frame_transf * _linear_velocity; //frame_transf.rotateVector(_linear_velocity);
+  linear_velocity_local = frame_transf * _linear_velocity;
 
-  matrix::Dcmf _attitude_local_mat = frame_transf * matrix::Dcmf(_attitude) * frame_transf.transpose(); //frame_transf.rotate(_attitude);
-
-  //PX4_WARN("attitude_local_mat_1: %f %f %f %f %f %f", double(_attitude_local_mat(0,0)),
-  //               double(_attitude_local_mat(0,1)), double(_attitude_local_mat(0,2)), double(_attitude_local_mat(1,0)),
-  //               double(_attitude_local_mat(1,1)), double(_attitude_local_mat(1,2)));
-  
-  //PX4_WARN("attitude_local_mat_2: %f %f %f", double(_attitude_local_mat(2,0)),
-  //               double(_attitude_local_mat(2,1)), double(_attitude_local_mat(2,2)));
-
+  matrix::Dcmf _attitude_local_mat = frame_transf * matrix::Dcmf(_attitude) * frame_transf.transpose();
   Vector3f angular_vel_local = frame_transf * _angular_velocity;
 
   matrix::Eulerf euler_local_attitude(_attitude_local_mat);
   matrix::Eulerf euler_attitude(_attitude);
-
-  //PX4_WARN("attitude euler: %f %f %f", double(euler_attitude(0)),
-  //               double(euler_attitude(1)), double(euler_attitude(2)));
-  //PX4_WARN("attitude local euler: %f %f %f", double(euler_local_attitude(0)),
-  //               double(euler_local_attitude(1)), double(euler_local_attitude(2)));
 
   //get state positions
   Eigen::Vector3f pos_state;
   pos_state << position_local(0),position_local(1),position_local(2);
   Eigen::Vector3f pos_setpoint;
   pos_setpoint << position_setpoint_local(0),position_setpoint_local(1),position_setpoint_local(2);
+  pos_setpoint(0) = 0.0f;
+  pos_setpoint(1) = 0.0f;
+  pos_setpoint(2) = 1.0f;
 
-  //PX4_WARN("pos_state: %f %f %f", double(position_local(0)),
-   //              double(position_local(1)), double(position_local(2)));
+  //Eigen::Vector3f ground_offset_local;
+  //ground_offset_local << 0.0f, 0.0f, 1.0f;
 
-  //PX4_WARN("pos_setpoint: %f %f %f", double(pos_setpoint(0)),
-  //               double(pos_setpoint(1)), double(pos_setpoint(2)));
+  Eigen::Vector3f pos_input = pos_setpoint - pos_state;// + ground_offset_local; 
 
-  Eigen::Vector3f pos_input = pos_setpoint - pos_state; 
+  // clamp error to guarantee input lies in training envelope
+  Eigen::Vector3f pos_input_clamped = pos_input.cwiseMax(-0.3).cwiseMin(0.3);  
 
   //convert linear velocities
   Eigen::Vector3f vel_state;
@@ -159,13 +149,7 @@ matrix::Vector4f NeuralControl::updateNeural() const
 
   // input vector for network
   Eigen::VectorXf input(pos_state.size() + attitude_state.size() + vel_state.size() + angular_velocity_state.size());
-  input << pos_input, attitude_state, vel_state, angular_velocity_state;
-
-  //PX4_WARN("pos: %f %f %f", double(input(0)), double(input(1)), double(input(2)));
-  //PX4_WARN("ori: %f %f %f %f %f %f ", double(input(3)),double(input(4)), double(input(5)), 
-  //                                    double(input(6)), double(input(7)), double(input(8)));
-  //PX4_WARN("vel: %f %f %f", double(input(9)), double(input(10)), double(input(11)));
-  //PX4_WARN("ang_vel: %f %f %f", double(input(12)), double(input(13)), double(input(14)));
+  input << pos_input_clamped, attitude_state, vel_state, angular_velocity_state;
 
   // forward path
   Eigen::VectorXf co1 = _weight_control_net_layer_1 * input + _bias_control_net_layer_1;
@@ -188,32 +172,25 @@ matrix::Vector4f NeuralControl::updateNeural() const
 
   Eigen::VectorXf force_clamped = ao2.cwiseMax(_min_u_training).cwiseMin(_max_u_training);
 
-  //force_clamped(0) = 0.1f;
-  //force_clamped(1) = 0.1f;
-  //force_clamped(2) = 0.1f;
-  //force_clamped(3) = 0.1f;
-
-  //PX4_WARN("motor forces: %f %f %f %f", double(force_clamped(0)),
-  //               double(force_clamped(1)), double(force_clamped(2)), double(force_clamped(3)));
-
+  //conversion to rpm
   Eigen::VectorXf rps = force_clamped / _thrust_coefficient;
   rps = rps.cwiseSqrt();
+  Eigen::VectorXf rpm = rps*60;
 
-  //PX4_WARN("rpm: %f %f %f %f", double(rps(0)),
-  //               double(rps(1)), double(rps(2)), double(rps(3)));
-
-  //Eigen::VectorXf commands = rpm/720;//(_rpm_power_relation_m * rpm).array() + _rpm_power_relation_b;
-
+  //conversion to motor commands (inverse of the scaling done in mixer module)
   Vector4f motor_commands;
-  motor_commands(0) = (rps(0) - 100.0f)/720.0f;//commands(0);
-  motor_commands(1) = (rps(2) - 100.0f)/720.0f;//commands(1);
-  motor_commands(2) = (rps(3) - 100.0f)/720.0f;//commands(2);
-  motor_commands(3) = (rps(1) - 100.0f)/720.0f;//commands(3);
 
-  //PX4_WARN("motor commands power: %f %f %f %f", double(motor_commands(0)),
-  //               double(motor_commands(1)), double(motor_commands(2)), double(motor_commands(3)));
+  //PX4_WARN("rpm: %f %f %f %f", (double)rpm(0), (double)rpm(1), (double)rpm(2), (double)rpm(3));
 
-  //PX4_WARN("\n\n");
+  motor_commands(0) = (rpm(0)*2 -_max_rpm - _min_rpm)/(_max_rpm - _min_rpm); 
+  motor_commands(1) = (rpm(2)*2 -_max_rpm - _min_rpm)/(_max_rpm - _min_rpm);
+  motor_commands(2) = (rpm(3)*2 -_max_rpm - _min_rpm)/(_max_rpm - _min_rpm);
+  motor_commands(3) = (rpm(1)*2 -_max_rpm - _min_rpm)/(_max_rpm - _min_rpm);
+
+  //motor_commands(0) = (rps(0) - 100.0f)/720.0f;//commands(1);
+  //motor_commands(1) = (rps(2) - 100.0f)/720.0f;//commands(1);
+  //motor_commands(2) = (rps(3) - 100.0f)/720.0f;//commands(2);
+  //motor_commands(3) = (rps(1) - 100.0f)/720.0f;//commands(3);
 
   return motor_commands;
 

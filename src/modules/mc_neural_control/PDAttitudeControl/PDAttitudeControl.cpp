@@ -17,18 +17,6 @@ Vector3f PDAttitudeControl::updatePD() const
   const Eulerf attitude(_attitude);
   const Eulerf attitude_setpoint(_attitude_setpoint); 
 
-  PX4_INFO("attitude: %f %f %f", (double)attitude(0), (double)attitude(1),
-                 (double)attitude(2));
-
-  PX4_INFO("attitude setpoint: %f %f %f", (double)attitude_setpoint(0), (double)attitude_setpoint(1),
-                 (double)attitude_setpoint(2));
-
-  PX4_INFO("angular_velocity: %f %f %f", (double)_angular_velocity(0), (double)_angular_velocity(1),
-                 (double)_angular_velocity(2));
-
-  PX4_INFO("angular_velocity_setpoint: %f %f %f", (double)_angular_velocity_setpoint(0), (double)_angular_velocity_setpoint(1),
-                 (double)_angular_velocity_setpoint(2));
-
   printf("update pd\n");
   error_attitude.print();
   error_angular_velocity.print();
@@ -39,12 +27,6 @@ Vector3f PDAttitudeControl::updatePD() const
   const Vector3f moment = -_K_p * error_attitude - _K_d * error_angular_velocity +
                           omega * _inertia * _angular_velocity -
                           _inertia * (omega * attitude_T * _attitude_setpoint * _angular_velocity_setpoint);
-
-  PX4_INFO("kp: %f %f %f", (double)_K_p(0,0), (double)_K_p(1,1),
-                 (double)_K_p(2,2));
-
-  PX4_INFO("kd %f %f %f", (double)_K_d(0,0), (double)_K_d(1,1),
-                 (double)_K_d(2,2));
 
   return moment;
 }

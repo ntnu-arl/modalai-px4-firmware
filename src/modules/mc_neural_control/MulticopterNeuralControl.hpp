@@ -171,10 +171,8 @@ private:
 		(ParamInt<px4::params::SM_CONTROLLER>) 		_param_controller,
 		(ParamBool<px4::params::SM_VERBOSE>)		_param_verbose,
 		(ParamInt<px4::params::SM_MIN_RPM>) 		_min_rpm,
-		(ParamBool<px4::params::SM_MAX_RPM>)		_max_rpm,
+		(ParamInt<px4::params::SM_MAX_RPM>)			_max_rpm,
 		(ParamFloat<px4::params::SM_CT>)			_thrust_coefficient,
-		(ParamFloat<px4::params::SM_RPM_POW_REL_M>)			_rpm_power_relation_m,
-		(ParamFloat<px4::params::SM_RPM_POW_REL_B>)			_rpm_power_relation_b
+		(ParamFloat<px4::params::SM_MAX_ERR>)		_max_err
 	)
 };
-

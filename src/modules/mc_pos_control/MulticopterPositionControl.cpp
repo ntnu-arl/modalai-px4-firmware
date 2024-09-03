@@ -374,10 +374,6 @@ void MulticopterPositionControl::Run()
 		}
 
 		_trajectory_setpoint_sub.update(&_setpoint);
-
-		/*PX4_WARN("setpoint: %f %f %f %f %f %f %f %f %f", double(_setpoint.position[0]),double(_setpoint.position[1]),double(_setpoint.position[2]), 
-														 double(_setpoint.velocity[0]),double(_setpoint.velocity[1]),double(_setpoint.velocity[2]),
-														 double(_setpoint.acceleration[0]),double(_setpoint.acceleration[1]),double(_setpoint.acceleration[2]));*/
 														 									
 
 		// adjust existing (or older) setpoint with any EKF reset deltas

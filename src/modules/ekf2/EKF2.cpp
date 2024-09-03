@@ -2037,7 +2037,8 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
-{
+{	
+
 	// EKF external vision sample
 	bool new_ev_odom = false;
 	const unsigned last_generation = _ev_odom_sub.get_last_generation();
@@ -2062,6 +2063,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 		const Vector3f ev_odom_vel_var(ev_odom.velocity_variance);
 
 		if (ev_odom_vel.isAllFinite()) {
+			
 			bool velocity_frame_valid = false;
 
 			switch (ev_odom.velocity_frame) {
@@ -2127,12 +2129,13 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 
 				// position measurement error from ev_data or parameters
 				if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
-
+	
 					ev_data.position_var(0) = fmaxf(evp_noise_var, ev_odom_pos_var(0));
 					ev_data.position_var(1) = fmaxf(evp_noise_var, ev_odom_pos_var(1));
 					ev_data.position_var(2) = fmaxf(evp_noise_var, ev_odom_pos_var(2));
 
 				} else {
+
 					ev_data.position_var.setAll(evp_noise_var);
 				}
 
@@ -2155,6 +2158,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 		const bool orientation_valid = ev_odom_q.isAllFinite() && non_zero && no_element_larger_than_one && norm_in_tolerance;
 
 		if (orientation_valid) {
+
 			ev_data.quat = ev_odom_q;
 			ev_data.quat.normalize();
 

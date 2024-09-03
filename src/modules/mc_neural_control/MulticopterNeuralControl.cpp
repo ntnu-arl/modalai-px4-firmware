@@ -61,7 +61,7 @@ MulticopterNeuralControl::MulticopterNeuralControl(bool vtol) :
   _neural_control.setMaxRPM(_max_rpm.get());
 	_neural_control.setMinRPM(_min_rpm.get());
 	_neural_control.setThrustCoefficient(_thrust_coefficient.get());
-	_neural_control.setRPMpowerRelation(_rpm_power_relation_m.get(), _rpm_power_relation_b.get());
+  _neural_control.setMaxError(_max_err.get());
 	// Rate of change 5% per second -> 1.6 seconds to ramp to default 8% MPC_MANTHR_MIN
 	//_manual_throttle_minimum.setSlewRate(0.05f);
 	// Rate of change 50% per second -> 2 seconds to ramp to 100%
@@ -190,7 +190,6 @@ void MulticopterNeuralControl::Run()
           Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
 
       
-
       _pd_position_control.setPosition(
           Vector3f(vehicle_local_position.x, vehicle_local_position.y,vehicle_local_position.z));
       _pd_position_control.setLinearVelocity(
@@ -326,11 +325,6 @@ void MulticopterNeuralControl::Run()
         vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
         _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
 
-        // not sure if this has to be here
-        // ?????????????????????????? //
-        //_neural_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
-        // ?????????????????????????? //
-
         // run attitude controller
         _pd_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, yawspeed_ref));
         _pd_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
@@ -458,20 +452,20 @@ void MulticopterNeuralControl::Run()
 
         _vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 
-        PX4_INFO("vehicle thrust setpoint: %f %f %f", (double)vehicle_thrust_setpoint.xyz[0], (double)vehicle_thrust_setpoint.xyz[1],
-                 (double)vehicle_thrust_setpoint.xyz[2]);
+        //PX4_INFO("vehicle thrust setpoint: %f %f %f", (double)vehicle_thrust_setpoint.xyz[0], (double)vehicle_thrust_setpoint.xyz[1],
+        //         (double)vehicle_thrust_setpoint.xyz[2]);
 
         vehicle_torque_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
         vehicle_torque_setpoint.timestamp = hrt_absolute_time();
         _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 
-        PX4_INFO("vehicle torque setpoint: %f %f %f", (double)vehicle_torque_setpoint.xyz[0], (double)vehicle_torque_setpoint.xyz[1],
-                 (double)vehicle_torque_setpoint.xyz[2]);
+        //PX4_INFO("vehicle torque setpoint: %f %f %f", (double)vehicle_torque_setpoint.xyz[0], (double)vehicle_torque_setpoint.xyz[1],
+        //         (double)vehicle_torque_setpoint.xyz[2]);
       }
       else if (_param_controller.get() == NEURAL)
       {
 
-        PX4_INFO("Neural controller running");
+        //PX4_INFO("Neural controller running");
         actuator_motors_s actuator_motors;
         actuator_motors.timestamp = hrt_absolute_time();
         

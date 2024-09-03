@@ -132,22 +132,6 @@ bool PositionControl::update(const float dt)
 void PositionControl::_positionControl()
 {
 
-	matrix::Dcmf frame_transf; //(0.0f, 3.14159265359f,  -3.14159265359f / 2.0f)); //-3.14159265359f / 2.0f
-	frame_transf(0,0) = 1.0f;
-	frame_transf(0,1) = 0.0f;
-	frame_transf(0,2) = 0.0f;
-	frame_transf(1,0) = 0.0f;
-	frame_transf(1,1) = -1.0f;
-	frame_transf(1,2) = 0.0f;
-	frame_transf(2,0) = 0.0f;
-	frame_transf(2,1) = 0.0f;
-	frame_transf(2,2) = -1.0f;
-
-	Vector3f pos_local = frame_transf * _pos;
-
-	PX4_WARN("pos: %f %f %f", double(pos_local(0)),
-                 double(pos_local(1)), double(pos_local(2)));
-
 	// P-position controller
 	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
 	// Position and feed-forward velocity setpoints or position states being NAN results in them not having an influence
@@ -164,22 +148,6 @@ void PositionControl::_positionControl()
 
 void PositionControl::_velocityControl(const float dt)
 {
-
-	matrix::Dcmf frame_transf; //(0.0f, 3.14159265359f,  -3.14159265359f / 2.0f)); //-3.14159265359f / 2.0f
-	frame_transf(0,0) = 1.0f;
-	frame_transf(0,1) = 0.0f;
-	frame_transf(0,2) = 0.0f;
-	frame_transf(1,0) = 0.0f;
-	frame_transf(1,1) = -1.0f;
-	frame_transf(1,2) = 0.0f;
-	frame_transf(2,0) = 0.0f;
-	frame_transf(2,1) = 0.0f;
-	frame_transf(2,2) = -1.0f;
-
-	Vector3f vel_local = frame_transf * _vel; //frame_transf.rotateVector(_vel);
-
-	PX4_WARN("vel: %f %f %f", double(vel_local(0)),
-                 double(vel_local(1)), double(vel_local(2)));
 	
 	// PID velocity control
 	Vector3f vel_error = _vel_sp - _vel;

@@ -36,7 +36,7 @@ public:
 
   void setThrustCoefficient(const float thrust_coefficient) { _thrust_coefficient = thrust_coefficient; }
 
-  void setRPMpowerRelation(const float rpm_power_relation_m, const float rpm_power_relation_b) { _rpm_power_relation_m = rpm_power_relation_m; _rpm_power_relation_b = rpm_power_relation_b; }
+  void setMaxError(const float max_error) { _max_error = max_error; }
 
 	Quatf getAttitude() { return Quatf(_attitude); }
 
@@ -68,8 +68,7 @@ private:
   int _max_rpm;
   int _min_rpm;
   float _thrust_coefficient;
-  float _rpm_power_relation_m;
-  float _rpm_power_relation_b;
+  float _max_error;
 
   // this are the min and max forces that the motor 
   // can generate and have to be estimated from the real system

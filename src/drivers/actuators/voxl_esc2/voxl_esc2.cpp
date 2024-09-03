@@ -1079,8 +1079,6 @@ bool VoxlEsc2::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	// if (num_outputs != VOXL_ESC_OUTPUT_CHANNELS) {
 	// 	return false;
 	// }
-
-	PX4_INFO("3333333333  ESC Running 33333333333333333");
 	
 	// don't use mixed values... recompute now.
 	if (_turtle_mode_en) {

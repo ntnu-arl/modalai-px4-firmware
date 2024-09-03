@@ -287,7 +287,7 @@ PARAM_DEFINE_INT32(SM_MIN_RPM, 1000);
  * @group Multicopter Neural Control
  */
 
-PARAM_DEFINE_INT32(SM_MAX_RPM, 26000);
+PARAM_DEFINE_INT32(SM_MAX_RPM, 22000);
 
 
 /**
@@ -296,7 +296,7 @@ PARAM_DEFINE_INT32(SM_MAX_RPM, 26000);
  * ...
  *
  * @min 0.000004
- * @max 0.00001
+ * @max 0.0001
  * @decimal 9
  * @increment 0.00000001
  * @group Multicopter Neural Control
@@ -305,28 +305,14 @@ PARAM_DEFINE_FLOAT(SM_CT, 0.000006514f);
 
 
 /**
- * m parameter of the RPM to power relation
- *
+ * range in which the error is allowed to be (clamped when exceeded)
+ * 
  * ...
  *
- * @min 0.0
- * @max 0.1
- * @decimal 9
- * @increment 0.0000001
- * @group Multicopter Neural Control
- */
-PARAM_DEFINE_FLOAT(SM_RPM_POW_REL_M, 0.0022275f);
-
-
-/**
- * b parameter of the RPM to power relation
- *
- * ...
- *
- * @min -100.0
- * @max 100.00
+ * @min -10.0
+ * @max 10.00
  * @decimal 3
  * @increment 0.001
  * @group Multicopter Neural Control
  */
-PARAM_DEFINE_FLOAT(SM_RPM_POW_REL_B, -0.125f);
+PARAM_DEFINE_FLOAT(SM_MAX_ERR, 0.5f);

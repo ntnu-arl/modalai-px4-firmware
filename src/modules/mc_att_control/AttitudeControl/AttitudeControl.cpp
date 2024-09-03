@@ -56,33 +56,6 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 {
 	Quatf qd = _attitude_setpoint_q;
 
-	matrix::Dcmf attitude(q);
-
-	matrix::Dcmf frame_transf; //(0.0f, 3.14159265359f,  -3.14159265359f / 2.0f)); //-3.14159265359f / 2.0f
-	frame_transf(0,0) = 1.0f;
-	frame_transf(0,1) = 0.0f;
-	frame_transf(0,2) = 0.0f;
-	frame_transf(1,0) = 0.0f;
-	frame_transf(1,1) = -1.0f;
-	frame_transf(1,2) = 0.0f;
-	frame_transf(2,0) = 0.0f;
-	frame_transf(2,1) = 0.0f;
-	frame_transf(2,2) = -1.0f;
-
-	matrix::Dcmf attitude_local = frame_transf * attitude * frame_transf.transpose();
-
-	matrix::Eulerf euler_attitude(attitude_local);
-
-	PX4_WARN("attitude_local_mat_1: %f %f %f %f %f %f", double(attitude_local(0,0)),
-                 double(attitude_local(0,1)), double(attitude_local(0,2)), double(attitude_local(1,0)),
-                 double(attitude_local(1,1)), double(attitude_local(1,2)));
-  
-  	PX4_WARN("attitude_local_mat_2: %f %f %f", double(attitude_local(2,0)),
-                 double(attitude_local(2,1)), double(attitude_local(2,2)));
-
-  	PX4_WARN("attitude euler: %f %f %f", double(euler_attitude(0)),
-                 double(euler_attitude(1)), double(euler_attitude(2)));
-
 	// calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch
 	const Vector3f e_z = q.dcm_z();
 	const Vector3f e_z_d = qd.dcm_z();
