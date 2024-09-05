@@ -301,7 +301,7 @@ PARAM_DEFINE_INT32(SM_MAX_RPM, 22000);
  * @increment 0.00000001
  * @group Multicopter Neural Control
  */
-PARAM_DEFINE_FLOAT(SM_CT, 0.000006514f);
+PARAM_DEFINE_FLOAT(SM_CT, 0.000014247f);
 
 
 /**

@@ -469,6 +469,7 @@ bool MixingOutput::update()
 void
 MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
 {
+
 	bool stop_motors = !_throttle_armed && !_actuator_test.inTestMode();
 
 	if (_armed.lockdown || _armed.manual_lockdown) {
@@ -511,12 +512,10 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	//PX4_WARN("value: %f", double(value));
-
-	//PX4_WARN("min: %d", _min_value[i]);
-	//PX4_WARN("max: %d", _max_value[i]);
-
+	//PX4_WARN("value mixer module: %f", double(value));
 	uint16_t effective_output = value * (_max_value[i] - _min_value[i]) / 2 + (_max_value[i] + _min_value[i]) / 2;
+
+	//PX4_WARN("effective_output mixer module: %d", effective_output);
 
 	// last line of defense against invalid inputs
 	return math::constrain(effective_output, _min_value[i], _max_value[i]);
