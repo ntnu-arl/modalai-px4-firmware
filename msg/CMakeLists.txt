@@ -130,6 +130,7 @@ set(msg_files
 	ModalIoData.msg
 	ModeCompleted.msg
 	NavigatorMissionItem.msg
+	NeuralControl.msg
 	NormalizedUnsignedSetpoint.msg
 	NpfgStatus.msg
 	ObstacleDistance.msg

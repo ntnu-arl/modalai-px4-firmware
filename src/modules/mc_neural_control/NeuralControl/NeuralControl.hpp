@@ -3,6 +3,7 @@
 #include <matrix/matrix/math.hpp>
 #include <mathlib/math/Limits.hpp>
 #include <lib/eigen/Eigen/Dense>
+#include <uORB/topics/neural_control.h>
 //#include <lib/eigen/Eigen/Core>
 
 #include <px4_platform_common/px4_config.h>
@@ -42,10 +43,12 @@ public:
 
 	Vector3f getPosition() { return _position; }
 
+  void fillDebugMessage(neural_control_s &message);
+
   /**
    * Run one control loop cycle calculation
    */
-  Vector4f updateNeural() const;
+  Vector4f updateNeural();
 
 private:
 
@@ -81,6 +84,15 @@ private:
   Vector3f _position{};
   Vector3f _linear_velocity{};
   Vector3f _angular_velocity;
+
+  // frame transform
+  // matrix::Dcmf frame_transf;
+  // matrix::Dcmf frame_transf_2;
+
+  // Debug States
+  Eigen::VectorXf scaled_input_allocation_net;
+  Eigen::VectorXf force_clamped;
+  Eigen::VectorXf input;
 
   //DEFINE_PARAMETERS(
 	//	(ParamInt<px4::params::SM_MIN_RPM>) 		_min_rpm,

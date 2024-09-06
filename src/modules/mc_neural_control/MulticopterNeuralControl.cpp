@@ -464,6 +464,9 @@ void MulticopterNeuralControl::Run()
       }
       else if (_param_controller.get() == NEURAL)
       {
+        neural_control_s neural_control_msg;
+        _neural_control.fillDebugMessage(neural_control_msg);
+        _neural_control_pub.publish(neural_control_msg);
 
         //PX4_INFO("Neural controller running");
         actuator_motors_s actuator_motors;

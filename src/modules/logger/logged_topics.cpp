@@ -226,9 +226,9 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
-	//add_topic("vehicle_optical_flow", 500);
+	// add_topic("vehicle_optical_flow", 500);
 	add_topic("vehicle_optical_flow");
-	//add_optional_topic("vehicle_optical_flow_vel", 100);
+	// add_optional_topic("vehicle_optical_flow_vel", 100);
 	add_optional_topic("vehicle_optical_flow_vel");
 	add_optional_topic("pps_capture");
 
@@ -242,7 +242,8 @@ void LoggedTopics::add_default_topics()
 	int32_t sys_hitl = 0;
 	param_get(param_find("SYS_HITL"), &sys_hitl);
 
-	if (sys_hitl >= 1) {
+	if (sys_hitl >= 1)
+	{
 		add_topic("vehicle_angular_velocity_groundtruth", 10);
 		add_topic("vehicle_attitude_groundtruth", 10);
 		add_topic("vehicle_global_position_groundtruth", 100);
@@ -326,14 +327,15 @@ void LoggedTopics::add_high_rate_topics()
 
 void LoggedTopics::add_debug_topics()
 {
-	add_topic("debug_array");
+	add_topic("neural_control");
+	/*add_topic("debug_array");
 	add_topic("debug_key_value");
 	add_topic("debug_value");
 	add_topic("debug_vect");
 	add_topic_multi("satellite_info", 1000, 2);
 	add_topic("mag_worker_data");
 	add_topic("sensor_preflight_mag", 500);
-	add_topic("actuator_test", 500);
+	add_topic("actuator_test", 500);*/
 }
 
 void LoggedTopics::add_estimator_replay_topics()
@@ -410,22 +412,26 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 	/* open the topic list file */
 	FILE *fp = fopen(fname, "r");
 
-	if (fp == nullptr) {
+	if (fp == nullptr)
+	{
 		return -1;
 	}
 
 	/* call add_topic for each topic line in the file */
-	for (;;) {
+	for (;;)
+	{
 		/* get a line, bail on error/EOF */
 		char line[80];
 		line[0] = '\0';
 
-		if (fgets(line, sizeof(line), fp) == nullptr) {
+		if (fgets(line, sizeof(line), fp) == nullptr)
+		{
 			break;
 		}
 
 		/* skip comment lines */
-		if ((strlen(line) < 2) || (line[0] == '#')) {
+		if ((strlen(line) < 2) || (line[0] == '#'))
+		{
 			continue;
 		}
 
@@ -435,19 +441,22 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 		uint32_t instance = 0;
 		int nfields = sscanf(line, "%s %" PRIu32 " %" PRIu32, topic_name, &interval_ms, &instance);
 
-		if (nfields > 0) {
+		if (nfields > 0)
+		{
 			int name_len = strlen(topic_name);
 
-			if (name_len > 0 && topic_name[name_len - 1] == ',') {
+			if (name_len > 0 && topic_name[name_len - 1] == ',')
+			{
 				topic_name[name_len - 1] = '\0';
 			}
 
 			/* add topic with specified interval_ms */
-			if ((nfields > 2 && add_topic(topic_name, interval_ms, instance))
-			    || add_topic_multi(topic_name, interval_ms)) {
+			if ((nfields > 2 && add_topic(topic_name, interval_ms, instance)) || add_topic_multi(topic_name, interval_ms))
+			{
 				ntopics++;
-
-			} else {
+			}
+			else
+			{
 				PX4_ERR("Failed to add topic %s", topic_name);
 			}
 		}
@@ -459,35 +468,41 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 
 void LoggedTopics::initialize_mission_topics(MissionLogType mission_log_type)
 {
-	if (mission_log_type == MissionLogType::Complete) {
+	if (mission_log_type == MissionLogType::Complete)
+	{
 		add_mission_topic("camera_capture");
 		add_mission_topic("mission_result");
 		add_mission_topic("vehicle_global_position", 1000);
 		add_mission_topic("vehicle_status", 1000);
-
-	} else if (mission_log_type == MissionLogType::Geotagging) {
+	}
+	else if (mission_log_type == MissionLogType::Geotagging)
+	{
 		add_mission_topic("camera_capture");
 	}
 }
 
 void LoggedTopics::add_mission_topic(const char *name, uint16_t interval_ms)
 {
-	if (add_topic(name, interval_ms)) {
+	if (add_topic(name, interval_ms))
+	{
 		++_num_mission_subs;
 	}
 }
 
 bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, uint8_t instance, bool optional)
 {
-	if (_subscriptions.count >= MAX_TOPICS_NUM) {
+	if (_subscriptions.count >= MAX_TOPICS_NUM)
+	{
 		PX4_WARN("Too many subscriptions, failed to add: %s %" PRIu8, topic->o_name, instance);
 		return false;
 	}
 
-	if (optional && orb_exists(topic, instance) != 0) {
+	if (optional && orb_exists(topic, instance) != 0)
+	{
 		PX4_DEBUG("Not adding non-existing optional topic %s %i", topic->o_name, instance);
 
-		if (instance == 0 && _subscriptions.num_excluded_optional_topic_ids < MAX_EXCLUDED_OPTIONAL_TOPICS_NUM) {
+		if (instance == 0 && _subscriptions.num_excluded_optional_topic_ids < MAX_EXCLUDED_OPTIONAL_TOPICS_NUM)
+		{
 			_subscriptions.excluded_optional_topic_ids[_subscriptions.num_excluded_optional_topic_ids++] = topic->o_id;
 		}
 
@@ -508,17 +523,21 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 	const orb_metadata *const *topics = orb_get_topics();
 	bool success = false;
 
-	for (size_t i = 0; i < orb_topics_count(); i++) {
-		if (strcmp(name, topics[i]->o_name) == 0) {
+	for (size_t i = 0; i < orb_topics_count(); i++)
+	{
+		if (strcmp(name, topics[i]->o_name) == 0)
+		{
 			bool already_added = false;
 
 			// check if already added: if so, only update the interval
-			for (int j = 0; j < _subscriptions.count; ++j) {
+			for (int j = 0; j < _subscriptions.count; ++j)
+			{
 				if (_subscriptions.sub[j].id == static_cast<ORB_ID>(topics[i]->o_id) &&
-				    _subscriptions.sub[j].instance == instance) {
+					_subscriptions.sub[j].instance == instance)
+				{
 
 					PX4_DEBUG("logging topic %s(%" PRIu8 "), interval: %" PRIu16 ", already added, only setting interval",
-						  topics[i]->o_name, instance, interval_ms);
+							  topics[i]->o_name, instance, interval_ms);
 
 					_subscriptions.sub[j].interval_ms = interval_ms;
 					success = true;
@@ -527,10 +546,12 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 				}
 			}
 
-			if (!already_added) {
+			if (!already_added)
+			{
 				success = add_topic(topics[i], interval_ms, instance, optional);
 
-				if (success) {
+				if (success)
+				{
 					PX4_DEBUG("logging topic: %s(%" PRIu8 "), interval: %" PRIu16, topics[i]->o_name, instance, interval_ms);
 				}
 
@@ -545,7 +566,8 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 bool LoggedTopics::add_topic_multi(const char *name, uint16_t interval_ms, uint8_t max_num_instances, bool optional)
 {
 	// add all possible instances
-	for (uint8_t instance = 0; instance < max_num_instances; instance++) {
+	for (uint8_t instance = 0; instance < max_num_instances; instance++)
+	{
 		add_topic(name, interval_ms, instance, optional);
 	}
 
@@ -556,10 +578,12 @@ bool LoggedTopics::initialize_logged_topics(SDLogProfileMask profile)
 {
 	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
 
-	if (ntopics > 0) {
+	if (ntopics > 0)
+	{
 		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
-
-	} else {
+	}
+	else
+	{
 		initialize_configured_topics(profile);
 	}
 
@@ -570,47 +594,59 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 {
 	// load appropriate topics for profile
 	// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
-	if (profile & SDLogProfileMask::DEFAULT) {
+	if (profile & SDLogProfileMask::DEFAULT)
+	{
 		add_default_topics();
 	}
 
-	if (profile & SDLogProfileMask::ESTIMATOR_REPLAY) {
+	if (profile & SDLogProfileMask::ESTIMATOR_REPLAY)
+	{
 		add_estimator_replay_topics();
 	}
 
-	if (profile & SDLogProfileMask::THERMAL_CALIBRATION) {
+	if (profile & SDLogProfileMask::THERMAL_CALIBRATION)
+	{
 		add_thermal_calibration_topics();
 	}
 
-	if (profile & SDLogProfileMask::SYSTEM_IDENTIFICATION) {
+	if (profile & SDLogProfileMask::SYSTEM_IDENTIFICATION)
+	{
 		add_system_identification_topics();
 	}
 
-	if (profile & SDLogProfileMask::HIGH_RATE) {
+	if (profile & SDLogProfileMask::HIGH_RATE)
+	{
 		add_high_rate_topics();
 	}
 
-	if (profile & SDLogProfileMask::DEBUG_TOPICS) {
+	if (profile & SDLogProfileMask::DEBUG_TOPICS)
+	{
 		add_debug_topics();
 	}
 
-	if (profile & SDLogProfileMask::SENSOR_COMPARISON) {
+	if (profile & SDLogProfileMask::SENSOR_COMPARISON)
+	{
 		add_sensor_comparison_topics();
 	}
 
-	if (profile & SDLogProfileMask::VISION_AND_AVOIDANCE) {
+	if (profile & SDLogProfileMask::VISION_AND_AVOIDANCE)
+	{
 		add_vision_and_avoidance_topics();
 	}
 
-	if (profile & SDLogProfileMask::RAW_IMU_GYRO_FIFO) {
+	if (profile & SDLogProfileMask::RAW_IMU_GYRO_FIFO)
+	{
 		add_raw_imu_gyro_fifo();
 	}
 
-	if (profile & SDLogProfileMask::RAW_IMU_ACCEL_FIFO) {
+	if (profile & SDLogProfileMask::RAW_IMU_ACCEL_FIFO)
+	{
 		add_raw_imu_accel_fifo();
 	}
 
-	if (profile & SDLogProfileMask::MAVLINK_TUNNEL) {
+	if (profile & SDLogProfileMask::MAVLINK_TUNNEL)
+	{
 		add_mavlink_tunnel();
 	}
+
 }

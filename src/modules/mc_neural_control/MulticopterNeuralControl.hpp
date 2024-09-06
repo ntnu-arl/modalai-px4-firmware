@@ -59,6 +59,7 @@
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/neural_control.h>
 
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -121,6 +122,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	//uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
+	uORB::Publication<neural_control_s> _neural_control_pub{ORB_ID(neural_control)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
