@@ -155,6 +155,15 @@ void MulticopterNeuralControl::Run()
   vehicle_angular_velocity_s vehicle_angular_velocity;
   if (_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity))
   {
+    //static size_t counter = 0;
+
+    //if (counter > 1){
+    //  counter = 0;
+    //  return;
+    //}
+
+    //counter ++;
+
     // Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
     // const float dt = math::constrain(((vehicle_attitude.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
     _last_run = vehicle_angular_velocity.timestamp_sample;
@@ -245,12 +254,12 @@ void MulticopterNeuralControl::Run()
     if (_trajectory_setpoint_sub.updated()){
 
       // trajectory_setpoint_s trajectory_setpoint;
-      _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
-      // if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
-      // {
-        // PX4_INFO("setpoint received: %f %f %f", double(_trajectory_setpoint.position[0]),
-        //       double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
-      // }
+      // _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
+      if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
+      {
+        PX4_INFO("setpoint received: %f %f %f", double(_trajectory_setpoint.position[0]),
+              double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+      }
     }
     // _trajectory_setpoint_sub.update(&_trajectory_setpoint);
     if (_vehicle_control_mode.flag_control_offboard_enabled)
@@ -262,13 +271,27 @@ void MulticopterNeuralControl::Run()
       {
         PX4_WARN("invalid setpoint, impl failsafe: %f %f %f", double(_trajectory_setpoint.position[0]),
                  double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
-        generateFailsafeTrajectory(_trajectory_setpoint, _pd_position_control.getPosition(),
-                                   _pd_position_control.getAttitude());
+        _trajectory_setpoint.position[0] = 0.0f;
+        _trajectory_setpoint.position[1] = 0.0f;
+        _trajectory_setpoint.position[2] = -1.0f;
+        _trajectory_setpoint.velocity[0] = 0.0f;
+        _trajectory_setpoint.velocity[1] = 0.0f;
+        _trajectory_setpoint.velocity[2] = 0.0f;
+        _trajectory_setpoint.acceleration[0] = 0.0f;
+        _trajectory_setpoint.acceleration[1] = 0.0f;
+        _trajectory_setpoint.acceleration[2] = 0.0f;
+        _trajectory_setpoint.yaw = 0.0f;
+        _trajectory_setpoint.yawspeed = 0.0f;
         _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
+        PX4_WARN("failsafe setpoint set to: %f %f %f", double(_trajectory_setpoint.position[0]),
+                 double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
       }
       else {
-        // PX4_INFO("setpoint: %f %f %f", double(_trajectory_setpoint.position[0]),
-        //         double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+        if (_trajectory_setpoint_sub.updated())
+        {
+        PX4_INFO("valid setpoint: %f %f %f", double(_trajectory_setpoint.position[0]),
+                double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+        }
         // PX4_INFO("vel: %f %f %f", double(_trajectory_setpoint.velocity[0]),
         //         double(_trajectory_setpoint.velocity[1]), double(_trajectory_setpoint.velocity[2]));
         // PX4_INFO("acc: %f %f %f", double(_trajectory_setpoint.acceleration[0]),

@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <chrono>
 
 Eigen::MatrixXf openData(std::string fileToOpen)
 {
@@ -119,6 +120,9 @@ void NeuralControl::fillDebugMessage(neural_control_s &message)
 matrix::Vector4f NeuralControl::updateNeural()
 {
 
+  std::chrono::time_point<std::chrono::system_clock> start1, end1;
+  start1 = std::chrono::system_clock::now();
+
   // transform observations in correct frame
   matrix::Dcmf frame_transf;
   frame_transf(0, 0) = 1.0f;
@@ -184,9 +188,6 @@ matrix::Vector4f NeuralControl::updateNeural()
   pos_state << position_local(0), position_local(1), position_local(2);
   Eigen::Vector3f pos_setpoint;
   pos_setpoint << position_setpoint_local(0), position_setpoint_local(1), position_setpoint_local(2);
-  pos_setpoint(0) = 0.0f;
-  pos_setpoint(1) = 0.0f;
-  pos_setpoint(2) = 0.5f;
 
   // Eigen::Vector3f ground_offset_local;
   // ground_offset_local << 0.0f, 0.0f, 1.0f;
@@ -194,7 +195,22 @@ matrix::Vector4f NeuralControl::updateNeural()
   Eigen::Vector3f pos_input = pos_setpoint - pos_state; // + ground_offset_local;
 
   // clamp error to guarantee input lies in training envelope
-  Eigen::Vector3f pos_input_clamped = pos_input; //.cwiseMax(-0.3).cwiseMin(0.3);
+  Eigen::Vector3f pos_input_clamped = pos_input; //.cwiseMax(-1.).cwiseMin(1.);
+
+  // Write smoothing functions for observations
+  // _smoothed_pos = pos_alpha * pos_input_clamped + (1 - pos_alpha) * _smoothed_pos;
+  // _smoothed_vel = vel_alpha * linear_velocity_local + (1 - vel_alpha) * _smoothed_vel;
+  // _smoothed_att = att_alpha * attitude_euler_local + (1 - att_alpha) * _smoothed_att;
+  // _smoothed_ang_vel = ang_vel_alpha * angular_vel_local + (1 - ang_vel_alpha) * _smoothed_ang_vel;
+  // matrix::Dcmf _smoothed_atttitude_mat = matrix::Dcmf(_smoothed_att);
+
+  // if (_smoothing)
+  // {
+  //   pos_input_clamped = _smoothed_pos;
+  //   linear_velocity_local = _smoothed_vel;
+  //   _attitude_local_mat = _smoothed_atttitude_mat;
+  //   angular_vel_local = _smoothed_ang_vel;
+  // }
 
   // convert linear velocities
   Eigen::Vector3f vel_state;
@@ -240,17 +256,17 @@ matrix::Vector4f NeuralControl::updateNeural()
 
   force_clamped = ao2.cwiseMax(_min_u_training).cwiseMin(_max_u_training);
 
-  // PX4_WARN("force_clamped: %f %f %f %f", (double)force_clamped(0), (double)force_clamped(1), (double)force_clamped(2), (double)force_clamped(3));
-
+  //PX4_WARN("force_clamped: %f %f %f %f", (double)force_clamped(0), (double)force_clamped(1), (double)force_clamped(2), (double)force_clamped(3));
+  static const float _thrust_coefficient = 0.000016781;
   // conversion to rpm
-  Eigen::VectorXf rps = force_clamped / 0.000013781; // _thrust_coefficient;
+  Eigen::VectorXf rps = force_clamped / _thrust_coefficient; // _thrust_coefficient;0.000013781
   rps = rps.cwiseSqrt();
   Eigen::VectorXf rpm = rps * 60;
 
   // conversion to motor commands (inverse of the scaling done in mixer module)
   Vector4f motor_commands;
 
-  // PX4_WARN("rpm: %f %f %f %f", (double)rpm(0), (double)rpm(1), (double)rpm(2), (double)rpm(3));
+  // PX4_WARN("rpm: %f f %f %f", (double)rpm(0), (double)rpm(1), (double)rpm(2), (double)rpm(3));
 
   motor_commands(0) = (rpm(0) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
   motor_commands(1) = (rpm(2) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
@@ -273,10 +289,9 @@ matrix::Vector4f NeuralControl::updateNeural()
 
   // PX4_WARN("value neural control: %f %f %f %f", (double)motor_commands(0), (double)motor_commands(1), (double)motor_commands(2), (double)motor_commands(3));
 
-  // motor_commands(0) = (rps(0) - 100.0f)/720.0f;//commands(1);
-  // motor_commands(1) = (rps(2) - 100.0f)/720.0f;//commands(1);
-  // motor_commands(2) = (rps(3) - 100.0f)/720.0f;//commands(2);
-  // motor_commands(3) = (rps(1) - 100.0f)/720.0f;//commands(3);
+  end1 = std::chrono::system_clock::now();
+
+  std::cout << "time total: " << std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count() << "us\n";
 
   return mixer_values;
 }

@@ -66,6 +66,23 @@ private:
   Eigen::VectorXf _min_thrust;
   Eigen::VectorXf _max_torque;
   Eigen::VectorXf _min_torque;
+  Vector3f _smoothed_pos;
+  Vector3f _smoothed_vel;
+  Eulerf _smoothed_att;
+  Vector3f _smoothed_ang_vel;
+
+  // bool _smoothing = true;
+  // float pos_cutoff = 20.0;
+  // float vel_cutoff = 20.0;
+  // float att_cutoff = 20.0;
+  // float ang_vel_cutoff = 20.0;
+
+  // float dt = 0.002;
+  // Vector3f pos_alpha = Vector3f(float(dt/((1/(2*3.14159*pos_cutoff))) + dt),float(dt/((1/(2*3.14159*pos_cutoff))) + dt),float(dt/((1/(2*3.14159*pos_cutoff))) + dt));
+  // Vector3f vel_alpha = Vector3f(float(dt/((1/(2*3.14159*vel_cutoff))) + dt),float(dt/((1/(2*3.14159*vel_cutoff))) + dt),float(dt/((1/(2*3.14159*vel_cutoff))) + dt));
+  // Vector3f att_alpha = Vector3f(float(dt/((1/(2*3.14159*att_cutoff))) + dt),float(dt/((1/(2*3.14159*att_cutoff))) + dt),float(dt/((1/(2*3.14159*att_cutoff))) + dt));
+  // Vector3f ang_vel_alpha = Vector3f(float(dt/((1/(2*3.14159*ang_vel_cutoff))) + dt),,1);
+
   float _min_u_training;
   float _max_u_training;
   int _max_rpm;
