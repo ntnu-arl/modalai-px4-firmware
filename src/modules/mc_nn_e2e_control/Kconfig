@@ -1,0 +1,12 @@
+menuconfig MODULES_NN_E2E
+	bool "mc_nn_e2e"
+	default n
+	---help---
+		Enable support for mc_nn_end2end
+
+menuconfig USER_MC_NN_E2E
+	bool "mc_nn_e2e running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_NN_E2E
+	---help---
+		Put mc_nn_end2end in userspace memory
