@@ -268,9 +268,9 @@ void MulticopterSafeControl::Run()
     ocm.position = false;
     ocm.velocity = false;
     ocm.acceleration = false;
-    ocm.attitude = false;
+    ocm.attitude = true;
     ocm.body_rate = false;
-    ocm.actuator = true;
+    ocm.actuator = false;
     // ocm.thrust_and_torque = true;
     // ocm.direct_actuator = false;
     ocm.timestamp = hrt_absolute_time();
