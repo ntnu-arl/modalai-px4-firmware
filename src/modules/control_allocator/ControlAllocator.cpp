@@ -363,9 +363,6 @@ ControlAllocator::Run()
 	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
 
-	//PX4_WARN("setpoint torque: %f %f %f ", double(vehicle_torque_setpoint.xyz[0]), double(vehicle_torque_setpoint.xyz[1]), double(vehicle_torque_setpoint.xyz[2]));
-	//PX4_WARN("setpoint thrust: %f %f %f ", double(vehicle_thrust_setpoint.xyz[0]), double(vehicle_thrust_setpoint.xyz[1]), double(vehicle_thrust_setpoint.xyz[2]));
-
 	// Run allocator on torque changes
 	if (_vehicle_torque_setpoint_sub.update(&vehicle_torque_setpoint)) {
 		_torque_sp = matrix::Vector3f(vehicle_torque_setpoint.xyz);
@@ -607,6 +604,10 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	control_allocator_status.unallocated_thrust[1] = unallocated_control(4);
 	control_allocator_status.unallocated_thrust[2] = unallocated_control(5);
 
+	// PX4_WARN("Wrench PX4: %f %f %f %f %f %f", double(unallocated_control(0)), double(unallocated_control(1)),
+	// 		 double(unallocated_control(2)), double(unallocated_control(3)), double(unallocated_control(4)),
+	// 		 double(unallocated_control(5)));
+
 	// override control_allocator_status in customized saturation logic for certain effectiveness types
 	_actuator_effectiveness->getUnallocatedControl(matrix_index, control_allocator_status);
 
@@ -676,8 +677,8 @@ ControlAllocator::publish_actuator_controls()
 		actuator_motors.control[i] = NAN;
 	}
 	
-	//PX4_WARN("control: %f %f %f %f", double(actuator_motors.control[0]),double(actuator_motors.control[1]),
-	//								  double(actuator_motors.control[2]),double(actuator_motors.control[3]));
+	// PX4_WARN("control: %f %f %f %f", double(actuator_motors.control[0]),double(actuator_motors.control[1]),
+	// 								  double(actuator_motors.control[2]),double(actuator_motors.control[3]));
 
 	_actuator_motors_pub.publish(actuator_motors);
 

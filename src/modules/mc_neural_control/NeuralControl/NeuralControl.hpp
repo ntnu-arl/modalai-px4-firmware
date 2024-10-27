@@ -45,6 +45,10 @@ public:
 
   void fillDebugMessage(neural_control_s &message);
 
+  Eigen::Vector3f transform_frame_ned_enu(Eigen::Vector3f vec_ned);
+
+  Eigen::Quaternionf transform_orientation_ned_enu(Eigen::Quaternionf quat_ned);
+
   /**
    * Run one control loop cycle calculation
    */

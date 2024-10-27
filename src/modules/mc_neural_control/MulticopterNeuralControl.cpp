@@ -241,9 +241,11 @@ void MulticopterNeuralControl::Run()
 
     if (_manual_control_setpoint_sub.updated())
     {
+      // PX4_WARN("manual control setpoint updated");
       manual_control_setpoint_s manual_control_setpoint;
       if (_manual_control_setpoint_sub.copy(&manual_control_setpoint))
       {
+
         _manual_thrust = manual_control_setpoint.throttle;
         _manual_roll = manual_control_setpoint.roll;
         _manual_pitch = -manual_control_setpoint.pitch;
@@ -254,12 +256,12 @@ void MulticopterNeuralControl::Run()
     if (_trajectory_setpoint_sub.updated()){
 
       // trajectory_setpoint_s trajectory_setpoint;
-      // _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
-      if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
-      {
-        PX4_INFO("setpoint received: %f %f %f", double(_trajectory_setpoint.position[0]),
-              double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
-      }
+      _trajectory_setpoint_sub.copy(&_trajectory_setpoint); // disable in real flight
+      // if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
+      // {
+      //   PX4_INFO("setpoint received: %f %f %f", double(_trajectory_setpoint.position[0]),
+      //         double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+      // }
     }
     // _trajectory_setpoint_sub.update(&_trajectory_setpoint);
     if (_vehicle_control_mode.flag_control_offboard_enabled)
@@ -269,22 +271,15 @@ void MulticopterNeuralControl::Run()
       if ((_trajectory_setpoint.timestamp < _time_offboard_enabled) &&
           (vehicle_angular_velocity.timestamp_sample > _time_offboard_enabled))
       {
-        PX4_WARN("invalid setpoint, impl failsafe: %f %f %f", double(_trajectory_setpoint.position[0]),
-                 double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
-        _trajectory_setpoint.position[0] = 0.0f;
-        _trajectory_setpoint.position[1] = 0.0f;
-        _trajectory_setpoint.position[2] = -1.0f;
-        _trajectory_setpoint.velocity[0] = 0.0f;
-        _trajectory_setpoint.velocity[1] = 0.0f;
-        _trajectory_setpoint.velocity[2] = 0.0f;
-        _trajectory_setpoint.acceleration[0] = 0.0f;
-        _trajectory_setpoint.acceleration[1] = 0.0f;
-        _trajectory_setpoint.acceleration[2] = 0.0f;
-        _trajectory_setpoint.yaw = 0.0f;
-        _trajectory_setpoint.yawspeed = 0.0f;
-        _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
-        PX4_WARN("failsafe setpoint set to: %f %f %f", double(_trajectory_setpoint.position[0]),
-                 double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+        // PX4_WARN("invalid setpoint, impl failsafe: %f %f %f", double(_trajectory_setpoint.position[0]),
+        //          double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+
+        //_trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
+        
+        generateFailsafeTrajectory(_trajectory_setpoint, _pd_position_control.getPosition(),
+                                   _pd_position_control.getAttitude());
+        // PX4_WARN("failsafe setpoint set to: %f %f %f", double(_trajectory_setpoint.position[0]),
+        //          double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
       }
       else {
         if (_trajectory_setpoint_sub.updated())
@@ -435,7 +430,7 @@ void MulticopterNeuralControl::Run()
           vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
         }
 
-        //PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
+        // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
         vehicle_thrust_setpoint.xyz[0] = 0.0f;
         vehicle_thrust_setpoint.xyz[1] = 0.0f;
         vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
@@ -475,15 +470,10 @@ void MulticopterNeuralControl::Run()
 
         _vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 
-        //PX4_INFO("vehicle thrust setpoint: %f %f %f", (double)vehicle_thrust_setpoint.xyz[0], (double)vehicle_thrust_setpoint.xyz[1],
-        //         (double)vehicle_thrust_setpoint.xyz[2]);
-
         vehicle_torque_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
         vehicle_torque_setpoint.timestamp = hrt_absolute_time();
         _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 
-        //PX4_INFO("vehicle torque setpoint: %f %f %f", (double)vehicle_torque_setpoint.xyz[0], (double)vehicle_torque_setpoint.xyz[1],
-        //         (double)vehicle_torque_setpoint.xyz[2]);
       }
       else if (_param_controller.get() == NEURAL)
       {
@@ -491,7 +481,6 @@ void MulticopterNeuralControl::Run()
         _neural_control.fillDebugMessage(neural_control_msg);
         _neural_control_pub.publish(neural_control_msg);
 
-        //PX4_INFO("Neural controller running");
         actuator_motors_s actuator_motors;
         actuator_motors.timestamp = hrt_absolute_time();
         

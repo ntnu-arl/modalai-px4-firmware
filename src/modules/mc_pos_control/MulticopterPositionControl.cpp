@@ -373,8 +373,7 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
-		_trajectory_setpoint_sub.update(&_setpoint);
-														 									
+		_trajectory_setpoint_sub.update(&_setpoint);										 									
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
 		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
@@ -420,7 +419,6 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
 
-
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 			// set failsafe setpoint if there hasn't been a new
 			// trajectory setpoint since position control started
@@ -428,6 +426,8 @@ void MulticopterPositionControl::Run()
 			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
 
 				_setpoint = generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, false);
+				// PX4_WARN("setpoint: %f %f %f", double(_setpoint.position[0]),
+				// 	 double(_setpoint.position[1]), double(_setpoint.position[2]));
 			}
 		}
 

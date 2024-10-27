@@ -58,7 +58,7 @@ PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 0);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.317f);
+PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.371f);
 
 /**
  * Thrust max
@@ -123,7 +123,7 @@ PARAM_DEFINE_FLOAT(SM_HOVER, 0.5f);
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.0004933f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.0006429f);
 
 /**
  * inertia yy
@@ -136,7 +136,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_XX, 0.0004933f);
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.0005977f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.0007548f);
 
 /**
  * inertia zz
@@ -149,7 +149,7 @@ PARAM_DEFINE_FLOAT(SM_ATT_I_YY, 0.0005977f);
  * @increment 0.00001
  * @group Multicopter SM Attitude Control
  */
-PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.0008339f);
+PARAM_DEFINE_FLOAT(SM_ATT_I_ZZ, 0.0008866f);
 
 /**
  * Battery power level scaler
