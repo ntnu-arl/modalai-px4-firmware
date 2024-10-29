@@ -43,12 +43,19 @@ Dcmf PDPositionControl::calculateAttitude(const Vector3f& acceleration) const
   return Dcmf(result);
 }
 
-void PDPositionControl::updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint) const
+// void PDPositionControl::updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint) const
+// {
+//   const Vector3f acceleration = calculateAccelerationPD();
+
+//   thrust_setpoint = calculateThrust(acceleration);
+//   const Dcmf attitude_setpoint = calculateAttitude(acceleration);
+
+//   quaternion_setpoint = Quatf(attitude_setpoint);
+// }
+
+
+void PDPositionControl::updatePD(float& thrust_setpoint, Vector3f& acceleration_setpoint) const
 {
-  const Vector3f acceleration = calculateAccelerationPD();
-
-  thrust_setpoint = calculateThrust(acceleration);
-  const Dcmf attitude_setpoint = calculateAttitude(acceleration);
-
-  quaternion_setpoint = Quatf(attitude_setpoint);
+  acceleration_setpoint = calculateAccelerationPD();
+  thrust_setpoint = calculateThrust(acceleration_setpoint);
 }

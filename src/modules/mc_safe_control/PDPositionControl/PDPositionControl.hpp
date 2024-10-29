@@ -41,7 +41,9 @@ public:
   /**
    * Run one control loop cycle calculation
    */
-  void updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint) const;
+  void updatePD(float& thrust_setpoint, Vector3f& acceleration_setpoint) const;
+
+  void convertToAttitude(const Vector3f& acceleration, Quatf& attitude) const { attitude = Quatf(calculateAttitude(acceleration)); }
 
 private:
 

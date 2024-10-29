@@ -281,41 +281,18 @@ void MulticopterSafeControl::Run()
         (_param_manual_ctrl.get() || (_trajectory_setpoint.timestamp >= _time_offboard_enabled)))
     {
       float thrust_setpoint = 0.0f;
-      Quatf attitude_setpoint{};
-
-      // attitude_setpoint.print();
+      Quatf attitude_setpoint {};
 
       // ====================================
-      // manual attitude setpoint feedthrough
+      // manual input feedthrough
       // ====================================
       if (_param_manual_ctrl.get())
       {
-        // get an attitude setpoint from the current manual inputs
-        float roll_ref = 1.f * _manual_roll * M_PI_4_F;
-        float pitch_ref = 1.f * _manual_pitch * M_PI_4_F;
-        float yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
-        float yaw_ref = Eulerf(_attitude).psi();
+        // //TODO: get a (probably velocity) setpoint from the current manual inputs
 
-        Quatf q_sp(Eulerf(roll_ref, pitch_ref, yaw_ref));
-
-        vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
-        const Eulerf euler_sp(q_sp);
-        vehicle_attitude_setpoint.roll_body = euler_sp(0);
-        vehicle_attitude_setpoint.pitch_body = euler_sp(1);
-        vehicle_attitude_setpoint.yaw_body = euler_sp(2);
-        q_sp.copyTo(vehicle_attitude_setpoint.q_d);
-        vehicle_attitude_setpoint.yaw_sp_move_rate = yawspeed_ref;
-
-        vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
-        _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
-
-        // run attitude controller
-        _pd_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, yawspeed_ref));
-        _pd_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
-        _pd_attitude_control.setAttitudeSetpoint(q_sp);
+        // TODO: run position controller
         thrust_setpoint = throttle_curve(_manual_thrust);
       }
-      // TODO: setpoint from mocap
       else
       {
         vehicle_local_position_setpoint_s local_pos_sp{};
@@ -330,9 +307,14 @@ void MulticopterSafeControl::Run()
         switch (_param_controller.get())
         {
           case NONLINEAR_PD:
-            _pd_position_control.updatePD(thrust_setpoint, attitude_setpoint);
+          {
+            Vector3f acceleration_setpoint;
+            _pd_position_control.updatePD(thrust_setpoint, acceleration_setpoint);
+            // TODO:
+            // safety_filter.update(acceleration_setpoint);
+            _pd_position_control.convertToAttitude(acceleration_setpoint, attitude_setpoint);
             break;
-
+          }
           default:
             PX4_ERR("Invalid controller selected: %i", _param_controller.get());
             break;
@@ -342,46 +324,14 @@ void MulticopterSafeControl::Run()
           PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
         }
         thrust_setpoint /= _param_thrust_max.get();
-
-        // run attitude controller
-        _pd_attitude_control.setAngularVelocitySetpoint(Vector3f(0.0f, 0.0f, _trajectory_setpoint.yawspeed));
-        _pd_attitude_control.setAngularAccelerationSetpoint(Vector3f(0.0f, 0.0f, 0.0f));
-        _pd_attitude_control.setAttitudeSetpoint(attitude_setpoint);
       }
-
-      // run attitude controller
-      Vector3f torque_setpoint;
-      switch (_param_controller.get())
-      {
-        case NONLINEAR_PD:
-          torque_setpoint = _pd_attitude_control.updatePD();
-          break;
-
-        default:
-          PX4_ERR("Invalid controller selected: %i", _param_controller.get());
-          break;
-      }
-      if (_param_verbose.get())
-      {
-        PX4_INFO("torque setpoint: %f %f %f", (double)torque_setpoint(0), (double)torque_setpoint(1),
-                 (double)torque_setpoint(2));
-      }
-      torque_setpoint(0) /= _param_moment_rp_max.get();
-      torque_setpoint(1) /= _param_moment_rp_max.get();
-      torque_setpoint(2) /= _param_moment_y_max.get();
 
       // publish thrust and attitude setpoints
       vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-      vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 
       // set default thrust to hover percentage
       thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover.get();
       thrust_setpoint = -constrain(thrust_setpoint, 0.0f, 1.0f);
-      for (int i = 0; i < 3; i++)
-      {
-        torque_setpoint(i) = PX4_ISFINITE(torque_setpoint(i)) ? torque_setpoint(i) : 0.f;
-        vehicle_torque_setpoint.xyz[i] = constrain(torque_setpoint(i), -1.f, 1.f);
-      }
 
       // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
       vehicle_thrust_setpoint.xyz[0] = 0.0f;
@@ -401,7 +351,6 @@ void MulticopterSafeControl::Run()
 				if (_battery_status_scale > 0.f) {
 					for (int i = 0; i < 3; i++) {
 						vehicle_thrust_setpoint.xyz[i] = math::constrain(vehicle_thrust_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
-						vehicle_torque_setpoint.xyz[i] = math::constrain(vehicle_torque_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
 					}
 				}
 			}
@@ -417,14 +366,6 @@ void MulticopterSafeControl::Run()
       vehicle_attitude_setpoint.pitch_body = euler.theta();
       vehicle_attitude_setpoint.yaw_body = euler.psi();
       _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
-
-      vehicle_thrust_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
-      vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
-      _vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
-
-      vehicle_torque_setpoint.timestamp_sample = vehicle_angular_velocity.timestamp_sample;
-      vehicle_torque_setpoint.timestamp = hrt_absolute_time();
-      _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
     }
   }
   perf_end(_loop_perf);

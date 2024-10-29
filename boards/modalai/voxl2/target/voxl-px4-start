@@ -110,20 +110,20 @@ param touch SYS_AUTOCONFIG
 param touch SDLOG_MODE
 
 # ESC driver
-if [ "$ESC" == "VOXL_ESC" ]; then
-    /bin/echo "Starting VOXL ESC driver"
-	qshell voxl_esc start
-elif [ "$ESC" == "VOXL2_IO_PWM_ESC" ]; then
-	if [ "$RC" == "M0065_SBUS" ]; then
-		/bin/echo "Starting VOXL IO for PWM ESC with SBUS RC"
-		qshell voxl2_io start
-	else
-		/bin/echo "Starting VOXL IO for PWM ESC without SBUS RC"
-		qshell voxl2_io start -e
-	fi
-else
-	/bin/echo "No ESC type specified, not starting an ESC driver"
-fi
+# if [ "$ESC" == "VOXL_ESC" ]; then
+#     /bin/echo "Starting VOXL ESC driver"
+# 	qshell voxl_esc start
+# elif [ "$ESC" == "VOXL2_IO_PWM_ESC" ]; then
+# 	if [ "$RC" == "M0065_SBUS" ]; then
+# 		/bin/echo "Starting VOXL IO for PWM ESC with SBUS RC"
+# 		qshell voxl2_io start
+# 	else
+# 		/bin/echo "Starting VOXL IO for PWM ESC without SBUS RC"
+# 		qshell voxl2_io start -e
+# 	fi
+# else
+# 	/bin/echo "No ESC type specified, not starting an ESC driver"
+# fi
 
 
 # RC driver
@@ -187,6 +187,7 @@ qshell mc_att_control start
 qshell mc_rate_control start
 qshell mc_hover_thrust_estimator start
 qshell mc_autotune_attitude_control start
+# qshell mc_safe_control start
 qshell land_detector start multicopter
 qshell manual_control start
 qshell control_allocator start
