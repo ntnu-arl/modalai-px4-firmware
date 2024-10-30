@@ -109,7 +109,7 @@ qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 param touch SYS_AUTOCONFIG
 param touch SDLOG_MODE
 
-ESC driver
+# ESC driver
 if [ "$ESC" == "VOXL_ESC" ]; then
     /bin/echo "Starting VOXL ESC driver"
 	qshell voxl_esc start
