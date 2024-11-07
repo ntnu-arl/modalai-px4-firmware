@@ -33,6 +33,7 @@
 
 add_subdirectory(PDPositionControl)
 add_subdirectory(PDAttitudeControl)
+add_subdirectory(CBFSafetyFilter)
 
 px4_add_module(
 	MODULE modules__mc_safe_control
@@ -45,6 +46,7 @@ px4_add_module(
 	DEPENDS
 		PDPositionControl
 		PDAttitudeControl
+		CBFSafetyFilter
 		circuit_breaker
 		mathlib
 		RateControl

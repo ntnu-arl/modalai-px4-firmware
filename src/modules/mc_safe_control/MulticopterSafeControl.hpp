@@ -66,6 +66,7 @@
 
 #include <PDAttitudeControl.hpp>
 #include <PDPositionControl.hpp>
+#include <CBFSafetyFilter.hpp>
 
 using namespace time_literals;
 
@@ -103,6 +104,7 @@ private:
 
 	PDAttitudeControl _pd_attitude_control; /**< class for attitude control calculations */	
 	PDPositionControl _pd_position_control; /**< class for position control calculations */
+	CBFSafetyFilter _cbf_safety_filter; /**< class for CBF safety filter */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
