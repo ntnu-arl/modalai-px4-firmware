@@ -310,7 +310,7 @@ void MulticopterSafeControl::Run()
           {
             Vector3f acceleration_setpoint;
             _pd_position_control.updatePD(thrust_setpoint, acceleration_setpoint);
-            _cbf_safety_filter.update(acceleration_setpoint);
+            // _cbf_safety_filter.update(acceleration_setpoint);
             _pd_position_control.convertToAttitude(acceleration_setpoint, attitude_setpoint);
             break;
           }
