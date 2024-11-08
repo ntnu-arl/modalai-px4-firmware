@@ -299,20 +299,28 @@ void MulticopterSafeControl::Run()
         local_pos_sp.timestamp = hrt_absolute_time();
         _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
 
-        _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        // _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        _pd_position_control.setPositionSetpoint(Vector3f(20.f, 0.f, -10.f));
         _pd_position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
         _pd_position_control.setLinearAcceleration(Vector3f(_trajectory_setpoint.acceleration));
         _pd_position_control.setYawSetpoint(_trajectory_setpoint.yaw);
+
+        Vector3f position = _pd_position_control.getPosition();
+        Vector3f velocity = _pd_position_control.getLinearVelocity();
+        PX4_INFO("Position: [%f, %f, %f]", (double)position(0), (double)position(1), (double)position(2));
+        PX4_INFO("Velocity: [%f, %f, %f]", (double)velocity(0), (double)velocity(1), (double)velocity(2));
+        // PX4_INFO("Position setpoint: [%f, %f, %f]", (double)_trajectory_setpoint.position[0], (double)_trajectory_setpoint.position[1], (double)_trajectory_setpoint.position[2]);
+        // PX4_INFO("Velocity setpoint: [%f, %f, %f]", (double)_trajectory_setpoint.velocity[0], (double)_trajectory_setpoint.velocity[1], (double)_trajectory_setpoint.velocity[2]);
 
         switch (_param_controller.get())
         {
           case NONLINEAR_PD:
           {
-            Vector3f position = _pd_position_control.getPosition();
-            Vector3f velocity = _pd_position_control.getLinearVelocity();
             Vector3f acceleration_setpoint;
             _pd_position_control.updatePD(thrust_setpoint, acceleration_setpoint);
+            PX4_INFO("acceleration setpoint (before): [%f, %f, %f]", (double)acceleration_setpoint(0), (double)acceleration_setpoint(1), (double)acceleration_setpoint(2));
             _cbf_safety_filter.update(position, velocity, acceleration_setpoint);
+            PX4_INFO("acceleration setpoint (after): [%f, %f, %f]", (double)acceleration_setpoint(0), (double)acceleration_setpoint(1), (double)acceleration_setpoint(2));
             _pd_position_control.convertToAttitude(acceleration_setpoint, attitude_setpoint);
             break;
           }

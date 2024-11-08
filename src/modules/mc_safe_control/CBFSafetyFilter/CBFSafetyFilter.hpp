@@ -25,10 +25,10 @@ private:
     std::vector<Vector3f> _pos_diff;
     std::vector<float> _h1;
 
-    float _epsilon_sq = 0.2f*0.2f;
-    float _lambda0 = -0.1f;
-    float _kappa = 0.1f;
-    float _gamma = 0.1f;
+    float _epsilon = 1.f;
+    float _lambda0 = -1.f;
+    float _kappa = 0.5f;
+    float _gamma = 50.f;
     float _alpha = 0.1f;
     float _zero_eps = 1e-5f;
 
