@@ -175,6 +175,7 @@ private:
 		(ParamInt<px4::params::SM_MIN_RPM>) 		_min_rpm,
 		(ParamInt<px4::params::SM_MAX_RPM>)			_max_rpm,
 		(ParamFloat<px4::params::SM_CT>)			_thrust_coefficient,
-		(ParamFloat<px4::params::SM_MAX_ERR>)		_max_err
+		(ParamFloat<px4::params::SM_MAX_ERR>)		_max_err,
+		(ParamBool<px4::params::SM_NEURAL_CA>)		_param_neural_ca,
 	)
 };

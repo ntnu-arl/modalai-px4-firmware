@@ -28,5 +28,7 @@ Vector3f PDAttitudeControl::updatePD() const
                           omega * _inertia * _angular_velocity -
                           _inertia * (omega * attitude_T * _attitude_setpoint * _angular_velocity_setpoint);
 
+  // PX4_WARN("moment: %f %f %f", double(moment(0)), double(moment(1)), double(moment(2)));
+
   return moment;
 }

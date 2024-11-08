@@ -31,6 +31,9 @@
 #
 ############################################################################
 
+add_compile_options(-Wno-error=float-equal)
+find_package(Eigen3 REQUIRED)
+
 px4_add_library(ControlAllocation
 	ControlAllocation.cpp
 	ControlAllocation.hpp
@@ -38,9 +41,12 @@ px4_add_library(ControlAllocation
 	ControlAllocationPseudoInverse.hpp
 	ControlAllocationSequentialDesaturation.cpp
 	ControlAllocationSequentialDesaturation.hpp
+	ControlAllocationNeural.cpp
+	ControlAllocationNeural.hpp
 )
+include_directories(${EIGEN3_INCLUDE_DIR})
 target_compile_options(ControlAllocation PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_include_directories(ControlAllocation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ControlAllocation PRIVATE mathlib)
+target_link_libraries(ControlAllocation PRIVATE mathlib Eigen3::Eigen)
 
 px4_add_unit_gtest(SRC ControlAllocationPseudoInverseTest.cpp LINKLIBS ControlAllocation)

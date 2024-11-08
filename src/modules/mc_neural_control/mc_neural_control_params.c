@@ -316,3 +316,12 @@ PARAM_DEFINE_FLOAT(SM_CT, 0.000014247f);
  * @group Multicopter Neural Control
  */
 PARAM_DEFINE_FLOAT(SM_MAX_ERR, 0.5f);
+
+/**
+ * use verbose mode for normal controller 
+ *
+ * @boolean
+ * @group Multicopter SM Control
+ */
+
+PARAM_DEFINE_BOOL(SM_NEURAL_CA, false);

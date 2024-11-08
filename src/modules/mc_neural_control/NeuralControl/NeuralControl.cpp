@@ -16,37 +16,37 @@
 #define M_PI       3.14159265358979323846
 #define M_PI_2     1.57079632679489661923
 
-typedef Eigen::EulerSystem<Eigen::EULER_Z, Eigen::EULER_Y, Eigen::EULER_X> MySystem;
-typedef Eigen::EulerAngles<float, MySystem> VehicleAngles;
+// typedef Eigen::EulerSystem<Eigen::EULER_Z, Eigen::EULER_Y, Eigen::EULER_X> MySystem;
+// typedef Eigen::EulerAngles<float, MySystem> VehicleAngles;
 
-/**
- * @brief Convert euler angles to quaternion.
- */
-Eigen::Quaternionf quaternion_from_rpy(const Eigen::Vector3f &rpy)
-{
-	// YPR - ZYX
-	return Eigen::Quaternionf(
-			Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
-			Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
-			Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
-			);
-}
+// /**
+//  * @brief Convert euler angles to quaternion.
+//  */
+// Eigen::Quaternionf quaternion_from_rpy(const Eigen::Vector3f &rpy)
+// {
+// 	// YPR - ZYX
+// 	return Eigen::Quaternionf(
+// 			Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
+// 			Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
+// 			Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
+// 			);
+// }
 
-/**
- * @brief Convert euler angles to quaternion.
- *
- * @return quaternion, same as @a tf::quaternionFromRPY() but in Eigen format.
- */
-inline Eigen::Quaternionf quaternion_from_rpy(const float roll, const float pitch, const float yaw) {
-	return quaternion_from_rpy(Eigen::Vector3f(roll, pitch, yaw));
-}
+// /**
+//  * @brief Convert euler angles to quaternion.
+//  *
+//  * @return quaternion, same as @a tf::quaternionFromRPY() but in Eigen format.
+//  */
+// inline Eigen::Quaternionf quaternion_from_rpy(const float roll, const float pitch, const float yaw) {
+// 	return quaternion_from_rpy(Eigen::Vector3f(roll, pitch, yaw));
+// }
 
-static const auto NED_ENU_Q = quaternion_from_rpy(M_PI, 0.0, M_PI_2);
-static const auto AIRCRAFT_BASELINK_Q = quaternion_from_rpy(M_PI, 0.0, 0.0);
-static const auto NED_ENU_R = NED_ENU_Q.normalized().toRotationMatrix();
-static const auto AIRCRAFT_BASELINK_R = AIRCRAFT_BASELINK_Q.normalized().toRotationMatrix();
-static const Eigen::PermutationMatrix<3> NED_ENU_REFLECTION_XY(Eigen::Vector3i(1,0,2));
-static const Eigen::DiagonalMatrix<float,3> NED_ENU_REFLECTION_Z(1,1,-1);
+// static const auto NED_ENU_Q = quaternion_from_rpy(M_PI, 0.0, M_PI_2);
+// static const auto AIRCRAFT_BASELINK_Q = quaternion_from_rpy(M_PI, 0.0, 0.0);
+// static const auto NED_ENU_R = NED_ENU_Q.normalized().toRotationMatrix();
+// static const auto AIRCRAFT_BASELINK_R = AIRCRAFT_BASELINK_Q.normalized().toRotationMatrix();
+// static const Eigen::PermutationMatrix<3> NED_ENU_REFLECTION_XY(Eigen::Vector3i(1,0,2));
+// static const Eigen::DiagonalMatrix<float,3> NED_ENU_REFLECTION_Z(1,1,-1);
 
 Eigen::MatrixXf openData(std::string fileToOpen)
 {
@@ -98,22 +98,21 @@ Eigen::MatrixXf openData(std::string fileToOpen)
   return Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(matrixEntries.data(), matrixRowNumber, matrixEntries.size() / matrixRowNumber);
 }
 
-Eigen::Vector3f NeuralControl::transform_frame_ned_enu(Eigen::Vector3f vec_ned)
-{
-  return NED_ENU_REFLECTION_XY.transpose() * (NED_ENU_REFLECTION_Z * vec_ned);
-}
+// Eigen::Vector3f NeuralControl::transform_frame_ned_enu(Eigen::Vector3f vec_ned)
+// {
+//   return NED_ENU_REFLECTION_XY.transpose() * (NED_ENU_REFLECTION_Z * vec_ned);
+// }
 
-Eigen::Quaternionf NeuralControl::transform_orientation_ned_enu(Eigen::Quaternionf q_ned)
-{
-  return NED_ENU_Q.inverse() * q_ned * AIRCRAFT_BASELINK_Q.inverse();
-}
+// Eigen::Quaternionf NeuralControl::transform_orientation_ned_enu(Eigen::Quaternionf q_ned)
+// {
+//   return NED_ENU_Q.inverse() * q_ned * AIRCRAFT_BASELINK_Q.inverse();
+// }
 
 NeuralControl::NeuralControl()
 {
   try
   {
     std::string path = "/home/model_files/";
-    PX4_INFO("loading model files");
     _bias_control_net_layer_1 = openData(path + "bias_control_net_layer_1.csv");
     _weight_control_net_layer_1 = openData(path + "weight_control_net_layer_1.csv");
     _bias_control_net_layer_2 = openData(path + "bias_control_net_layer_2.csv");
@@ -201,15 +200,11 @@ matrix::Vector4f NeuralControl::updateNeural()
 
   Vector3f position_local;
   position_local = frame_transf * frame_transf_2 * _position;
-
   Vector3f position_setpoint_local;
   position_setpoint_local = frame_transf * frame_transf_2 * _position_setpoint;
-
   Vector3f linear_velocity_local;
   linear_velocity_local = frame_transf * frame_transf_2 * _linear_velocity;
-
   matrix::Dcmf _attitude_local_mat = frame_transf * (frame_transf_2 * matrix::Dcmf(_attitude)) * frame_transf.transpose();
-
   Vector3f angular_vel_local = frame_transf * _angular_velocity;
 
   // get state positions
@@ -217,7 +212,6 @@ matrix::Vector4f NeuralControl::updateNeural()
   pos_state << position_local(0), position_local(1), position_local(2);
   Eigen::Vector3f pos_setpoint;
   pos_setpoint << position_setpoint_local(0), position_setpoint_local(1), position_setpoint_local(2);
-
   Eigen::Vector3f pos_input = pos_setpoint - pos_state;
 
   // clamp error to guarantee input lies in training envelope
@@ -227,6 +221,7 @@ matrix::Vector4f NeuralControl::updateNeural()
   Eigen::Vector3f vel_state;
   vel_state << linear_velocity_local(0), linear_velocity_local(1), linear_velocity_local(2);
 
+  // convert attitude
   Eigen::VectorXf attitude_state(6);
   attitude_state << _attitude_local_mat(0, 0), _attitude_local_mat(0, 1), _attitude_local_mat(0, 2),
       _attitude_local_mat(1, 0), _attitude_local_mat(1, 1), _attitude_local_mat(1, 2);
@@ -293,4 +288,9 @@ matrix::Vector4f NeuralControl::updateNeural()
   PX4_WARN("time total: %f",  double(std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count()));
 
   return mixer_values;
+}
+
+matrix::Vector4f NeuralControl::allocate_output(matrix::VectorXf )
+{
+
 }

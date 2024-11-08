@@ -4,7 +4,6 @@
 #include <mathlib/math/Limits.hpp>
 #include <lib/eigen/Eigen/Dense>
 #include <uORB/topics/neural_control.h>
-//#include <lib/eigen/Eigen/Core>
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>

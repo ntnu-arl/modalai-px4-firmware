@@ -53,6 +53,8 @@ void PDPositionControl::updatePD(float& thrust_setpoint, Quatf& quaternion_setpo
   const Vector3f acceleration = calculateAccelerationPD();
 
   thrust_setpoint = calculateThrust(acceleration);
+  PX4_INFO("thrust setpoint: %f", double(thrust_setpoint));
+
   const Dcmf attitude_setpoint = calculateAttitude(acceleration);
 
   quaternion_setpoint = Quatf(attitude_setpoint);

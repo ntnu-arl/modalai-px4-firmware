@@ -151,7 +151,7 @@ ControlAllocator::update_allocation_method(bool force)
 	if (_allocation_method_id != configured_method || force) {
 
 		matrix::Vector<float, NUM_ACTUATORS> actuator_sp[ActuatorEffectiveness::MAX_NUM_MATRICES];
-
+ 
 		// Cleanup first
 		for (int i = 0; i < ActuatorEffectiveness::MAX_NUM_MATRICES; ++i) {
 			// Save current state
@@ -185,6 +185,10 @@ ControlAllocator::update_allocation_method(bool force)
 
 			case AllocationMethod::SEQUENTIAL_DESATURATION:
 				_control_allocation[i] = new ControlAllocationSequentialDesaturation();
+				break;
+			
+			case AllocationMethod::NEURAL:
+				_control_allocation[i] = new ControlAllocationNeural();
 				break;
 
 			default:
@@ -795,6 +799,10 @@ int ControlAllocator::print_status()
 
 	case AllocationMethod::AUTO:
 		PX4_INFO("Method: Auto");
+		break;
+
+	case AllocationMethod::NEURAL:
+		PX4_INFO("Method: Neural");
 		break;
 	}
 
