@@ -38,6 +38,8 @@ public:
 
 	Vector3f getPosition() { return _position; }
 
+  Vector3f getLinearVelocity() { return _linear_velocity; }
+
   /**
    * Run one control loop cycle calculation
    */

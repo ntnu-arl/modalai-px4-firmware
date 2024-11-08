@@ -6,8 +6,10 @@ CBFSafetyFilter::CBFSafetyFilter() {
 
 }
 
-void CBFSafetyFilter::update(const Vector3f& position, const Vector3f& velocity, Vector3f& acceleration) {
+void CBFSafetyFilter::update(const Vector3f& position, const Vector3f& velocity, Vector3f& acceleration_setpoint) {
     const size_t n = _obstacles.size();
+
+    if (n == 0) return;
 
     _h1.resize(n);
     _pos_diff.resize(n);
@@ -17,7 +19,7 @@ void CBFSafetyFilter::update(const Vector3f& position, const Vector3f& velocity,
         _pos_diff[i] = position - _obstacles[i];
         float hi0 = _pos_diff[i].norm_squared() - _epsilon_sq;
         float Lf_hi0 = 2.f * _pos_diff[i].dot(velocity);
-        float hi1 = Lf_hi0 - _lambda0*hi0;
+        float hi1 = Lf_hi0 - _lambda0 * hi0;
         _h1[i] = hi1;
     }
 
@@ -31,18 +33,20 @@ void CBFSafetyFilter::update(const Vector3f& position, const Vector3f& velocity,
     // L_{g}h(x)
     Vector3f Lg_h(0.f, 0.f, 0.f);
     for(size_t i = 0; i < n; i++) {
-        Vector3f Lg_hi1 = 2.f * (1.f - _lambda0) * _pos_diff[i]; // 3 last component of grad[h_{i,1}]
-        Lg_h += saturate_derivative(_h1[i] / _gamma) * Lg_hi1;
+        Vector3f Lg_hi1 = 2.f * _pos_diff[i];
+        float phi_i = saturate_derivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
+        Lg_h += phi_i * Lg_hi1;
     }
     Lg_h /= exp_sum;
     // L_{g}h(x) * u, u = k_n(x) = a
-    float Lg_h_u = Lg_h.dot(acceleration);
+    float Lg_h_u = Lg_h.dot(acceleration_setpoint);
 
     // L_{f}h(x)
     float Lf_h = 0.f;
     for(size_t i = 0; i < n; i++) {
-        float Lf_hi1 = 2.f * (velocity - _lambda0 * _pos_diff[i]).dot(velocity); // 3 first component of grad[h_{i,1}]
-        Lf_h += saturate_derivative(_h1[i] / _gamma) * Lf_hi1;
+        float Lf_hi1 = 2.f * (velocity - _lambda0 * _pos_diff[i]).dot(velocity);
+        float phi_i = saturate_derivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
+        Lf_h += phi_i * Lf_hi1;
     }
     Lf_h /= exp_sum;
 
@@ -52,5 +56,15 @@ void CBFSafetyFilter::update(const Vector3f& position, const Vector3f& velocity,
     if (Lg_h_mag2 > _zero_eps) {
         eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
     }
-    acceleration += (eta > 0.f ? eta : 0.f) * Lg_h;
+    acceleration_setpoint += (eta > 0.f ? eta : 0.f) * Lg_h;
+}
+
+
+float CBFSafetyFilter::saturate(float x) {
+    return tanh(x);
+}
+
+float CBFSafetyFilter::saturate_derivative(float x) {
+    float th = tanh(x);
+    return 1.f - (th * th);
 }

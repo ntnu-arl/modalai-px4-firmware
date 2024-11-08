@@ -15,7 +15,7 @@ public:
 
     CBFSafetyFilter();
 
-    void update(const Vector3f& position, const Vector3f& velocity, Vector3f& acceleration);
+    void update(const Vector3f& position, const Vector3f& velocity, Vector3f& acceleration_setpoint);
 
     std::vector<Vector3f>& obstacles() { return _obstacles; }
 
