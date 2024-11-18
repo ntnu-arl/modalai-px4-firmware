@@ -373,7 +373,9 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
-		_trajectory_setpoint_sub.update(&_setpoint);										 									
+		_trajectory_setpoint_sub.update(&_setpoint);
+
+		PX4_WARN("pos 1 x: %f, y: %f, z: %f", double(_setpoint.position[0]), double(_setpoint.position[1]), double(_setpoint.position[2]));										 									
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
 		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
@@ -400,6 +402,8 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
+		//PX4_WARN("pos 2 x: %f, y: %f, z: %f", double(_setpoint.position[0]), double(_setpoint.position[1]), double(_setpoint.position[2]));	
+
 		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
 			_vel_x_deriv.reset();
 			_vel_y_deriv.reset();
@@ -415,7 +419,6 @@ void MulticopterPositionControl::Run()
 		_xy_reset_counter = vehicle_local_position.xy_reset_counter;
 		_z_reset_counter = vehicle_local_position.z_reset_counter;
 		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
-
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
 
@@ -525,6 +528,8 @@ void MulticopterPositionControl::Run()
 				max_speed_xy,
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 				math::max(speed_down, 0.f));
+
+			//PX4_WARN("pos 3 x: %f, y: %f, z: %f", double(_setpoint.position[0]), double(_setpoint.position[1]), double(_setpoint.position[2]));
 
 			_control.setInputSetpoint(_setpoint);
 

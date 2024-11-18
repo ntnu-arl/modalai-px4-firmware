@@ -220,6 +220,8 @@ matrix::Vector4f NeuralControl::updateNeural()
 
   Eigen::Vector3f pos_input = pos_setpoint - pos_state;
 
+  PX4_WARN("pos_state: %f %f %f", double(pos_setpoint(0)), double(pos_setpoint(1)), double(pos_setpoint(2)));
+
   // clamp error to guarantee input lies in training envelope
   Eigen::Vector3f pos_input_clamped = pos_input; //.cwiseMax(-1.).cwiseMin(1.);
 
@@ -258,7 +260,7 @@ matrix::Vector4f NeuralControl::updateNeural()
 
   force_clamped = ao2.cwiseMax(_min_u_training).cwiseMin(_max_u_training);
 
-  static const float _thrust_coefficient = 0.000016781;
+  static const float _thrust_coefficient = 0.00001286412; //0.00001286412 original value
   // conversion to rpm
   Eigen::VectorXf rps = force_clamped / _thrust_coefficient; // _thrust_coefficient;0.000013781
   rps = rps.cwiseSqrt();

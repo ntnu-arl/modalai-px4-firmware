@@ -256,7 +256,11 @@ void MulticopterNeuralControl::Run()
     if (_trajectory_setpoint_sub.updated()){
 
       // trajectory_setpoint_s trajectory_setpoint;
-      _trajectory_setpoint_sub.copy(&_trajectory_setpoint); // disable in real flight
+      _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
+      
+      PX4_WARN("setpoint_updated: %f %f %f ", double(_trajectory_setpoint.position[0]),
+                double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
+
       // if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
       // {
       //   PX4_INFO("setpoint received: %f %f %f", double(_trajectory_setpoint.position[0]),
@@ -274,7 +278,7 @@ void MulticopterNeuralControl::Run()
         // PX4_WARN("invalid setpoint, impl failsafe: %f %f %f", double(_trajectory_setpoint.position[0]),
         //          double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
 
-        //_trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
+        _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
         
         generateFailsafeTrajectory(_trajectory_setpoint, _pd_position_control.getPosition(),
                                    _pd_position_control.getAttitude());
@@ -397,6 +401,7 @@ void MulticopterNeuralControl::Run()
           break;
 
         case NEURAL:
+          PX4_WARN("neural control running");
           motor_commands = _neural_control.updateNeural();
           break;
 
