@@ -315,9 +315,10 @@ void MulticopterSafeControl::Run()
           case NONLINEAR_PD:
           {
             Vector3f acceleration_setpoint;
-            _pd_position_control.updatePD(thrust_setpoint, acceleration_setpoint);
+            _pd_position_control.updatePD(acceleration_setpoint);
             _cbf_safety_filter.update(acceleration_setpoint, hrt_absolute_time());
-            _pd_position_control.convertToAttitude(acceleration_setpoint, attitude_setpoint);
+            thrust_setpoint = _pd_position_control.calculateThrust(acceleration_setpoint);
+            attitude_setpoint = _pd_position_control.calculateAttitude(acceleration_setpoint);
             break;
           }
           default:

@@ -22,7 +22,7 @@ float PDPositionControl::calculateThrust(const Vector3f& acceleration) const
   return -(acceleration.T() * _attitude * e3)(0, 0);
 }
 
-Dcmf PDPositionControl::calculateAttitude(const Vector3f& acceleration) const
+Quatf PDPositionControl::calculateAttitude(const Vector3f& acceleration) const
 {
   const Vector3f b3 = -acceleration / (acceleration.norm() + 1e-6f);
   const Vector3f b1_init(std::cos(_yaw_setpoint), std::sin(_yaw_setpoint), 0.0f);
@@ -40,22 +40,10 @@ Dcmf PDPositionControl::calculateAttitude(const Vector3f& acceleration) const
     result(i, 2) = b3(i);
   }
 
-  return Dcmf(result);
+  return Quatf(Dcmf(result));
 }
 
-// void PDPositionControl::updatePD(float& thrust_setpoint, Quatf& quaternion_setpoint) const
-// {
-//   const Vector3f acceleration = calculateAccelerationPD();
-
-//   thrust_setpoint = calculateThrust(acceleration);
-//   const Dcmf attitude_setpoint = calculateAttitude(acceleration);
-
-//   quaternion_setpoint = Quatf(attitude_setpoint);
-// }
-
-
-void PDPositionControl::updatePD(float& thrust_setpoint, Vector3f& acceleration_setpoint) const
+void PDPositionControl::updatePD(Vector3f& acceleration_setpoint) const
 {
   acceleration_setpoint = calculateAccelerationPD();
-  thrust_setpoint = calculateThrust(acceleration_setpoint);
 }

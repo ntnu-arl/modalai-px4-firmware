@@ -43,17 +43,15 @@ public:
   /**
    * Run one control loop cycle calculation
    */
-  void updatePD(float& thrust_setpoint, Vector3f& acceleration_setpoint) const;
+  void updatePD(Vector3f& acceleration_setpoint) const;
 
-  void convertToAttitude(const Vector3f& acceleration, Quatf& attitude) const { attitude = Quatf(calculateAttitude(acceleration)); }
+  float calculateThrust(const Vector3f& acceleration) const;
+
+  Quatf calculateAttitude(const Vector3f& acceleration) const;
 
 private:
 
   Vector3f calculateAccelerationPD() const;
-
-  float calculateThrust(const Vector3f& acceleration) const;
-
-  Dcmf calculateAttitude(const Vector3f& acceleration) const;
 
   // controller parameters
   float _mass;
