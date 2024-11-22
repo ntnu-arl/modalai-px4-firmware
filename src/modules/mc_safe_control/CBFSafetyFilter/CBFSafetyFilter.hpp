@@ -30,7 +30,7 @@ private:
     std::vector<float> _h1;
 
     float _epsilon = 1.f;
-    float _lambda0 = -1.f;
+    float _pole0 = -1.f;
     float _kappa = 10.f;
     float _gamma = 40.f;
     float _alpha = 1.f;

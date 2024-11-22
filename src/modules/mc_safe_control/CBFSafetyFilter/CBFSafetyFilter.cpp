@@ -41,7 +41,7 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
         _rel_pos[i] = _position - _obstacles[i];
         float hi0 = _rel_pos[i].norm_squared() - (_epsilon * _epsilon);
         float Lf_hi0 = 2.f * _rel_pos[i].dot(_velocity);
-        float hi1 = Lf_hi0 - _lambda0 * hi0;
+        float hi1 = Lf_hi0 - _pole0 * hi0;
         _h1[i] = hi1;
         
         dbg.x = hi0;
@@ -70,7 +70,7 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     // L_{f}h(x)
     float Lf_h = 0.f;
     for(size_t i = 0; i < n; i++) {
-        float Lf_hi1 = 2.f * (_velocity - _lambda0 * _rel_pos[i]).dot(_velocity);
+        float Lf_hi1 = 2.f * (_velocity - _pole0 * _rel_pos[i]).dot(_velocity);
         float phi_i = saturate_derivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
         Lf_h += phi_i * Lf_hi1;
     }
