@@ -100,6 +100,13 @@ void MulticopterSafeControl::parameters_updated()
   const float inertia3x3[] = { _param_inertia_xx.get(), 0, 0, 0, _param_inertia_yy.get(), 0, 0, 0,
                                _param_inertia_zz.get() };
   _pd_attitude_control.setInertia(Matrix3f(inertia3x3));
+
+  // setup CBF filter parameters
+  _cbf_safety_filter.setEpsilon(_param_cbf_epsilon.get());
+  _cbf_safety_filter.setPole0(_param_cbf_pole0.get());
+  _cbf_safety_filter.setKappa(_param_cbf_kappa.get());
+  _cbf_safety_filter.setGamma(_param_cbf_gamma.get());
+  _cbf_safety_filter.setAlpha(_param_cbf_alpha.get());
 }
 
 float MulticopterSafeControl::throttle_curve(float throttle_stick_input)

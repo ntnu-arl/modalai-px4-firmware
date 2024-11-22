@@ -60,7 +60,7 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     Vector3f Lg_h(0.f, 0.f, 0.f);
     for(size_t i = 0; i < n; i++) {
         Vector3f Lg_hi1 = 2.f * _rel_pos[i];
-        float phi_i = saturate_derivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
+        float phi_i = saturateDerivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
         Lg_h += phi_i * Lg_hi1;
     }
     Lg_h /= exp_sum;
@@ -71,7 +71,7 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     float Lf_h = 0.f;
     for(size_t i = 0; i < n; i++) {
         float Lf_hi1 = 2.f * (_velocity - _pole0 * _rel_pos[i]).dot(_velocity);
-        float phi_i = saturate_derivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
+        float phi_i = saturateDerivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
         Lf_h += phi_i * Lf_hi1;
     }
     Lf_h /= exp_sum;
@@ -97,7 +97,7 @@ float CBFSafetyFilter::saturate(float x) {
     return tanh(x);
 }
 
-float CBFSafetyFilter::saturate_derivative(float x) {
+float CBFSafetyFilter::saturateDerivative(float x) {
     float th = tanh(x);
     return 1.f - (th * th);
 }

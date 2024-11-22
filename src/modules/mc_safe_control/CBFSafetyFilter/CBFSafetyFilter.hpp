@@ -19,6 +19,12 @@ public:
     void setLinearVelocity(const Vector3f& velocity) { _velocity = velocity; }
     void update(Vector3f& acceleration_setpoint, uint64_t timestamp);
 
+    void setEpsilon(float epsilon) { _epsilon = epsilon; }
+    void setPole0(float pole0) { _pole0 = pole0; }
+    void setKappa(float kappa) { _kappa = kappa; }
+    void setGamma(float gamma) { _gamma = gamma; }
+    void setAlpha(float alpha) { _alpha = alpha; }
+
     std::vector<Vector3f>& obstacles() { return _obstacles; }
 
 private:
@@ -37,5 +43,5 @@ private:
     float _zero_eps = 1e-5f;
 
     float saturate(float x);
-    float saturate_derivative(float x);
+    float saturateDerivative(float x);
 };
