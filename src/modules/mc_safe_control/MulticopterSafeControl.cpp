@@ -300,10 +300,29 @@ void MulticopterSafeControl::Run()
       // ====================================
       if (_param_manual_ctrl.get())
       {
-        // //TODO: get a (probably velocity) setpoint from the current manual inputs
+        vehicle_local_position_setpoint_s local_pos_sp{};
+        local_pos_sp.timestamp = hrt_absolute_time();
+        _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
 
-        // TODO: run position controller
-        thrust_setpoint = throttle_curve(_manual_thrust);
+        float y_ref = 1.f * _manual_roll;
+        float x_ref = -1.f * _manual_pitch;
+        float z_ref = -1.f * _manual_thrust;
+        float yaw_ref = 1.f * _manual_yaw * M_PI_2_F;
+        Vector3f target = _pd_position_control.getPosition()
+          + _pd_position_control.getAttitude().rotateVector(Vector3f(x_ref, y_ref, z_ref));
+
+        _pd_position_control.setPositionSetpoint(target);
+        _pd_position_control.setLinearVelocitySetpoint(Vector3f(0.0f, 0.0f, 0.0f));
+        _pd_position_control.setLinearAcceleration(Vector3f(0.0f, 0.0f, 0.0f));
+        _pd_position_control.setYawSetpoint(yaw_ref);
+
+        Vector3f acceleration_setpoint;
+        _pd_position_control.updatePD(acceleration_setpoint);
+        _cbf_safety_filter.update(acceleration_setpoint, hrt_absolute_time());
+        thrust_setpoint = _pd_position_control.calculateThrust(acceleration_setpoint);
+        attitude_setpoint = _pd_position_control.calculateAttitude(acceleration_setpoint);
+
+        thrust_setpoint /= _param_thrust_max.get();
       }
       else
       {

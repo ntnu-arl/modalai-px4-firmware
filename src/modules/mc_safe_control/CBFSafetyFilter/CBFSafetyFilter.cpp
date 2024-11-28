@@ -12,13 +12,13 @@ static orb_advert_t pub_dbg;
 CBFSafetyFilter::CBFSafetyFilter() {
     _obstacles.emplace_back(10.f, 0.f, -15.f);
     _obstacles.emplace_back(10.f, 0.f, -14.f);
-    _obstacles.emplace_back(10.f, 1.f, -13.f);
-    _obstacles.emplace_back(10.f, 2.f, -12.f);
-    _obstacles.emplace_back(10.f, 3.f, -11.f);
+    _obstacles.emplace_back(10.f, 0.f, -13.f);
+    _obstacles.emplace_back(10.f, 0.f, -12.f);
+    _obstacles.emplace_back(10.f, 0.f, -11.f);
     _obstacles.emplace_back(10.f, 0.f, -10.f);
-    _obstacles.emplace_back(10.f, -3.f, -9.f);
-    _obstacles.emplace_back(10.f, -2.f, -8.f);
-    _obstacles.emplace_back(10.f, -1.f, -7.f);
+    _obstacles.emplace_back(10.f, 0.f, -9.f);
+    _obstacles.emplace_back(10.f, 0.f, -8.f);
+    _obstacles.emplace_back(10.f, 0.f, -7.f);
     _obstacles.emplace_back(10.f, 0.f, -6.f);
     _obstacles.emplace_back(10.f, 0.f, -5.f);
 
