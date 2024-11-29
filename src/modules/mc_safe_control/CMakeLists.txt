@@ -51,4 +51,5 @@ px4_add_module(
 		mathlib
 		RateControl
 		px4_work_queue
+		qpoases
 	)

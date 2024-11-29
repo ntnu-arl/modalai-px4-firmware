@@ -68,3 +68,6 @@
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
 	path = boards/modalai/voxl2/libfc-sensor-api
 	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libfc-sensor-api.git
+[submodule "src/lib/qpoases/qpOASES"]
+	path = src/lib/qpoases/qpOASES
+	url = https://github.com/coin-or/qpOASES

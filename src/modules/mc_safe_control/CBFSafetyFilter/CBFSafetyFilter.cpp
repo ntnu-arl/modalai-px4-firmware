@@ -1,8 +1,11 @@
 #include <CBFSafetyFilter.hpp>
 
-#include <math.h>
 #include <px4_platform_common/module.h>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/debug_vect.h>
+#include <qpOASES.hpp>
+
+#include <math.h>
 #include <string.h>
 
 
@@ -28,7 +31,42 @@ CBFSafetyFilter::CBFSafetyFilter() {
     pub_dbg = orb_advertise(ORB_ID(debug_vect), &dbg);
 }
 
+static void test_qp() {
+    USING_NAMESPACE_QPOASES
+    /* Setup data of first QP. */
+    real_t H[2*2] = { 1.0, 0.0, 0.0, 0.5 };
+    real_t A[1*2] = { 1.0, 1.0 };
+    real_t g[2] = { 1.5, 1.0 };
+    real_t lb[2] = { 0.5, -2.0 };
+    real_t ub[2] = { 5.0, 2.0 };
+    real_t lbA[1] = { -1.0 };
+    real_t ubA[1] = { 2.0 };
+    /* Setup data of second QP. */
+    real_t g_new[2] = { 1.0, 1.5 };
+    real_t lb_new[2] = { 0.0, -1.0 };
+    real_t ub_new[2] = { 5.0, -0.5 };
+    real_t lbA_new[1] = { -2.0 };
+    real_t ubA_new[1] = { 1.0 };
+    /* Setting up QProblem object. */
+    QProblem example( 2,1 );
+    /* Solve first QP. */
+    int nWSR = 10;
+    example.init( H,g,A,lb,ub,lbA,ubA, nWSR );
+
+    /* Solve second QP. */
+    nWSR = 10;
+    example.hotstart( g_new,lb_new,ub_new,lbA_new,ubA_new, nWSR );
+    /* Get and print solution of second QP. */
+    real_t xOpt[2];
+    example.getPrimalSolution( xOpt );
+    PX4_INFO( "\n xOpt = [ %e, %e ]; objVal = %e\n\n",xOpt[0],xOpt[1],example.getObjVal() );
+}
+
 void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp) {
+    PX4_INFO("CBF UPDATE QP START");
+    test_qp();
+    PX4_INFO("CBF UPDATE QP END");
+
     const size_t n = _obstacles.size();
 
     if (n == 0) return;
