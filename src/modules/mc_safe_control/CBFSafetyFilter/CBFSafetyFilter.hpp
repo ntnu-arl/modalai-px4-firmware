@@ -40,7 +40,7 @@ private:
     float _kappa = 10.f;
     float _gamma = 40.f;
     float _alpha = 1.f;
-    float _zero_eps = 1e-5f;
+    // float _zero_eps = 1e-5f;
 
     float saturate(float x);
     float saturateDerivative(float x);

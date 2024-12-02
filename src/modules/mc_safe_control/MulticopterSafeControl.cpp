@@ -330,7 +330,8 @@ void MulticopterSafeControl::Run()
         local_pos_sp.timestamp = hrt_absolute_time();
         _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
 
-        _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        // _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        _pd_position_control.setPositionSetpoint(Vector3f(20.f, 0.f, -10.f));
         _pd_position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
         _pd_position_control.setLinearAcceleration(Vector3f(_trajectory_setpoint.acceleration));
         _pd_position_control.setYawSetpoint(_trajectory_setpoint.yaw);

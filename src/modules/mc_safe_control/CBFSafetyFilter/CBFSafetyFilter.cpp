@@ -13,17 +13,17 @@ static struct debug_vect_s dbg;
 static orb_advert_t pub_dbg;
 
 CBFSafetyFilter::CBFSafetyFilter() {
-    _obstacles.emplace_back(10.f, 0.f, -15.f);
-    _obstacles.emplace_back(10.f, 0.f, -14.f);
-    _obstacles.emplace_back(10.f, 0.f, -13.f);
-    _obstacles.emplace_back(10.f, 0.f, -12.f);
-    _obstacles.emplace_back(10.f, 0.f, -11.f);
-    _obstacles.emplace_back(10.f, 0.f, -10.f);
-    _obstacles.emplace_back(10.f, 0.f, -9.f);
-    _obstacles.emplace_back(10.f, 0.f, -8.f);
-    _obstacles.emplace_back(10.f, 0.f, -7.f);
-    _obstacles.emplace_back(10.f, 0.f, -6.f);
-    _obstacles.emplace_back(10.f, 0.f, -5.f);
+    _obstacles.emplace_back(10.f, 1.f, -15.f);
+    _obstacles.emplace_back(10.f, 1.f, -14.f);
+    _obstacles.emplace_back(10.f, 1.f, -13.f);
+    _obstacles.emplace_back(10.f, 1.f, -12.f);
+    _obstacles.emplace_back(10.f, 1.f, -11.f);
+    _obstacles.emplace_back(10.f, 1.f, -10.f);
+    _obstacles.emplace_back(10.f, 1.f, -9.f);
+    _obstacles.emplace_back(10.f, 1.f, -8.f);
+    _obstacles.emplace_back(10.f, 1.f, -7.f);
+    _obstacles.emplace_back(10.f, 1.f, -6.f);
+    _obstacles.emplace_back(10.f, 1.f, -5.f);
 
     dbg.x = 0.0f;
     dbg.y = 0.0f;
@@ -31,42 +31,7 @@ CBFSafetyFilter::CBFSafetyFilter() {
     pub_dbg = orb_advertise(ORB_ID(debug_vect), &dbg);
 }
 
-static void test_qp() {
-    USING_NAMESPACE_QPOASES
-    /* Setup data of first QP. */
-    real_t H[2*2] = { 1.0, 0.0, 0.0, 0.5 };
-    real_t A[1*2] = { 1.0, 1.0 };
-    real_t g[2] = { 1.5, 1.0 };
-    real_t lb[2] = { 0.5, -2.0 };
-    real_t ub[2] = { 5.0, 2.0 };
-    real_t lbA[1] = { -1.0 };
-    real_t ubA[1] = { 2.0 };
-    /* Setup data of second QP. */
-    real_t g_new[2] = { 1.0, 1.5 };
-    real_t lb_new[2] = { 0.0, -1.0 };
-    real_t ub_new[2] = { 5.0, -0.5 };
-    real_t lbA_new[1] = { -2.0 };
-    real_t ubA_new[1] = { 1.0 };
-    /* Setting up QProblem object. */
-    QProblem example( 2,1 );
-    /* Solve first QP. */
-    int nWSR = 10;
-    example.init( H,g,A,lb,ub,lbA,ubA, nWSR );
-
-    /* Solve second QP. */
-    nWSR = 10;
-    example.hotstart( g_new,lb_new,ub_new,lbA_new,ubA_new, nWSR );
-    /* Get and print solution of second QP. */
-    real_t xOpt[2];
-    example.getPrimalSolution( xOpt );
-    PX4_INFO( "\n xOpt = [ %e, %e ]; objVal = %e\n\n",xOpt[0],xOpt[1],example.getObjVal() );
-}
-
 void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp) {
-    PX4_INFO("CBF UPDATE QP START");
-    test_qp();
-    PX4_INFO("CBF UPDATE QP END");
-
     const size_t n = _obstacles.size();
 
     if (n == 0) return;
@@ -114,20 +79,54 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     }
     Lf_h /= exp_sum;
 
-    // analytical QP solution from: https://arxiv.org/abs/2206.03568
-    float eta = 0.f;
-    float Lg_h_mag2 = Lg_h.norm_squared();
-    if (Lg_h_mag2 > _zero_eps) {
-        eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
-    }
-    Vector3f acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
-    acceleration_setpoint += acceleration_correction;
-
     dbg.timestamp = timestamp;
-    // dbg.x = acceleration_setpoint(0);
-    // dbg.y = acceleration_setpoint(1);
-    // dbg.z = acceleration_setpoint(2);
     orb_publish(ORB_ID(debug_vect), pub_dbg, &dbg);
+
+    // // analytical QP solution from: https://arxiv.org/abs/2206.03568
+    // float eta = 0.f;
+    // float Lg_h_mag2 = Lg_h.norm_squared();
+    // if (Lg_h_mag2 > _zero_eps) {
+    //     eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
+    // }
+    // Vector3f acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
+    // acceleration_setpoint += acceleration_correction;
+
+    USING_NAMESPACE_QPOASES
+
+    // Hessian
+    real_t H[3*3] = {1.0, 0.0, 0.0,
+                     0.0, 1.0, 0.0,
+                     0.0, 0.0, 1.0};
+    // constraint matrix 1x3
+    real_t  A[1*3] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2)};
+    real_t  g[3] = { 0.0, 0.0, 0.0 };
+    real_t* lb = NULL;
+    real_t* ub = NULL;
+    // lower bound
+    real_t  lbA[1] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u) };
+    real_t* ubA = NULL;
+    int_t nWSR = 10;
+
+    int_t nV = 3;
+    int_t nC = 1;
+    QProblem qp(nV, nC);
+    returnValue qp_status = qp.init(H, g, A, lb, ub, lbA, ubA, nWSR);
+
+    switch(qp_status) {
+    case SUCCESSFUL_RETURN: {
+        real_t xOpt[3];
+        qp.getPrimalSolution(xOpt);
+        Vector3f acceleration_correction(xOpt[0], xOpt[1], xOpt[2]);
+        acceleration_setpoint += acceleration_correction;
+        break;
+    }
+    case RET_MAX_NWSR_REACHED:
+        PX4_ERR("QP could not be solved within the given number of working set recalculations");
+        break;
+    default:
+        PX4_ERR("QP initialisation failed: returned %d", qp_status);
+        break;
+    }
 }
 
 
