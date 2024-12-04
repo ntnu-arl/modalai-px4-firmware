@@ -75,24 +75,12 @@ private:
   Eulerf _smoothed_att;
   Vector3f _smoothed_ang_vel;
 
-  // bool _smoothing = true;
-  // float pos_cutoff = 20.0;
-  // float vel_cutoff = 20.0;
-  // float att_cutoff = 20.0;
-  // float ang_vel_cutoff = 20.0;
-
-  // float dt = 0.002;
-  // Vector3f pos_alpha = Vector3f(float(dt/((1/(2*3.14159*pos_cutoff))) + dt),float(dt/((1/(2*3.14159*pos_cutoff))) + dt),float(dt/((1/(2*3.14159*pos_cutoff))) + dt));
-  // Vector3f vel_alpha = Vector3f(float(dt/((1/(2*3.14159*vel_cutoff))) + dt),float(dt/((1/(2*3.14159*vel_cutoff))) + dt),float(dt/((1/(2*3.14159*vel_cutoff))) + dt));
-  // Vector3f att_alpha = Vector3f(float(dt/((1/(2*3.14159*att_cutoff))) + dt),float(dt/((1/(2*3.14159*att_cutoff))) + dt),float(dt/((1/(2*3.14159*att_cutoff))) + dt));
-  // Vector3f ang_vel_alpha = Vector3f(float(dt/((1/(2*3.14159*ang_vel_cutoff))) + dt),,1);
-
   float _min_u_training;
   float _max_u_training;
   int _max_rpm;
   int _min_rpm;
-  float _thrust_coefficient;
   float _max_error;
+  float _thrust_coefficient;
 
   // this are the min and max forces that the motor 
   // can generate and have to be estimated from the real system
@@ -106,18 +94,10 @@ private:
   Vector3f _linear_velocity{};
   Vector3f _angular_velocity;
 
-  // frame transform
-  // matrix::Dcmf frame_transf;
-  // matrix::Dcmf frame_transf_2;
-
   // Debug States
-  Eigen::VectorXf scaled_input_allocation_net;
-  Eigen::VectorXf force_clamped;
-  Eigen::VectorXf input;
+  Eigen::VectorXf _scaled_input_allocation_net;
+  Eigen::VectorXf _force_clamped;
+  Eigen::VectorXf _force_offset_comp;
+  Eigen::VectorXf _input;
 
-  //DEFINE_PARAMETERS(
-	//	(ParamInt<px4::params::SM_MIN_RPM>) 		_min_rpm,
-	//	(ParamInt<px4::params::SM_MAX_RPM>)		_max_rpm,
-	//	(ParamFloat<px4::params::SM_CT>)				_thrust_coefficient,
-	//)
 };

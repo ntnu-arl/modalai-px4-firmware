@@ -106,6 +106,7 @@ void PositionControl::setState(const PositionControlStates &states)
 
 void PositionControl::setInputSetpoint(const trajectory_setpoint_s &setpoint)
 {
+
 	_pos_sp = Vector3f(setpoint.position);
 	_vel_sp = Vector3f(setpoint.velocity);
 	_acc_sp = Vector3f(setpoint.acceleration);

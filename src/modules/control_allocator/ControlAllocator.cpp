@@ -677,8 +677,6 @@ ControlAllocator::publish_actuator_controls()
 		actuator_motors.control[i] = NAN;
 	}
 	
-	// PX4_WARN("control: %f %f %f %f", double(actuator_motors.control[0]),double(actuator_motors.control[1]),
-	// 								  double(actuator_motors.control[2]),double(actuator_motors.control[3]));
 
 	_actuator_motors_pub.publish(actuator_motors);
 

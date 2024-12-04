@@ -141,6 +141,9 @@ private:
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
 	trajectory_setpoint_s _trajectory_setpoint{};
 
+	// uint16_t _handled_motor_failure_bitmask{0};
+	// ActuatorEffectiveness *_actuator_effectiveness{nullptr};
+
 	float _manual_thrust{ 0.f };
 	float _manual_roll{ 0.f };
 	float _manual_pitch{ 0.f };

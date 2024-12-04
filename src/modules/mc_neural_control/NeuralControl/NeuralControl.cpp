@@ -13,41 +13,6 @@
 #include <chrono>
 #include <math.h>
 
-#define M_PI       3.14159265358979323846
-#define M_PI_2     1.57079632679489661923
-
-typedef Eigen::EulerSystem<Eigen::EULER_Z, Eigen::EULER_Y, Eigen::EULER_X> MySystem;
-typedef Eigen::EulerAngles<float, MySystem> VehicleAngles;
-
-/**
- * @brief Convert euler angles to quaternion.
- */
-Eigen::Quaternionf quaternion_from_rpy(const Eigen::Vector3f &rpy)
-{
-	// YPR - ZYX
-	return Eigen::Quaternionf(
-			Eigen::AngleAxisf(rpy.z(), Eigen::Vector3f::UnitZ()) *
-			Eigen::AngleAxisf(rpy.y(), Eigen::Vector3f::UnitY()) *
-			Eigen::AngleAxisf(rpy.x(), Eigen::Vector3f::UnitX())
-			);
-}
-
-/**
- * @brief Convert euler angles to quaternion.
- *
- * @return quaternion, same as @a tf::quaternionFromRPY() but in Eigen format.
- */
-inline Eigen::Quaternionf quaternion_from_rpy(const float roll, const float pitch, const float yaw) {
-	return quaternion_from_rpy(Eigen::Vector3f(roll, pitch, yaw));
-}
-
-static const auto NED_ENU_Q = quaternion_from_rpy(M_PI, 0.0, M_PI_2);
-static const auto AIRCRAFT_BASELINK_Q = quaternion_from_rpy(M_PI, 0.0, 0.0);
-static const auto NED_ENU_R = NED_ENU_Q.normalized().toRotationMatrix();
-static const auto AIRCRAFT_BASELINK_R = AIRCRAFT_BASELINK_Q.normalized().toRotationMatrix();
-static const Eigen::PermutationMatrix<3> NED_ENU_REFLECTION_XY(Eigen::Vector3i(1,0,2));
-static const Eigen::DiagonalMatrix<float,3> NED_ENU_REFLECTION_Z(1,1,-1);
-
 Eigen::MatrixXf openData(std::string fileToOpen)
 {
 
@@ -98,16 +63,6 @@ Eigen::MatrixXf openData(std::string fileToOpen)
   return Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(matrixEntries.data(), matrixRowNumber, matrixEntries.size() / matrixRowNumber);
 }
 
-Eigen::Vector3f NeuralControl::transform_frame_ned_enu(Eigen::Vector3f vec_ned)
-{
-  return NED_ENU_REFLECTION_XY.transpose() * (NED_ENU_REFLECTION_Z * vec_ned);
-}
-
-Eigen::Quaternionf NeuralControl::transform_orientation_ned_enu(Eigen::Quaternionf q_ned)
-{
-  return NED_ENU_Q.inverse() * q_ned * AIRCRAFT_BASELINK_Q.inverse();
-}
-
 NeuralControl::NeuralControl()
 {
   try
@@ -135,9 +90,10 @@ NeuralControl::NeuralControl()
     PX4_INFO("model files loaded!");
 
     // Debug State
-    scaled_input_allocation_net = Eigen::VectorXf::Zero(6);
-    force_clamped = Eigen::VectorXf::Zero(4);
-    input = Eigen::VectorXf::Zero(15);
+    _scaled_input_allocation_net = Eigen::VectorXf::Zero(6);
+    _force_clamped = Eigen::VectorXf::Zero(4);
+    _force_offset_comp = Eigen::VectorXf::Zero(4);
+    _input = Eigen::VectorXf::Zero(15);
     
   }
   catch (const std::exception &e)
@@ -153,15 +109,15 @@ void NeuralControl::fillDebugMessage(neural_control_s &message)
   message.timestamp = hrt_absolute_time();
   for (i = 0; i < 4; i++)
   {
-    message.motor_thrust[i] = force_clamped(i);
+    message.motor_thrust[i] = _force_clamped(i);
   }
   for (i = 0; i < 6; i++)
   {
-    message.wrench[i] = scaled_input_allocation_net(i);
+    message.wrench[i] = _scaled_input_allocation_net(i);
   }
   for (i = 0; i < 15; i++)
   {
-    message.observation[i] = input(i);
+    message.observation[i] = _input(i);
   }
 }
 
@@ -194,11 +150,6 @@ matrix::Vector4f NeuralControl::updateNeural()
   frame_transf_2(2, 1) = 0.0f;
   frame_transf_2(2, 2) = 1.0f;
 
-  // Reset States
-  scaled_input_allocation_net = Eigen::VectorXf::Zero(6);
-  force_clamped = Eigen::VectorXf::Zero(4);
-  input = Eigen::VectorXf::Zero(15);
-
   Vector3f position_local;
   position_local = frame_transf * frame_transf_2 * _position;
 
@@ -220,8 +171,6 @@ matrix::Vector4f NeuralControl::updateNeural()
 
   Eigen::Vector3f pos_input = pos_setpoint - pos_state;
 
-  PX4_WARN("pos_state: %f %f %f", double(pos_setpoint(0)), double(pos_setpoint(1)), double(pos_setpoint(2)));
-
   // clamp error to guarantee input lies in training envelope
   Eigen::Vector3f pos_input_clamped = pos_input; //.cwiseMax(-1.).cwiseMin(1.);
 
@@ -238,10 +187,11 @@ matrix::Vector4f NeuralControl::updateNeural()
   angular_velocity_state << angular_vel_local(0), angular_vel_local(1), angular_vel_local(2);
 
   // input vector for network
-  input << pos_input_clamped, attitude_state, vel_state, angular_velocity_state;
+  _input = Eigen::VectorXf::Zero(15);
+  _input << pos_input_clamped, attitude_state, vel_state, angular_velocity_state;
   
   // forward path
-  Eigen::VectorXf co1 = _weight_control_net_layer_1 * input + _bias_control_net_layer_1;
+  Eigen::VectorXf co1 = _weight_control_net_layer_1 * _input + _bias_control_net_layer_1;
   Eigen::VectorXf ca1 = co1.array().tanh();
   Eigen::VectorXf co2 = _weight_control_net_layer_2 * ca1 + _bias_control_net_layer_2;
   Eigen::VectorXf ca2 = co2.array().tanh();
@@ -252,17 +202,21 @@ matrix::Vector4f NeuralControl::updateNeural()
   Eigen::VectorXf scaled_thrust = input_allocation_net(Eigen::seq(0, 2)).cwiseProduct(_max_thrust - _min_thrust) / 2 + (_max_thrust + _min_thrust) / 2;
   Eigen::VectorXf scaled_torque = input_allocation_net(Eigen::seq(3, 5)).cwiseProduct(_max_torque - _min_torque) / 2 + (_max_torque + _min_torque) / 2;
 
-  scaled_input_allocation_net << scaled_thrust, scaled_torque;
+  _scaled_input_allocation_net = Eigen::VectorXf::Zero(6);
+  _scaled_input_allocation_net << scaled_thrust, scaled_torque;
 
-  Eigen::VectorXf ao1 = _weight_allocation_net_layer_1 * scaled_input_allocation_net + _bias_allocation_net_layer_1;
+  Eigen::VectorXf ao1 = _weight_allocation_net_layer_1 * _scaled_input_allocation_net + _bias_allocation_net_layer_1;
   // Eigen::VectorXf aa1 = ao1.cwiseMax(0);
   Eigen::VectorXf ao2 = _weight_allocation_net_layer_2 * ao1 + _bias_allocation_net_layer_2;
 
-  force_clamped = ao2.cwiseMax(_min_u_training).cwiseMin(_max_u_training);
+  _force_clamped = Eigen::VectorXf::Zero(4);
+  _force_clamped = ao2.cwiseMax(_min_u_training).cwiseMin(_max_u_training);
 
-  static const float _thrust_coefficient = 0.00001286412; //0.00001286412 original value
   // conversion to rpm
-  Eigen::VectorXf rps = force_clamped / _thrust_coefficient; // _thrust_coefficient;0.000013781
+  static const float _thrust_coefficient = 0.00001286412;
+
+  Eigen::VectorXf rps = Eigen::VectorXf::Zero(4);
+  rps = _force_clamped / _thrust_coefficient;
   rps = rps.cwiseSqrt();
   Eigen::VectorXf rpm = rps * 60;
 
@@ -287,8 +241,6 @@ matrix::Vector4f NeuralControl::updateNeural()
   mixer_values(1) = a * (((motor_commands(1) + 1.0f) / 2.0f + tmp1) * ((motor_commands(1) + 1.0f) / 2.0f + tmp1) - tmp2);
   mixer_values(2) = a * (((motor_commands(2) + 1.0f) / 2.0f + tmp1) * ((motor_commands(2) + 1.0f) / 2.0f + tmp1) - tmp2);
   mixer_values(3) = a * (((motor_commands(3) + 1.0f) / 2.0f + tmp1) * ((motor_commands(3) + 1.0f) / 2.0f + tmp1) - tmp2);
-
-  // PX4_WARN("value neural control: %f %f %f %f", (double)motor_commands(0), (double)motor_commands(1), (double)motor_commands(2), (double)motor_commands(3));
 
   end1 = std::chrono::system_clock::now();
 

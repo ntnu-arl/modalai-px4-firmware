@@ -496,7 +496,6 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		actuator_outputs_s actuator_outputs{};
 		setAndPublishActuatorOutputs(_max_num_outputs, actuator_outputs);
 
-
 		updateLatencyPerfCounter(actuator_outputs);
 	}
 }

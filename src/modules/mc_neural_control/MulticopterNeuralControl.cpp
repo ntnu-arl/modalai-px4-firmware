@@ -198,7 +198,6 @@ void MulticopterNeuralControl::Run()
       _neural_control.setLinearVelocity(
           Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
 
-      
       _pd_position_control.setPosition(
           Vector3f(vehicle_local_position.x, vehicle_local_position.y,vehicle_local_position.z));
       _pd_position_control.setLinearVelocity(
@@ -401,7 +400,6 @@ void MulticopterNeuralControl::Run()
           break;
 
         case NEURAL:
-          PX4_WARN("neural control running");
           motor_commands = _neural_control.updateNeural();
           break;
 
@@ -493,6 +491,15 @@ void MulticopterNeuralControl::Run()
         actuator_motors.control[1] = PX4_ISFINITE(motor_commands(1)) ? motor_commands(1) : NAN;
         actuator_motors.control[2] = PX4_ISFINITE(motor_commands(2)) ? motor_commands(2) : NAN;
         actuator_motors.control[3] = PX4_ISFINITE(motor_commands(3)) ? motor_commands(3) : NAN;
+        actuator_motors.control[4] = -NAN;
+        actuator_motors.control[5] = -NAN;
+        actuator_motors.control[6] = -NAN;
+        actuator_motors.control[7] = -NAN;
+        actuator_motors.control[8] = -NAN;
+        actuator_motors.control[9] = -NAN;
+        actuator_motors.control[10] = -NAN;
+        actuator_motors.control[11] = -NAN;
+        actuator_motors.reversible_flags = 0;
 
         _actuator_motors_pub.publish(actuator_motors);
       }

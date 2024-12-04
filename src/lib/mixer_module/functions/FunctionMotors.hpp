@@ -79,6 +79,7 @@ public:
 		if (thrust_factor > 0.f && thrust_factor <= 1.f) {
 			// thrust factor
 			//  rel_thrust = factor * x^2 + (1-factor) * x,
+
 			const float a = thrust_factor;
 			const float b = (1.f - thrust_factor);
 
@@ -88,7 +89,6 @@ public:
 
 			for (int i = 0; i < num_values; ++i) {
 				float control = values[i];
-
 				if (control > 0.f) {
 					values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
 
@@ -112,6 +112,7 @@ public:
 				}
 			}
 		}
+
 	}
 
 	bool reversible(OutputFunction func) const override { return _data.reversible_flags & (1u << ((int)func - (int)OutputFunction::Motor1)); }
