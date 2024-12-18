@@ -46,7 +46,6 @@
 #include <fcntl.h>
 #include <math.h>
 #include <unistd.h>
-#include <termios.h>
 #include <string>
 
 #include <px4_platform_common/getopt.h>
@@ -66,6 +65,12 @@
 
 #include "MspDPV1.hpp"
 
+#ifndef __PX4_QURT
+#include <termios.h>
+#else
+#include <drivers/device/qurt/uart.h>
+#endif
+
 bool clear{true};
 
 MspDPOsd::MspDPOsd(const char *device) :
@@ -83,8 +88,14 @@ MspDPOsd::MspDPOsd(const char *device) :
 
 MspDPOsd::~MspDPOsd()
 {
-	if(_msp_fd) close(_msp_fd);
+	if(_msp_fd >= 0) {
+#ifndef __PX4_QURT
+		close(_msp_fd);
+#endif
+		_msp_fd = -1;
+	}
 }
+	
 
 bool MspDPOsd::init()
 {
@@ -154,14 +165,19 @@ void MspDPOsd::Run()
 
 	// perform first time initialization, if needed
 	if (!_is_initialized) {
+#ifndef __PX4_QURT
 		struct termios t;
 		_msp_fd = open(_device, O_RDWR | O_NONBLOCK);
+#else
+		_msp_fd = qurt_uart_open(_device, 115200);
+#endif
 
 		if (_msp_fd < 0) {
 			_performance_data.initialization_problems = true;
 			return;
 		}
 
+#ifndef __PX4_QURT
 		tcgetattr(_msp_fd, &t);
 		cfsetspeed(&t, B115200);
 		t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
@@ -169,6 +185,7 @@ void MspDPOsd::Run()
 		t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
 		t.c_oflag = 0;
 		tcsetattr(_msp_fd, TCSANOW, &t);
+#endif
 
 		_msp = MspDPV1(_msp_fd);
 
@@ -255,7 +272,7 @@ void MspDPOsd::Run()
 
 			// Place integer value indicating quality value below "VIO"
 			std::string vio_quality = vio.quality < 0 ? std::to_string(-1) : std::to_string(vio.quality/10);
-			uint8_t vio_quality_output[sizeof(msp_dp_cmd_t) + vio_quality.size() + 1]{0};	
+			uint8_t vio_quality_output[sizeof(msp_dp_cmd_t) + MSP_OSD_MAX_STRING_LENGTH + 1]{0};	
 			msp_dp_osd::construct_OSD_write(_parameters.vio_col+1, _parameters.vio_row+1, false, vio_quality.c_str(), vio_quality_output, vio_quality.size());
 			this->Send(MSP_CMD_DISPLAYPORT, &vio_quality_output, MSP_DIRECTION_REPLY);
 
@@ -271,7 +288,7 @@ void MspDPOsd::Run()
 				vio_quality_bar = {SYM_PB_START, SYM_PB_FULL, SYM_PB_FULL, SYM_PB_FULL, SYM_PB_CLOSE};	
 			}
 			
-			uint8_t vio_quality_bar_output[sizeof(msp_dp_cmd_t) + vio_quality_bar.size() + 1]{0};	
+			uint8_t vio_quality_bar_output[sizeof(msp_dp_cmd_t) + MSP_OSD_MAX_STRING_LENGTH + 1]{0};	
 			msp_dp_osd::construct_OSD_write(_parameters.vio_col-1, _parameters.vio_row+2, false, vio_quality_bar.c_str(), vio_quality_bar_output, vio_quality_bar.size());
 			this->Send(MSP_CMD_DISPLAYPORT, &vio_quality_bar_output, MSP_DIRECTION_REPLY);
 		}
@@ -417,7 +434,7 @@ void MspDPOsd::Run()
 		for (int i = 0; i < MAX_REMOTE_OSD_FIELDS; i++) {
 			// Look for initialized OSD strings
 			if (_remote_osd[i].row != -1) {
-				uint8_t remote_osd_output[sizeof(msp_dp_cmd_t) + strlen(_remote_osd[i].string)]{0};
+				uint8_t remote_osd_output[sizeof(msp_dp_cmd_t) + MSP_OSD_MAX_STRING_LENGTH + 1]{0};
 				msp_dp_osd::construct_OSD_write(_remote_osd[i].col, _remote_osd[i].row, false, _remote_osd[i].string, remote_osd_output, sizeof(remote_osd_output));
 				this->Send(MSP_CMD_DISPLAYPORT, &remote_osd_output, MSP_DIRECTION_REPLY);
 			} else {
@@ -600,7 +617,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 	uint8_t cmd_power{1};	// Default 25mW
 	int cmd_fontType{0};
 	int cmd_resolution{0};
-	char cmd_string[get_instance()->column_max[get_instance()->resolution]]{0};
+	char cmd_string[MSP_OSD_MAX_STRING_LENGTH + 1]{0};
 	const char* resolutions[4] = {"SD_3016", "HD_5018", "HD_3016", "HD_5320"};
 	const char *myoptarg = nullptr;
 	const char *verb = argv[argc - 1];
@@ -708,7 +725,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		}
 
 		const char* const_cmd_string = cmd_string;
-		uint8_t output[sizeof(msp_dp_cmd_t) + strlen(const_cmd_string)+1]{0};
+		uint8_t output[sizeof(msp_dp_cmd_t) + MSP_OSD_MAX_STRING_LENGTH + 1]{0};
 		PX4_INFO("Output String: %s\tSize of output: %lu", const_cmd_string, sizeof(output));
 		msp_dp_osd::construct_OSD_write(col, row, false, const_cmd_string, output, sizeof(output));
 		get_instance()->Send(MSP_CMD_DISPLAYPORT, &output, MSP_DIRECTION_REPLY);

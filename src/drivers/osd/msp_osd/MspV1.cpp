@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 #include <px4_platform_common/px4_config.h>
+#ifndef __PX4_QURT
 #include <syslog.h>
+#endif
 
 #include <sys/types.h>
 #include <stdbool.h>

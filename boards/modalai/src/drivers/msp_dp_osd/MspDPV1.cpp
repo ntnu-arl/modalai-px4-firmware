@@ -32,8 +32,9 @@
  ****************************************************************************/
 
 #include <px4_platform_common/px4_config.h>
-#include <syslog.h>
-
+#ifdef __PX4_QURT
+#include <drivers/device/qurt/uart.h>
+#endif
 #include <sys/types.h>
 #include <stdbool.h>
 #include <float.h>
@@ -149,5 +150,11 @@ bool MspDPV1::Send(const uint8_t message_id, const void *payload, mspDirection_e
 	packet[MSP_FRAME_START_SIZE + payload_size] = crc;
 
 	int packet_size =  MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE;
-	return  write(_fd, packet, packet_size) == packet_size;
+
+#ifdef __PX4_QURT
+	return qurt_uart_write(_fd, (const char *) packet, packet_size) == packet_size;
+#else
+	return write(_fd, packet, packet_size) == packet_size;
+#endif
+
 }

@@ -244,7 +244,9 @@ void MspOsd::Run()
 
 	// perform first time initialization, if needed
 	if (!_is_initialized) {
+#ifndef __PX4_QURT
 		struct termios t;
+#endif
 		_msp_fd = open(_device, O_RDWR | O_NONBLOCK);
 
 		if (_msp_fd < 0) {
@@ -252,6 +254,7 @@ void MspOsd::Run()
 			return;
 		}
 
+#ifndef __PX4_QURT
 		tcgetattr(_msp_fd, &t);
 		cfsetspeed(&t, B115200);
 		t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
@@ -259,6 +262,7 @@ void MspOsd::Run()
 		t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
 		t.c_oflag = 0;
 		tcsetattr(_msp_fd, TCSANOW, &t);
+#endif
 
 		_msp = MspV1(_msp_fd);
 
