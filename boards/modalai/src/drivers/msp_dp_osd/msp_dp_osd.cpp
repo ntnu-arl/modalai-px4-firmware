@@ -253,7 +253,8 @@ void MspDPOsd::Run()
 
 		// Flight Mode -> BOTTOM-MIDDLE BOTTOM
 		if (_parameters.flight_mode_col != -1 && _parameters.flight_mode_row != -1){
-			const auto flight_mode = msp_dp_osd::construct_flight_mode(vehicle_status);
+			char flight_mode[15];
+			msp_dp_osd::construct_flight_mode(vehicle_status, flight_mode);
 			uint8_t flight_mode_output[sizeof(msp_dp_cmd_t) + sizeof(flight_mode)+1]{0};	
 			msp_dp_osd::construct_OSD_write(_parameters.flight_mode_col, _parameters.flight_mode_row, false, flight_mode, flight_mode_output, sizeof(flight_mode_output));	
 			this->Send(MSP_CMD_DISPLAYPORT, &flight_mode_output, MSP_DIRECTION_REPLY);

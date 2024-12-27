@@ -109,7 +109,7 @@ displayportMspCommand_e construct_OSD_draw();
 msp_dp_config_t construct_OSD_config(resolutionType_e resolution, uint8_t fontType);
 
 // Construct Flight mode Message
-const char* construct_flight_mode(const vehicle_status_s &vehicle_status);
+void construct_flight_mode(const vehicle_status_s &vehicle_status, char* flight_mode);
 
 // Generate bearing symbol from direction
 uint8_t get_symbol_from_bearing(float bearing);
