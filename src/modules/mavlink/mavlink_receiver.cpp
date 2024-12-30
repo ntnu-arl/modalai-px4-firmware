@@ -273,6 +273,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_STATUSTEXT:
 		handle_message_statustext(msg);
 		break;
+	
+	case MAVLINK_MSG_ID_TOF_OBSTACLES_CHUNK:
+        handle_message_tof_obstacles_chunk(msg);
+        break;
 
 #if !defined(CONSTRAINED_FLASH)
 
@@ -3062,6 +3066,33 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.received_from_mavlink = true;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void
+MavlinkReceiver::handle_message_tof_obstacles_chunk(mavlink_message_t *msg)
+{
+    mavlink_tof_obstacles_chunk_t mavlink_chunk;
+    mavlink_msg_tof_obstacles_chunk_decode(msg, &mavlink_chunk);
+
+	struct tof_obstacles_chunk_s chunk = {};
+
+    chunk.timestamp = hrt_absolute_time();
+    chunk.chunk_id = mavlink_chunk.chunk_id;
+	chunk.num_chunks = mavlink_chunk.num_chunks;
+	chunk.num_points_chunk = mavlink_chunk.num_points_chunk;
+	chunk.num_points_total = mavlink_chunk.num_points_total;
+	for (size_t i = 0; i < chunk.num_points_chunk; i++) {
+		chunk.points_x[i] = mavlink_chunk.points_x[i];
+		chunk.points_y[i] = mavlink_chunk.points_y[i];
+		chunk.points_z[i] = mavlink_chunk.points_z[i];
+	}
+
+    if (_tof_obstacles_chunk_pub == nullptr) {
+        _tof_obstacles_chunk_pub = orb_advertise(ORB_ID(tof_obstacles_chunk), &chunk);
+
+    } else {
+        orb_publish(ORB_ID(tof_obstacles_chunk), _tof_obstacles_chunk_pub, &chunk);
+    }
 }
 
 void

@@ -16,7 +16,12 @@ public:
     CBFSafetyFilter();
 
     void setPosition(const Vector3f& position) { _position = position; }
-    void setLinearVelocity(const Vector3f& velocity) { _velocity = velocity; }
+    void setAttitude(const Quatf& attitude) { _attitude = attitude; }
+    void setLinearVelocity(const Vector3f& velocity) {
+        Dcmf R_IB(_attitude);
+        Dcmf R_BI = R_IB.transpose();
+        _velocity = R_BI * velocity;
+    }
     void update(Vector3f& acceleration_setpoint, uint64_t timestamp);
 
     void setEpsilon(float epsilon) { _epsilon = epsilon; }
@@ -31,6 +36,7 @@ private:
 
     Vector3f _position;
     Vector3f _velocity;
+    Quatf _attitude;
     std::vector<Vector3f> _obstacles;
     std::vector<Vector3f> _rel_pos;
     std::vector<float> _h1;
@@ -40,7 +46,6 @@ private:
     float _kappa = 10.f;
     float _gamma = 40.f;
     float _alpha = 1.f;
-    // float _zero_eps = 1e-5f;
 
     float saturate(float x);
     float saturateDerivative(float x);

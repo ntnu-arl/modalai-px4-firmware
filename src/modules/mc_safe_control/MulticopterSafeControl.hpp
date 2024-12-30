@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/tof_obstacles_chunk.h>
 
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -117,6 +118,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _tof_obstacles_chunk_sub{ORB_ID(tof_obstacles_chunk)};
 
 	//uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
@@ -124,6 +126,7 @@ private:
 	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<vehicle_attitude_setpoint_s> _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _vehicle_local_position_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	// =================================================
 
   // manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
@@ -134,7 +137,7 @@ private:
 	Quatf _attitude;
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
-	trajectory_setpoint_s _trajectory_setpoint{};
+	// trajectory_setpoint_s _trajectory_setpoint{};
 
 	float _manual_thrust{ 0.f };
 	float _manual_roll{ 0.f };
@@ -144,9 +147,11 @@ private:
 	hrt_abstime _last_run{ 0 };
 	// hrt_abstime _last_vehicle_local_position_setpoint{ 0 };
 	hrt_abstime _time_offboard_enabled{ 0 };
-	float _battery_status_scale{0.0f};
+	// float _battery_status_scale{0.0f};
 
 	// bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
+
+	int _prev_obstacles_chunk_id = -1;
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SM_MANUAL_CTRL>)	_param_manual_ctrl,
