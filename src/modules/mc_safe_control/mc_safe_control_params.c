@@ -45,7 +45,7 @@
  * @boolean
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 0);
+PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 1);
 
 /**
  * X sliding surface dynamics
@@ -448,7 +448,7 @@ PARAM_DEFINE_INT32(SM_VERBOSE, 0);
  * CBF Epsilon
  *
  * ...
- * 
+ *
  * @min 0.0
  * @max 10000
  * @decimal 1
@@ -461,7 +461,7 @@ PARAM_DEFINE_FLOAT(SM_CBF_EPSILON, 1.f);
  * CBF Pole 0
  *
  * ...
- * 
+ *
  * @min -1000
  * @max 0.0
  * @decimal 1
@@ -474,7 +474,7 @@ PARAM_DEFINE_FLOAT(SM_CBF_POLE0, -1.f);
  * CBF Kappa
  *
  * ...
- * 
+ *
  * @min 1.0
  * @max 100.0
  * @decimal 1
@@ -487,7 +487,7 @@ PARAM_DEFINE_FLOAT(SM_CBF_KAPPA, 10.f);
  * CBF Gamma
  *
  * ...
- * 
+ *
  * @min 1.0
  * @max 100.0
  * @decimal 1
@@ -500,7 +500,7 @@ PARAM_DEFINE_FLOAT(SM_CBF_GAMMA, 40.f);
  * CBF Alpha
  *
  * ...
- * 
+ *
  * @min 0.0
  * @max 100.0
  * @decimal 2
