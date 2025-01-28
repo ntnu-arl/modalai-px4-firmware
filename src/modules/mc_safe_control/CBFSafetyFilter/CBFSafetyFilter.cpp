@@ -42,101 +42,95 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     Dcmf R_BI = R_IB.transpose();
     Vector3f local_accel_setpoint = R_BI * acceleration_setpoint;
 
-    _h1.resize(n);
-    _rel_pos.resize(n);
+    _nu1.resize(n);
 
-    // _h1 = {h_{i, 1}, i=0...n-1}
+    // _nu1 = {nu_{i, 1}, i=0...n-1}
     for(size_t i = 0; i < n; i++) {
-        _rel_pos[i] = _obstacles[i];
-        float hi0 = _rel_pos[i].norm_squared() - (_epsilon * _epsilon);
-        float Lf_hi0 = 2.f * _rel_pos[i].dot(_velocity);
-        float hi1 = Lf_hi0 - _pole0 * hi0;
-        _h1[i] = hi1;
-        
-        dbg.x = hi0;
-        dbg.y = hi1;
+        float nu_i0 = _obstacles[i].norm_squared() - (_epsilon * _epsilon);
+        float Lf_nu_i0 = -2.f * _obstacles[i].dot(_local_velocity);
+        float nu_i1 = Lf_nu_i0 - _pole0 * nu_i0;
+        _nu1[i] = nu_i1;
     }
 
     // h(x)
     float exp_sum = 0.f;
     for(size_t i = 0; i < n; i++) {
-        exp_sum += expf(-_kappa * saturate(_h1[i] / _gamma));
+        exp_sum += expf(-_kappa * saturate(_nu1[i] / _gamma));
     }
     float h = -(_gamma / _kappa) * logf(exp_sum);
-    dbg.z = h;
+
+    // L_{f}h(x)
+    float Lf_h = 0.f;
+    for(size_t i = 0; i < n; i++) {
+        float Lf_nu_i1 = 2.f * (_local_velocity + _pole0 * _obstacles[i]).dot(_local_velocity);
+        float lambda_i = expf(-_kappa * saturate(_nu1[i] / _gamma)) * saturateDerivative(_nu1[i] / _gamma);
+        Lf_h += lambda_i * Lf_nu_i1;
+    }
+    Lf_h /= exp_sum;
 
     // L_{g}h(x)
     Vector3f Lg_h(0.f, 0.f, 0.f);
     for(size_t i = 0; i < n; i++) {
-        Vector3f Lg_hi1 = 2.f * _rel_pos[i];
-        float phi_i = saturateDerivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
-        Lg_h += phi_i * Lg_hi1;
+        Vector3f Lg_nu_i1 = -2.f * _obstacles[i];
+        float lambda_i = expf(-_kappa * saturate(_nu1[i] / _gamma)) * saturateDerivative(_nu1[i] / _gamma);
+        Lg_h += lambda_i * Lg_nu_i1;
     }
     Lg_h /= exp_sum;
     // L_{g}h(x) * u, u = k_n(x) = a
     float Lg_h_u = Lg_h.dot(local_accel_setpoint);
 
-    // L_{f}h(x)
-    float Lf_h = 0.f;
-    for(size_t i = 0; i < n; i++) {
-        float Lf_hi1 = 2.f * (_velocity - _pole0 * _rel_pos[i]).dot(_velocity);
-        float phi_i = saturateDerivative(_h1[i] / _gamma) * expf(-_kappa * saturate(_h1[i] / _gamma));
-        Lf_h += phi_i * Lf_hi1;
-    }
-    Lf_h /= exp_sum;
-
     // analytical QP solution from: https://arxiv.org/abs/2206.03568
-    float eta = 0.f;
-    float Lg_h_mag2 = Lg_h.norm_squared();
-    constexpr float zero_eps = 1e-5f;
-    if (Lg_h_mag2 > zero_eps) {
-        eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
+//     float eta = 0.f;
+//     float Lg_h_mag2 = Lg_h.norm_squared();
+//     if (Lg_h_mag2 > 1e-5f) {
+//         eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
+//     }
+//     Vector3f local_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
+//     dbg.x = local_correction(0);
+//     dbg.y = local_correction(1);
+//     dbg.z = local_correction(2);
+//     local_accel_setpoint += local_correction;
+
+//     acceleration_setpoint = R_IB * local_accel_setpoint;
+
+    USING_NAMESPACE_QPOASES
+
+    // Hessian
+    real_t H[3*3] = {1.0, 0.0, 0.0,
+                     0.0, 1.0, 0.0,
+                     0.0, 0.0, 1.0};
+    // constraint matrix 1x3
+    real_t  A[1*3] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2)};
+    real_t  g[3] = { 0.0, 0.0, 0.0 };
+    real_t* lb = NULL;
+    real_t* ub = NULL;
+    // lower bound
+    real_t  lbA[1] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u) };
+    real_t* ubA = NULL;
+    int_t nWSR = 10;
+
+    int_t nV = 3;
+    int_t nC = 1;
+    QProblem qp(nV, nC);
+    qp.setPrintLevel(PL_NONE);
+    returnValue qp_status = qp.init(H, g, A, lb, ub, lbA, ubA, nWSR);
+
+    switch(qp_status) {
+    case SUCCESSFUL_RETURN: {
+        real_t xOpt[3];
+        qp.getPrimalSolution(xOpt);
+        Vector3f acceleration_correction(xOpt[0], xOpt[1], xOpt[2]);
+        local_accel_setpoint += acceleration_correction;
+        acceleration_setpoint = R_IB * local_accel_setpoint;
+        break;
     }
-    Vector3f local_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
-    dbg.x = local_correction(0);
-    dbg.y = local_correction(1);
-    dbg.z = local_correction(2);
-    local_accel_setpoint += local_correction;
-
-    acceleration_setpoint = R_IB * local_accel_setpoint;
-
-    // USING_NAMESPACE_QPOASES
-
-    // // Hessian
-    // real_t H[3*3] = {1.0, 0.0, 0.0,
-    //                  0.0, 1.0, 0.0,
-    //                  0.0, 0.0, 1.0};
-    // // constraint matrix 1x3
-    // real_t  A[1*3] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2)};
-    // real_t  g[3] = { 0.0, 0.0, 0.0 };
-    // real_t* lb = NULL;
-    // real_t* ub = NULL;
-    // // lower bound
-    // real_t  lbA[1] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u) };
-    // real_t* ubA = NULL;
-    // int_t nWSR = 10;
-
-    // int_t nV = 3;
-    // int_t nC = 1;
-    // QProblem qp(nV, nC);
-    // returnValue qp_status = qp.init(H, g, A, lb, ub, lbA, ubA, nWSR);
-
-    // switch(qp_status) {
-    // case SUCCESSFUL_RETURN: {
-    //     real_t xOpt[3];
-    //     qp.getPrimalSolution(xOpt);
-    //     Vector3f acceleration_correction(xOpt[0], xOpt[1], xOpt[2]);
-    //     local_accel_setpoint += acceleration_correction;
-    //     acceleration_setpoint = R_IB * local_accel_setpoint;
-    //     break;
-    // }
-    // case RET_MAX_NWSR_REACHED:
-    //     PX4_ERR("QP could not be solved within the given number of working set recalculations");
-    //     break;
-    // default:
-    //     PX4_ERR("QP initialisation failed: returned %d", qp_status);
-    //     break;
-    // }
+    case RET_MAX_NWSR_REACHED:
+        PX4_ERR("QP could not be solved within the given number of working set recalculations");
+        break;
+    default:
+        PX4_ERR("QP initialisation failed: returned %d", qp_status);
+        break;
+    }
 
     dbg.timestamp = timestamp;
     orb_publish(ORB_ID(debug_vect), pub_dbg, &dbg);

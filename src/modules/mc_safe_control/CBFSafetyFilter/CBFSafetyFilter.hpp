@@ -20,7 +20,7 @@ public:
     void setLinearVelocity(const Vector3f& velocity) {
         Dcmf R_IB(_attitude);
         Dcmf R_BI = R_IB.transpose();
-        _velocity = R_BI * velocity;
+        _local_velocity = R_BI * velocity;
     }
     void update(Vector3f& acceleration_setpoint, uint64_t timestamp);
 
@@ -35,11 +35,11 @@ public:
 private:
 
     Vector3f _position;
-    Vector3f _velocity;
+    Vector3f _local_velocity;
     Quatf _attitude;
     std::vector<Vector3f> _obstacles;
-    std::vector<Vector3f> _rel_pos;
-    std::vector<float> _h1;
+//     std::vector<Vector3f> _rel_pos;
+    std::vector<float> _nu1;
 
     float _epsilon = 1.f;
     float _pole0 = -1.f;

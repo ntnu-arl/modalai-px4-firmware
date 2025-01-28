@@ -301,9 +301,9 @@ void MulticopterSafeControl::Run()
         );
       }
 
-      PX4_INFO("Number of obstacles: %d", obstacles.size());
+      PX4_INFO("Number of obstacles: %d", (int)obstacles.size());
       for (std::size_t i = 0; i < std::min<std::size_t>(10, obstacles.size()); i++) {
-        PX4_INFO("Obstacle %d: %f, %f, %f", i, (double)obstacles[i](0), (double)obstacles[i](1), (double)obstacles[i](2));
+        PX4_INFO("Obstacle %d: %f, %f, %f", (int)i, (double)obstacles[i](0), (double)obstacles[i](1), (double)obstacles[i](2));
       }
     }
 
@@ -325,7 +325,7 @@ void MulticopterSafeControl::Run()
     {
     std::vector<Vector3f>& obstacles = _cbf_safety_filter.obstacles();
     obstacles.clear();
-    Vector3f obs_global = Vector3f(10.f, 0.f, -10.f);
+    Vector3f obs_global = Vector3f(0.f, 0.f, -15.f);
     Dcmf R_IB(_attitude);
     Dcmf R_BI = R_IB.transpose();
     Vector3f obs_local = R_BI * (obs_global - _pd_position_control.getPosition());
@@ -461,7 +461,7 @@ void MulticopterSafeControl::Run()
       acceleration_setpoint(1) = math::constrain(acceleration_setpoint(1), -3.f, 3.f);
       acceleration_setpoint(2) = math::constrain(acceleration_setpoint(2), -5.f, 5.f);
 
-      acceleration_setpoint(2) -= 9.81f*2.f;
+//       acceleration_setpoint(2) -= 9.81f*2.f;
 
       // PX4_INFO("accel setpoint: %f, %f, %f",
       //   (double)acceleration_setpoint(0),
@@ -470,7 +470,7 @@ void MulticopterSafeControl::Run()
       // );
 
       trajectory_setpoint_s trajectory_setpoint;
-      
+
       trajectory_setpoint.position[0] = NAN;
       trajectory_setpoint.position[1] = NAN;
       trajectory_setpoint.position[2] = NAN;
