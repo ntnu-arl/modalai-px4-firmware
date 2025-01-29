@@ -322,15 +322,15 @@ void MulticopterSafeControl::Run()
     ocm.timestamp = hrt_absolute_time();
     _offboard_control_mode_pub.publish(ocm);
 
-    {
-    std::vector<Vector3f>& obstacles = _cbf_safety_filter.obstacles();
-    obstacles.clear();
-    Vector3f obs_global = Vector3f(0.f, 0.f, -15.f);
-    Dcmf R_IB(_attitude);
-    Dcmf R_BI = R_IB.transpose();
-    Vector3f obs_local = R_BI * (obs_global - _pd_position_control.getPosition());
-    obstacles.push_back(obs_local);
-    }
+    // {
+    // std::vector<Vector3f>& obstacles = _cbf_safety_filter.obstacles();
+    // obstacles.clear();
+    // Vector3f obs_global = Vector3f(0.f, 0.f, -15.f);
+    // Dcmf R_IB(_attitude);
+    // Dcmf R_BI = R_IB.transpose();
+    // Vector3f obs_local = R_BI * (obs_global - _pd_position_control.getPosition());
+    // obstacles.push_back(obs_local);
+    // }
 
     // compute acceleration setpoint
     Vector3f acceleration_setpoint;
