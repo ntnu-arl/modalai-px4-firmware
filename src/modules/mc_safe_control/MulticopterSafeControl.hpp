@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/geo/geo.h>
 #include <matrix/matrix/math.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
@@ -56,6 +57,7 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/tof_obstacles_chunk.h>
@@ -65,9 +67,9 @@
 #include <lib/slew_rate/SlewRate.hpp>
 #include <uORB/topics/offboard_control_mode.h>
 
-#include <PDAttitudeControl.hpp>
-#include <PDPositionControl.hpp>
-#include <CBFSafetyFilter.hpp>
+#include "PDAttitudeControl.hpp"
+#include "PDPositionControl.hpp"
+#include "CBFSafetyFilter.hpp"
 
 using namespace time_literals;
 
@@ -103,6 +105,83 @@ private:
 
 	void generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp, const Vector3f& position, const Quatf& attitude);
 
+	void _accelerationControl(const Vector3f& acc_sp, const float hover_thrust, Vector3f& thr_sp);
+
+	void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
+{
+	bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
+	att_sp.thrust_body[2] = -thr_sp.length();
+}
+
+void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_angle)
+{
+	// determine tilt
+	const float dot_product_unit = body_unit.dot(world_unit);
+	float angle = acosf(dot_product_unit);
+	// limit tilt
+	angle = math::min(angle, max_angle);
+	Vector3f rejection = body_unit - (dot_product_unit * world_unit);
+
+	// corner case exactly parallel vectors
+	if (rejection.norm_squared() < FLT_EPSILON) {
+		rejection(0) = 1.f;
+	}
+
+	body_unit = cosf(angle) * world_unit + sinf(angle) * rejection.unit();
+}
+
+void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
+{
+	// zero vector, no direction, set safe level value
+	if (body_z.norm_squared() < FLT_EPSILON) {
+		body_z(2) = 1.f;
+	}
+
+	body_z.normalize();
+
+	// vector of desired yaw direction in XY plane, rotated by PI/2
+	const Vector3f y_C{-sinf(yaw_sp), cosf(yaw_sp), 0.f};
+
+	// desired body_x axis, orthogonal to body_z
+	Vector3f body_x = y_C % body_z;
+
+	// keep nose to front while inverted upside down
+	if (body_z(2) < 0.0f) {
+		body_x = -body_x;
+	}
+
+	if (fabsf(body_z(2)) < 0.000001f) {
+		// desired thrust is in XY plane, set X downside to construct correct matrix,
+		// but yaw component will not be used actually
+		body_x.zero();
+		body_x(2) = 1.0f;
+	}
+
+	body_x.normalize();
+
+	// desired body_y axis
+	const Vector3f body_y = body_z % body_x;
+
+	Dcmf R_sp;
+
+	// fill rotation matrix
+	for (int i = 0; i < 3; i++) {
+		R_sp(i, 0) = body_x(i);
+		R_sp(i, 1) = body_y(i);
+		R_sp(i, 2) = body_z(i);
+	}
+
+	// copy quaternion setpoint to attitude setpoint topic
+	const Quatf q_sp{R_sp};
+	q_sp.copyTo(att_sp.q_d);
+
+	// calculate euler angles, for logging only, must not be used for control
+	const Eulerf euler{R_sp};
+	att_sp.roll_body = euler.phi();
+	att_sp.pitch_body = euler.theta();
+	att_sp.yaw_body = euler.psi();
+}
+
 	PDAttitudeControl _pd_attitude_control; /**< class for attitude control calculations */	
 	PDPositionControl _pd_position_control; /**< class for position control calculations */
 	CBFSafetyFilter _cbf_safety_filter; /**< class for CBF safety filter */
@@ -119,6 +198,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _tof_obstacles_chunk_sub{ORB_ID(tof_obstacles_chunk)};
+	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 
 	//uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};

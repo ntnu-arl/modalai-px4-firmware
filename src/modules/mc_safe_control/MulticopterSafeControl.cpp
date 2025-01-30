@@ -129,6 +129,19 @@ void MulticopterSafeControl::generateFailsafeTrajectory(trajectory_setpoint_s& t
   traj_sp.yawspeed = 0.0f;
 }
 
+void MulticopterSafeControl::_accelerationControl(const Vector3f& acc_sp, const float hover_thrust, Vector3f& thr_sp)
+{
+	// Assume standard acceleration due to gravity in vertical direction for attitude generation
+	Vector3f body_z = Vector3f(-acc_sp(0), -acc_sp(1), CONSTANTS_ONE_G).normalized();
+	limitTilt(body_z, Vector3f(0, 0, 1), radians(45.0f));
+	// Scale thrust assuming hover thrust produces standard gravity
+	float collective_thrust = acc_sp(2) * (hover_thrust / CONSTANTS_ONE_G) - hover_thrust;
+	// Project thrust to planned body attitude
+	collective_thrust /= (Vector3f(0, 0, 1).dot(body_z));
+	// collective_thrust = math::min(collective_thrust, -_lim_thr_min);
+  thr_sp = body_z * collective_thrust;
+}
+
 void MulticopterSafeControl::Run()
 {
   if (should_exit())
@@ -241,6 +254,16 @@ void MulticopterSafeControl::Run()
       }
     }
 
+    hover_thrust_estimate_s hte{};
+    hte.valid = false;
+    if (_hover_thrust_estimate_sub.update(&hte))
+    {
+      if (hte.valid)
+      {
+        hte.hover_thrust = math::constrain(hte.hover_thrust, 0.1f, 0.9f);
+      }
+    }
+
     // if (_trajectory_setpoint_sub.updated()){
 
     //   // trajectory_setpoint_s trajectory_setpoint;
@@ -313,8 +336,8 @@ void MulticopterSafeControl::Run()
     offboard_control_mode_s ocm{};
     ocm.position = false;
     ocm.velocity = false;
-    ocm.acceleration = true;
-    ocm.attitude = false;
+    ocm.acceleration = false;
+    ocm.attitude = true;
     ocm.body_rate = false;
     ocm.actuator = false;
     // ocm.thrust_and_torque = true;
@@ -345,123 +368,67 @@ void MulticopterSafeControl::Run()
       // ====================================
       // manual input feedthrough
       // ====================================
-      if (_param_manual_ctrl.get())
+      // vehicle_local_position_setpoint_s local_pos_sp{};
+      // local_pos_sp.timestamp = hrt_absolute_time();
+      // _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
+
+      // float y_ref = 1.f * _manual_roll;
+      // float x_ref = -1.f * _manual_pitch;
+      // float z_ref = -1.f * _manual_thrust;
+      // yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
+      // Vector3f target = _pd_position_control.getPosition()
+      //   + _pd_position_control.getAttitude().rotateVector(Vector3f(x_ref, y_ref, z_ref));
+
+      // _pd_position_control.setPositionSetpoint(target);
+      // _pd_position_control.setLinearVelocitySetpoint(Vector3f(0.0f, 0.0f, 0.0f));
+      // _pd_position_control.setLinearAcceleration(Vector3f(0.0f, 0.0f, 0.0f));
+
+      // _pd_position_control.updatePD(acceleration_setpoint);
+
+      Vector3f accel_joystick(-1.f * _manual_pitch, 1.f * _manual_roll, -1.f * _manual_thrust);
+      accel_joystick(0) *= 3.f;
+      accel_joystick(1) *= 3.f;
+      accel_joystick(2) *= 5.f;
+
+      yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
+
+      Eulerf euler_current(_attitude);
+      Eulerf euler_vehicle(0.f, 0.f, euler_current.psi());
+      Dcmf R_vehicle(euler_vehicle);
+
+      acceleration_setpoint = R_vehicle * accel_joystick;
+      // acceleration_setpoint(2) -= 9.81f;
+
+      // PX4_INFO("Manual control: %f, %f, %f",
+      //   (double)acceleration_setpoint(0),
+      //   (double)acceleration_setpoint(1),
+      //   (double)acceleration_setpoint(2)
+      // );
+
+      // TODO: drive with attitude estimate instead of attitude rate
+      static int count = 0;
+      if (count >= 8)
       {
-        vehicle_local_position_setpoint_s local_pos_sp{};
-        local_pos_sp.timestamp = hrt_absolute_time();
-        _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
-
-        // float y_ref = 1.f * _manual_roll;
-        // float x_ref = -1.f * _manual_pitch;
-        // float z_ref = -1.f * _manual_thrust;
-        // yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
-        // Vector3f target = _pd_position_control.getPosition()
-        //   + _pd_position_control.getAttitude().rotateVector(Vector3f(x_ref, y_ref, z_ref));
-
-        // _pd_position_control.setPositionSetpoint(target);
-        // _pd_position_control.setLinearVelocitySetpoint(Vector3f(0.0f, 0.0f, 0.0f));
-        // _pd_position_control.setLinearAcceleration(Vector3f(0.0f, 0.0f, 0.0f));
-
-        // _pd_position_control.updatePD(acceleration_setpoint);
-
-        Vector3f accel_joystick(
-          -1.f * _manual_pitch,
-          1.f * _manual_roll,
-          -1.f * _manual_thrust
-        );
-        accel_joystick(0) *= 3.f;
-        accel_joystick(1) *= 3.f;
-        accel_joystick(2) *= 5.f;
-
-        yawspeed_ref = 1.f * _manual_yaw * M_PI_2_F;
-
-        Eulerf euler_current(_attitude);
-        Eulerf euler_vehicle(0.f, 0.f, euler_current.psi());
-        Dcmf R_vehicle(euler_vehicle);
-
-        acceleration_setpoint = R_vehicle * accel_joystick;
-        // acceleration_setpoint(2) -= 9.81f;
-
-        // PX4_INFO("Manual control: %f, %f, %f",
-        //   (double)acceleration_setpoint(0),
-        //   (double)acceleration_setpoint(1),
-        //   (double)acceleration_setpoint(2)
-        // );
-
-        _cbf_safety_filter.update(acceleration_setpoint, hrt_absolute_time());
-        // thrust_setpoint = _pd_position_control.calculateThrust(acceleration_setpoint);
-        // attitude_setpoint = _pd_position_control.calculateAttitude(acceleration_setpoint);
-
-        // thrust_setpoint /= _param_thrust_max.get();
+        count = 0;
       }
       else
       {
-        // TODO: subscribe to another topic for waypoints
-
-        // vehicle_local_position_setpoint_s local_pos_sp{};
-        // local_pos_sp.timestamp = hrt_absolute_time();
-        // _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
-
-        // _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
-        // _pd_position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
-        // _pd_position_control.setLinearAcceleration(Vector3f(_trajectory_setpoint.acceleration));
-        // _pd_position_control.setYawSetpoint(_trajectory_setpoint.yaw);
-
-        switch (_param_controller.get())
-        {
-          case NONLINEAR_PD:
-          {
-            // _pd_position_control.updatePD(acceleration_setpoint);
-            // _cbf_safety_filter.update(acceleration_setpoint, hrt_absolute_time());
-            // thrust_setpoint = _pd_position_control.calculateThrust(acceleration_setpoint);
-            // attitude_setpoint = _pd_position_control.calculateAttitude(acceleration_setpoint);
-            break;
-          }
-          default:
-            PX4_ERR("Invalid controller selected: %i", _param_controller.get());
-            break;
-        }
-        // if (_param_verbose.get())
-        // {
-        //   PX4_INFO("thrust setpoint: %f", (double)thrust_setpoint);
-        // }
-        // thrust_setpoint /= _param_thrust_max.get();
+        count++;
+        return;
       }
 
-      // publish thrust and attitude setpoints
-      // vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-
-      // // set default thrust to hover percentage
-      // thrust_setpoint = PX4_ISFINITE(thrust_setpoint) ? thrust_setpoint : _param_hover.get();
-      // thrust_setpoint = -constrain(thrust_setpoint, 0.0f, 1.0f);
-
-      // // PX4_INFO("thrust setpoint (normalized): %f", (double)thrust_setpoint);
-      // vehicle_thrust_setpoint.xyz[0] = 0.0f;
-      // vehicle_thrust_setpoint.xyz[1] = 0.0f;
-      // vehicle_thrust_setpoint.xyz[2] = thrust_setpoint;
-
-			// // scale setpoints by battery status if enabled
-			// if (_param_bat_scale_en.get()) {
-			// 	if (_battery_status_sub.updated()) {
-			// 		battery_status_s battery_status;
-
-			// 		if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
-			// 			_battery_status_scale = battery_status.scale;
-			// 		}
-			// 	}
-
-			// 	if (_battery_status_scale > 0.f) {
-			// 		for (int i = 0; i < 3; i++) {
-			// 			vehicle_thrust_setpoint.xyz[i] = math::constrain(vehicle_thrust_setpoint.xyz[i] * _battery_status_scale, -1.f, 1.f);
-			// 		}
-			// 	}
-			// }
+      [[maybe_unused]] hrt_abstime tic = hrt_absolute_time();
+      _cbf_safety_filter.update(acceleration_setpoint, hrt_absolute_time());
+      [[maybe_unused]] hrt_abstime toc = hrt_absolute_time();
+      // thrust_setpoint = _pd_position_control.calculateThrust(acceleration_setpoint);
+      // attitude_setpoint = _pd_position_control.calculateAttitude(acceleration_setpoint);
+      // PX4_WARN("cbf_filter duration: %llu", toc - tic);
 
       acceleration_setpoint(0) = math::constrain(acceleration_setpoint(0), -3.f, 3.f);
       acceleration_setpoint(1) = math::constrain(acceleration_setpoint(1), -3.f, 3.f);
       acceleration_setpoint(2) = math::constrain(acceleration_setpoint(2), -5.f, 5.f);
 
-//       acceleration_setpoint(2) -= 9.81f*2.f;
+      //       acceleration_setpoint(2) -= 9.81f*2.f;
 
       // PX4_INFO("accel setpoint: %f, %f, %f",
       //   (double)acceleration_setpoint(0),
@@ -469,36 +436,26 @@ void MulticopterSafeControl::Run()
       //   (double)acceleration_setpoint(2)
       // );
 
-      trajectory_setpoint_s trajectory_setpoint;
+      // convert to thrust and attitude setpoint
+      // if (hte.valid)
+      // {
+        vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
 
-      trajectory_setpoint.position[0] = NAN;
-      trajectory_setpoint.position[1] = NAN;
-      trajectory_setpoint.position[2] = NAN;
+        // convert to thrust sp
+        Vector3f thr_sp;
+        // TODO: non hardcoded thrust estimate
+        _accelerationControl(acceleration_setpoint, 0.25f, thr_sp);
+        // PX4_INFO("accel_sp: %f, %f, %f", (double)acceleration_setpoint(0), (double)acceleration_setpoint(1), (double)acceleration_setpoint(2));
+        // PX4_INFO("hover thrust: %f", (double)hte.hover_thrust);
+        // PX4_INFO("thr_sp: %f, %f, %f", (double)thr_sp(0), (double)thr_sp(1), (double)thr_sp(2));
 
-      trajectory_setpoint.velocity[0] = NAN;
-      trajectory_setpoint.velocity[1] = NAN;
-      trajectory_setpoint.velocity[2] = NAN;
+        // update attitude sp
+        thrustToAttitude(thr_sp, euler_current.psi(), vehicle_attitude_setpoint);
+        vehicle_attitude_setpoint.yaw_sp_move_rate = yawspeed_ref;
 
-      trajectory_setpoint.acceleration[0] = acceleration_setpoint(0);
-      trajectory_setpoint.acceleration[1] = acceleration_setpoint(1);
-      trajectory_setpoint.acceleration[2] = acceleration_setpoint(2);
-
-      trajectory_setpoint.yaw = NAN;
-      trajectory_setpoint.yawspeed = yawspeed_ref;
-
-      _trajectory_setpoint_pub.publish(trajectory_setpoint);
-
-      // vehicle_attitude_setpoint_s vehicle_attitude_setpoint{};
-      // vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
-      // vehicle_attitude_setpoint.thrust_body[0] = vehicle_thrust_setpoint.xyz[0];
-      // vehicle_attitude_setpoint.thrust_body[1] = vehicle_thrust_setpoint.xyz[1];
-      // vehicle_attitude_setpoint.thrust_body[2] = vehicle_thrust_setpoint.xyz[2];
-      // attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
-      // const Eulerf euler{ attitude_setpoint };
-      // vehicle_attitude_setpoint.roll_body = euler.phi();
-      // vehicle_attitude_setpoint.pitch_body = euler.theta();
-      // vehicle_attitude_setpoint.yaw_body = euler.psi();
-      // _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
+        vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+        _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
+      // }
     }
   }
   perf_end(_loop_perf);
