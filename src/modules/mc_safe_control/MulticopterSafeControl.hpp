@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/trajectory_setpoint.h>
@@ -182,7 +183,7 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	att_sp.yaw_body = euler.psi();
 }
 
-	PDAttitudeControl _pd_attitude_control; /**< class for attitude control calculations */	
+	PDAttitudeControl _pd_attitude_control; /**< class for attitude control calculations */
 	PDPositionControl _pd_position_control; /**< class for position control calculations */
 	CBFSafetyFilter _cbf_safety_filter; /**< class for CBF safety filter */
 
@@ -194,6 +195,7 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -230,6 +232,12 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	// float _battery_status_scale{0.0f};
 
 	// bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
+
+	// hover thrust estimator
+	float _hover_thrust_estimate{ 0.25f };
+	float _thrust_compensation_factor{ 1.0f };
+	float _current_thrust_estimate{ 0.f };
+	float _current_z_acceleration{ 0.f };
 
 	int _prev_obstacles_chunk_id = -1;
 
