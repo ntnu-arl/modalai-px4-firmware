@@ -191,8 +191,9 @@ void MulticopterSafeControl::Run()
     }
 
     // update vehicle acceleration
+    vehicle_acceleration_s vehicle_acceleration;
     if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
-      _current_z_acceleration = Vector3f{vehicle_acceleration.xyz}(2)
+      _current_z_acceleration = Vector3f{vehicle_acceleration.xyz}(2);
     }
 
     // update position
@@ -461,10 +462,12 @@ void MulticopterSafeControl::Run()
         vehicle_attitude_setpoint.yaw_sp_move_rate = yawspeed_ref;
 
         // run hover thrust estimator
-        _current_thrust_estimate = thr_sp / _hover_thrust_estimate * CONSTANTS_ONE_G;
-        _thrust_compensation_factor = 0.01f * (_current_z_acceleration / _current_thrust_estimate) + 0.99f* _thrust_compensation_factor;
-        _thrust_compensation_factor = math::constrain(_thrust_compensation_factor, -1.3f, 1.3f);
-        PX4_INFO("hover thrust: %f", (double)hover_thrust);
+        _current_thrust_estimate = -vehicle_attitude_setpoint.thrust_body[2] / _hover_thrust_estimate * CONSTANTS_ONE_G;
+        _thrust_compensation_factor = 0.01f * (_current_thrust_estimate / -_current_z_acceleration) + 0.99f* _thrust_compensation_factor;
+        _thrust_compensation_factor = math::constrain(_thrust_compensation_factor, 0.7f, 1.3f);
+        // PX4_INFO("_current_thrust_estimate: %f", (double)_current_thrust_estimate);
+        // PX4_INFO("_current_z_acceleration: %f", (double)_current_z_acceleration);
+        // PX4_INFO("hover thrust: %f", (double)hover_thrust);
 
         vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
         _vehicle_attitude_setpoint_pub.publish(vehicle_attitude_setpoint);
