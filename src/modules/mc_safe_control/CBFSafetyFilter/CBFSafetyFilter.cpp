@@ -36,7 +36,7 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
 
     if (n == 0) return;
 
-    PX4_INFO("Obstacle: %f, %f, %f", (double)_obstacles[0](0), (double)_obstacles[0](1), (double)_obstacles[0](2));
+    // PX4_INFO("Obstacle: %f, %f, %f", (double)_obstacles[0](0), (double)_obstacles[0](1), (double)_obstacles[0](2));
 
     Dcmf R_IB(_attitude);
     Dcmf R_BI = R_IB.transpose();

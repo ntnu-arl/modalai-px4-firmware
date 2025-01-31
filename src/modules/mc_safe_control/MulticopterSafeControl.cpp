@@ -310,12 +310,12 @@ void MulticopterSafeControl::Run()
     tof_obstacles_chunk_s tof_obstacles_chunk;
     if (_tof_obstacles_chunk_sub.update(&tof_obstacles_chunk))
     {
-      PX4_INFO("Received chunk %d/%d with %d points (total %d)",
-        (int)tof_obstacles_chunk.chunk_id + 1,
-        (int)tof_obstacles_chunk.num_chunks,
-        (int)tof_obstacles_chunk.num_points_chunk,
-        (int)tof_obstacles_chunk.num_points_total
-      );
+      // PX4_INFO("Received chunk %d/%d with %d points (total %d)",
+      //   (int)tof_obstacles_chunk.chunk_id + 1,
+      //   (int)tof_obstacles_chunk.num_chunks,
+      //   (int)tof_obstacles_chunk.num_points_chunk,
+      //   (int)tof_obstacles_chunk.num_points_total
+      // );
 
       std::vector<Vector3f>& obstacles = _cbf_safety_filter.obstacles();
       if (_prev_obstacles_chunk_id < 0 || (int)tof_obstacles_chunk.chunk_id <= _prev_obstacles_chunk_id) {
@@ -330,10 +330,10 @@ void MulticopterSafeControl::Run()
         );
       }
 
-      PX4_INFO("Number of obstacles: %d", (int)obstacles.size());
-      for (std::size_t i = 0; i < std::min<std::size_t>(10, obstacles.size()); i++) {
-        PX4_INFO("Obstacle %d: %f, %f, %f", (int)i, (double)obstacles[i](0), (double)obstacles[i](1), (double)obstacles[i](2));
-      }
+      // PX4_INFO("Number of obstacles: %d", (int)obstacles.size());
+      // for (std::size_t i = 0; i < std::min<std::size_t>(10, obstacles.size()); i++) {
+      //   PX4_INFO("Obstacle %d: %f, %f, %f", (int)i, (double)obstacles[i](0), (double)obstacles[i](1), (double)obstacles[i](2));
+      // }
     }
 
     // =================================
