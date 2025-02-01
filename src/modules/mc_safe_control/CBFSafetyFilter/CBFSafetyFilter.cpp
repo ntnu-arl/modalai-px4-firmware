@@ -92,7 +92,7 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     // ===================================================================
 
     Vector3f e1(sinf(_fov_h), cosf(_fov_h), 0.f);
-    Vector3f e2(sinf(-_fov_h), cosf(-_fov_h), 0.f);
+    Vector3f e2(sinf(_fov_h), -cosf(_fov_h), 0.f);
     float h1 = powf((_velocity).dot(R_vehicle * e1), 2.f);
     float h2 = powf((_velocity).dot(R_vehicle * e2), 2.f);
     float Lf_h1 = 0.f;
