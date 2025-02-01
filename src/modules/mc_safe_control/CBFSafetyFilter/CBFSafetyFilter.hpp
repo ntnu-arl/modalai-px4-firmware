@@ -37,7 +37,7 @@ private:
 
     Vector3f _position;
     Vector3f _local_velocity;
-    Vector3f _velocity
+    Vector3f _velocity;
     Quatf _attitude;
     std::vector<Vector3f> _obstacles;
 //     std::vector<Vector3f> _rel_pos;
