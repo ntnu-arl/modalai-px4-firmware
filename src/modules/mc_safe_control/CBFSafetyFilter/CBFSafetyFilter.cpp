@@ -41,8 +41,15 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     Dcmf R_IB(_attitude);
     Dcmf R_BI = R_IB.transpose();
     Vector3f local_accel_setpoint = R_BI * acceleration_setpoint;
+    Eulerf euler_current(_attitude);
+    Eulerf euler_vehicle(0.f, 0.f, euler_current.psi());
+    Dcmf R_vehicle(euler_vehicle);
 
     _nu1.resize(n);
+
+    // ====================================================================
+    // ====================== composite collision CBF =====================
+    // ====================================================================
 
     // _nu1 = {nu_{i, 1}, i=0...n-1}
     for(size_t i = 0; i < n; i++) {
@@ -79,6 +86,27 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     // L_{g}h(x) * u, u = k_n(x) = a
     float Lg_h_u = Lg_h.dot(local_accel_setpoint);
 
+
+    // ===================================================================
+    // ======================== horizontal FoV CBF =======================
+    // ===================================================================
+
+    Vector3f e1(sinf(_fov_h), cosf(_fov_h), 0.f);
+    Vector3f e2(sinf(-_fov_h), cosf(-_fov_h), 0.f);
+    float h1 = powf((_velocity).dot(R_vehicle * e1), 2.f);
+    float h2 = powf((_velocity).dot(R_vehicle * e2), 2.f);
+    float Lf_h1 = 0.f;
+    float Lf_h2 = 0.f;
+    Vector3f Lg_h1 = -2 * R_vehicle * e1;
+    Vector3f Lg_h2 = -2 * R_vehicle * e2;
+
+    // implement the FoV CBFs as soft constraints
+
+
+
+
+
+
     // analytical QP solution from: https://arxiv.org/abs/2206.03568
 //     float eta = 0.f;
 //     float Lg_h_mag2 = Lg_h.norm_squared();
@@ -96,16 +124,20 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     USING_NAMESPACE_QPOASES
 
     // Hessian
-    real_t H[3*3] = {1.0, 0.0, 0.0,
-                     0.0, 1.0, 0.0,
-                     0.0, 0.0, 1.0};
+    real_t H[5*5] = {1.0, 0.0, 0.0, 0.0, 0.0,
+                     0.0, 1.0, 0.0, 0.0, 0.0,
+                     0.0, 0.0, 1.0, 0.0, 0.0,
+                     0.0, 0.0, 0.0, 0.0, 0.0,
+                     0.0, 0.0, 0.0, 0.0, 0.0};
     // constraint matrix 1x3
-    real_t  A[1*3] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2)};
-    real_t  g[3] = { 0.0, 0.0, 0.0 };
+    real_t  A[3*5] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,
+                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0, (real_t)0.0,
+                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0};
+    real_t  g[5] = { 0.0, 0.0, 0.0, 100.0, 100.0 };
     real_t* lb = NULL;
     real_t* ub = NULL;
     // lower bound
-    real_t  lbA[1] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u) };
+    real_t  lbA[3] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u), 0.0, 0.0 };
     real_t* ubA = NULL;
     int_t nWSR = 10;
 

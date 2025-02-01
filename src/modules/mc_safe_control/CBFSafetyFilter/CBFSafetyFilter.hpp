@@ -21,6 +21,7 @@ public:
         Dcmf R_IB(_attitude);
         Dcmf R_BI = R_IB.transpose();
         _local_velocity = R_BI * velocity;
+        _velocity = velocity;
     }
     void update(Vector3f& acceleration_setpoint, uint64_t timestamp);
 
@@ -36,6 +37,7 @@ private:
 
     Vector3f _position;
     Vector3f _local_velocity;
+    Vector3f _velocity
     Quatf _attitude;
     std::vector<Vector3f> _obstacles;
 //     std::vector<Vector3f> _rel_pos;
@@ -46,6 +48,7 @@ private:
     float _kappa = 10.f;
     float _gamma = 40.f;
     float _alpha = 1.f;
+    float _fov_h = 90.f / 180.f * M_PI;
 
     float saturate(float x);
     float saturateDerivative(float x);
