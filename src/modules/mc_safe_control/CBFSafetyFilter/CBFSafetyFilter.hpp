@@ -49,6 +49,7 @@ private:
     float _gamma = 40.f;
     float _alpha = 1.f;
     float _fov_h = 90.f / 180.f * M_PI;
+    float _alpha_fov = 3.f;
 
     float saturate(float x);
     float saturateDerivative(float x);

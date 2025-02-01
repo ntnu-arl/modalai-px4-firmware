@@ -129,15 +129,18 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
                      0.0, 0.0, 1.0, 0.0, 0.0,
                      0.0, 0.0, 0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0, 0.0, 0.0};
-    // constraint matrix 1x3
-    real_t  A[3*5] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,
-                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0, (real_t)0.0,
-                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0};
+    / linear cost matrix g*x
     real_t  g[5] = { 0.0, 0.0, 0.0, 100.0, 100.0 };
+    // constraint matrix 1x3
+    real_t  A[5*5] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,
+                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0, (real_t)0.0,
+                      (real_t)Lg_h1(0), (real_t)Lg_h1(1), (real_t)Lg_h1(2), (real_t)1.0, (real_t)0.0,
+                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0,
+                      (real_t)Lg_h2(0), (real_t)Lg_h2(1), (real_t)Lg_h2(2), 0.0, (real_t)1.0};
     real_t* lb = NULL;
     real_t* ub = NULL;
     // lower bound
-    real_t  lbA[3] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u), 0.0, 0.0 };
+    real_t  lbA[5] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
     real_t* ubA = NULL;
     int_t nWSR = 10;
 
