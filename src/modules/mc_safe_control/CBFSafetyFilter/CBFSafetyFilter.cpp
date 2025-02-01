@@ -97,8 +97,8 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     float h2 = powf((_velocity).dot(R_vehicle * e2), 2.f);
     float Lf_h1 = 0.f;
     float Lf_h2 = 0.f;
-    Vector3f Lg_h1 = -2 * R_vehicle * e1;
-    Vector3f Lg_h2 = -2 * R_vehicle * e2;
+    Vector3f Lg_h1 = -2.f * R_vehicle * e1;
+    Vector3f Lg_h2 = -2.f * R_vehicle * e2;
 
     // implement the FoV CBFs as soft constraints
 
@@ -129,7 +129,7 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
                      0.0, 0.0, 1.0, 0.0, 0.0,
                      0.0, 0.0, 0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0, 0.0, 0.0};
-    / linear cost matrix g*x
+    // linear cost matrix g*x
     real_t  g[5] = { 0.0, 0.0, 0.0, 100.0, 100.0 };
     // constraint matrix 1x3
     real_t  A[5*5] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,

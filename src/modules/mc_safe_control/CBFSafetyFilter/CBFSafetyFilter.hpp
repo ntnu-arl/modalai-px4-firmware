@@ -48,7 +48,7 @@ private:
     float _kappa = 10.f;
     float _gamma = 40.f;
     float _alpha = 1.f;
-    float _fov_h = 90.f / 180.f * M_PI;
+    float _fov_h = 90.f / 180.f * 3.1415f;
     float _alpha_fov = 3.f;
 
     float saturate(float x);
