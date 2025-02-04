@@ -39,7 +39,7 @@ private:
     uORB::Subscription _tof_obstacles_chunk_sub{ORB_ID(tof_obstacles_chunk)};
     int _prev_obstacles_chunk_id = -1;
 
-    Quatf _attitude
+    Quatf _attitude;
     Vector3f _body_velocity;
     Vector3f _vehicle_velocity;
     Vector3f _body_acceleration_setpoint;

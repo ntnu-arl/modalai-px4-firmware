@@ -147,7 +147,7 @@ void PositionControl::_velocityControl(const float dt)
 
 	// TODO: add enable flag as parameter
 	// TODO: check if _vel can be NAN
-	_cbf.fitler(_acc_sp, _vel, hrt_absolute_time())
+	_cbf.filter(_acc_sp, _vel, hrt_absolute_time());
 
 	_accelerationControl();
 
