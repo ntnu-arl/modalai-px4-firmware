@@ -463,7 +463,7 @@ void MulticopterSafeControl::Run()
 
         // run hover thrust estimator
         _current_thrust_estimate = -vehicle_attitude_setpoint.thrust_body[2] / _hover_thrust_estimate * CONSTANTS_ONE_G;
-        _thrust_compensation_factor = 0.01f * (_current_thrust_estimate / -_current_z_acceleration) + 0.99f* _thrust_compensation_factor;
+		_thrust_compensation_factor = 0.005f * (_current_thrust_estimate / -_current_z_acceleration) + 0.995f* _thrust_compensation_factor;
         _thrust_compensation_factor = math::constrain(_thrust_compensation_factor, 0.7f, 1.3f);
         // PX4_INFO("_current_thrust_estimate: %f", (double)_current_thrust_estimate);
         // PX4_INFO("_current_z_acceleration: %f", (double)_current_z_acceleration);
