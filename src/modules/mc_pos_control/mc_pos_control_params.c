@@ -898,3 +898,81 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_ALL, -10.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_ALL, -3.0f);
+
+/**
+ * CBF Epsilon
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 10000
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(CBF_EPSILON, 0.5f);
+
+/**
+ * CBF Pole 0
+ *
+ * ...
+ *
+ * @min -1000
+ * @max 0.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(CBF_POLE0, -2.f);
+
+/**
+ * CBF Kappa
+ *
+ * ...
+ *
+ * @min 1.0
+ * @max 100.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(CBF_KAPPA, 10.f);
+
+/**
+ * CBF Gamma
+ *
+ * ...
+ *
+ * @min 1.0
+ * @max 100.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(CBF_GAMMA, 40.f);
+
+/**
+ * CBF Alpha
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(CBF_ALPHA, 1.f);
+
+/**
+ * CBF Alpha for FoV constraints
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(CBF_ALPHA_FOV, 1.f);

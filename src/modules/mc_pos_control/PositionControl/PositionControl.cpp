@@ -145,6 +145,10 @@ void PositionControl::_velocityControl(const float dt)
 	// No control input from setpoints or corresponding states which are NAN
 	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
 
+	// TODO: add enable flag as parameter
+	// TODO: check if _vel can be NAN
+	_cbf.fitler(_acc_sp, _vel, hrt_absolute_time())
+
 	_accelerationControl();
 
 	// Integrator anti-windup in vertical direction

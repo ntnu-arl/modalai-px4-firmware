@@ -177,7 +177,15 @@ private:
 		(ParamFloat<px4::params::MPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
 
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
-		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
+		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all,
+
+		// CBF parameters
+		(ParamFloat<px4::params::CBF_EPSILON>)		_param_cbf_epsilon,  /**< TODO describe */
+		(ParamFloat<px4::params::CBF_POLE0>)		_param_cbf_pole0,
+		(ParamFloat<px4::params::CBF_KAPPA>)		_param_cbf_kappa,
+		(ParamFloat<px4::params::CBF_GAMMA>)		_param_cbf_gamma,
+		(ParamFloat<px4::params::CBF_ALPHA>)		_param_cbf_alpha,
+		(ParamFloat<px4::params::CBF_ALPHA_FOV>)	_param_cbf_alpha_fov
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */

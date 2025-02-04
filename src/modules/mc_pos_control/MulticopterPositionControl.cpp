@@ -260,6 +260,14 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_takeoff.setSpoolupTime(_param_com_spoolup_time.get());
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
 		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
+
+		// CBF parameters
+		_control.getCbf().setEpsilon(_param_cbf_epsilon.get());
+		_control.getCbf().setPole0(_param_cbf_pole0.get());
+		_control.getCbf().setKappa(_param_cbf_kappa.get());
+		_control.getCbf().setGamma(_param_cbf_gamma.get());
+		_control.getCbf().setAlpha(_param_cbf_alpha.get());
+		_control.getCbf().setAlphaFov(_param_cbf_alpha_fov.get());
 	}
 }
 

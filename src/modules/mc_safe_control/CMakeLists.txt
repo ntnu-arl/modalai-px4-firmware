@@ -47,9 +47,9 @@ px4_add_module(
 		PDPositionControl
 		PDAttitudeControl
 		CBFSafetyFilter
-		circuit_breaker
-		mathlib
-		RateControl
-		px4_work_queue
+		# circuit_breaker
+		# mathlib
+		# RateControl
+		# px4_work_queue
 		qpoases
 	)
