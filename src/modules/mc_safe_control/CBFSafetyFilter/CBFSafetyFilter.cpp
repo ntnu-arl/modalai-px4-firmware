@@ -55,7 +55,9 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     // _nu1 = {nu_{i, 1}, i=0...n-1}
     for(size_t i = 0; i < n; i++) {
         float nu_i0 = _obstacles[i].norm_squared() - (_epsilon * _epsilon);
+        // float nu_i0 = _obstacles[i].norm_() - (_epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_local_velocity);
+        // float Lf_nu_i0 = -1.f * _obstacles[i].dot(_local_velocity);
         float nu_i1 = Lf_nu_i0 - _pole0 * nu_i0;
         _nu1[i] = nu_i1;
     }
@@ -163,6 +165,9 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
     }
 
     dbg.timestamp = timestamp;
+    dbg.x = h;
+    dbg.y = h1;
+    dbg.z = h2;
     orb_publish(ORB_ID(debug_vect), pub_dbg, &dbg);
 }
 
