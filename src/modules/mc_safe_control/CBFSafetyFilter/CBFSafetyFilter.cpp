@@ -58,8 +58,7 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
         // float nu_i0 = _obstacles[i].norm_() - (_epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_local_velocity);
         // float Lf_nu_i0 = -1.f * _obstacles[i].dot(_local_velocity);
-        float nu_i1 = Lf_nu_i0 + kappaFunction(nu_i0, -_pole0);
-        // float nu_i1 = Lf_nu_i0 - _pole0 * nu_i0;
+        float nu_i1 = Lf_nu_i0 - _pole0 * nu_i0;
         _nu1[i] = nu_i1;
     }
 
@@ -135,7 +134,8 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
                       (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0,
                       (real_t)Lg_h2(0), (real_t)Lg_h2(1), (real_t)Lg_h2(2), 0.0, (real_t)1.0};
     // bounds on Ax
-    real_t  lbA[5] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
+    real_t  lbA[5] = { (real_t)(-Lf_h - kappaFunction(h, _alpha) - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
+    // real_t  lbA[5] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
     real_t* ubA = NULL;
     // bounds on x
     real_t* lb = NULL;
