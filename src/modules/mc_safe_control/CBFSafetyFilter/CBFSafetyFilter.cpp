@@ -58,7 +58,8 @@ void CBFSafetyFilter::update(Vector3f& acceleration_setpoint, uint64_t timestamp
         // float nu_i0 = _obstacles[i].norm_() - (_epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_local_velocity);
         // float Lf_nu_i0 = -1.f * _obstacles[i].dot(_local_velocity);
-        float nu_i1 = Lf_nu_i0 - _pole0 * nu_i0;
+        float nu_i1 = Lf_nu_i0 + kappaFunction(nu_i0, -_pole0);
+        // float nu_i1 = Lf_nu_i0 - _pole0 * nu_i0;
         _nu1[i] = nu_i1;
     }
 
@@ -179,4 +180,15 @@ float CBFSafetyFilter::saturate(float x) {
 float CBFSafetyFilter::saturateDerivative(float x) {
     float th = tanh(x);
     return 1.f - (th * th);
+}
+
+float CBFSafetyFilter::kappaFunction(float h, float alpha) {
+    float a = alpha;
+    float b = 1.f/alpha;
+    if (h>=0.f) {
+        return alpha * h;
+    }
+    else {
+        return a * b * ( h / (b + abs(h)) );
+    }
 }

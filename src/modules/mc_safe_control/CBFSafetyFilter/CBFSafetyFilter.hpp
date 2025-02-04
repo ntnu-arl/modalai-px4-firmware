@@ -53,4 +53,5 @@ private:
 
     float saturate(float x);
     float saturateDerivative(float x);
+    float kappaFunction(float h, float alpha);
 };
