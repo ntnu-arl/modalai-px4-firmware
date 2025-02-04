@@ -30,6 +30,7 @@ public:
     void setKappa(float kappa) { _kappa = kappa; }
     void setGamma(float gamma) { _gamma = gamma; }
     void setAlpha(float alpha) { _alpha = alpha; }
+    void setAlphaFov(float alpha) { _alpha_fov = alpha; }
 
     std::vector<Vector3f>& obstacles() { return _obstacles; }
 
@@ -49,7 +50,7 @@ private:
     float _gamma = 40.f;
     float _alpha = 1.f;
     float _fov_h = 40.f / 180.f * 3.1415f;
-    float _alpha_fov = 7.5f;
+    float _alpha_fov = 1f;
 
     float saturate(float x);
     float saturateDerivative(float x);

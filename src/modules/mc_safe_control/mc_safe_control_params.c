@@ -508,3 +508,16 @@ PARAM_DEFINE_FLOAT(SM_CBF_GAMMA, 40.f);
  * @group Multicopter SM CBF
  */
 PARAM_DEFINE_FLOAT(SM_CBF_ALPHA, 1.f);
+
+/**
+ * CBF Alpha for FoV constraints
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter SM CBF
+ */
+PARAM_DEFINE_FLOAT(SM_CBF_ALPHA_FOV, 1.f);

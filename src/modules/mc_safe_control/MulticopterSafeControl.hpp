@@ -278,7 +278,8 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 		(ParamFloat<px4::params::SM_CBF_POLE0>)		_param_cbf_pole0,
 		(ParamFloat<px4::params::SM_CBF_KAPPA>)		_param_cbf_kappa,
 		(ParamFloat<px4::params::SM_CBF_GAMMA>)		_param_cbf_gamma,
-		(ParamFloat<px4::params::SM_CBF_ALPHA>)		_param_cbf_alpha
+		(ParamFloat<px4::params::SM_CBF_ALPHA>)		_param_cbf_alpha,
+		(ParamFloat<px4::params::SM_CBF_ALPHA_FOV>)	_param_cbf_alpha_fov
 	)
 };
 

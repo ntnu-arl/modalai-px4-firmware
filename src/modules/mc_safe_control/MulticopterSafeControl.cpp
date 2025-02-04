@@ -108,6 +108,7 @@ void MulticopterSafeControl::parameters_updated()
   _cbf_safety_filter.setKappa(_param_cbf_kappa.get());
   _cbf_safety_filter.setGamma(_param_cbf_gamma.get());
   _cbf_safety_filter.setAlpha(_param_cbf_alpha.get());
+  _cbf_safety_filter.setAlphaFov(_param_cbf_alpha_fov.get());
 }
 
 float MulticopterSafeControl::throttle_curve(float throttle_stick_input)
