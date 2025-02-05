@@ -26,17 +26,18 @@ void CBFSafetyFilter::updateObstacles() {
     tof_obstacles_chunk_s tof_obstacles_chunk;
     if (_tof_obstacles_chunk_sub.update(&tof_obstacles_chunk))
     {
-        if (_prev_obstacles_chunk_id < 0 || (int)tof_obstacles_chunk.chunk_id <= _prev_obstacles_chunk_id) {
+        if (_prev_obstacles_chunk_id < 0 || (int)tof_obstacles_chunk.chunk_id <= _prev_obstacles_chunk_id)
+        {
             _obstacles.clear();
         }
         _prev_obstacles_chunk_id = (int)tof_obstacles_chunk.chunk_id;
         for (int i = 0; i < tof_obstacles_chunk.num_points_chunk; i++)
         {
-            _obstacles.emplace_back(
+            _obstacles.push_back(Vector3f(
                 tof_obstacles_chunk.points_x[i],
                 tof_obstacles_chunk.points_y[i],
                 tof_obstacles_chunk.points_z[i]
-            );
+            ));
         }
     }
 }
@@ -74,7 +75,6 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
 
     // composite collision CBF
     // nu1_i
-    _nu1.resize(n);
     for(size_t i = 0; i < n; i++) {
         float nu_i0 = _obstacles[i].norm_squared() - (_epsilon * _epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_body_velocity);

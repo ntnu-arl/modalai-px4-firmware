@@ -10,14 +10,14 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <qpOASES.hpp>
 
-#include <vector>
+#include <containers/Array.hpp>
 
 using namespace matrix;
 using namespace qpOASES;
-// USING_NAMESPACE_QPOASES;
 
-#define NV 5
-#define NC 5
+#define NV 5  // nb of QP variables
+#define NC 5  // nb of QP consntraints
+#define CBF_MAX_OBSTACLES 200
 
 class CBFSafetyFilter
 {
@@ -47,8 +47,8 @@ private:
     Vector3f _vehicle_velocity;
     Vector3f _body_acceleration_setpoint;
 
-    std::vector<Vector3f> _obstacles;
-    std::vector<float> _nu1;
+    px4::Array<Vector3f, CBF_MAX_OBSTACLES> _obstacles;
+    px4::Array<float, CBF_MAX_OBSTACLES> _nu1;
 
     float _epsilon;
     float _pole0;
