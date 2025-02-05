@@ -16,6 +16,9 @@ using namespace matrix;
 using namespace qpOASES;
 // USING_NAMESPACE_QPOASES;
 
+#define NV 5
+#define NC 5
+
 class CBFSafetyFilter
 {
 public:
@@ -63,9 +66,6 @@ private:
     float saturateDerivative(float x);
     float kappaFunction(float h, float alpha);
 
-    // int_t _nWSR = 50;
-    // static const int_t _nV = 5;
-    // static const int_t _nC = 5;
-    // QProblem qp;
-    // real_t xOpt[_nV];
+    QProblem qp;
+    real_t xOpt[NV];
 };

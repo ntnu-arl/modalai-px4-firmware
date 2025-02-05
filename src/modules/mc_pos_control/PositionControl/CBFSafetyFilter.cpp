@@ -13,8 +13,8 @@ static struct debug_vect_s dbg;
 static orb_advert_t pub_dbg;
 
 CBFSafetyFilter::CBFSafetyFilter() {
-    // qp = QProblem(_nV, _nC);
-    // qp.setPrintLevel(PL_NONE);
+    qp = QProblem(NV, NC);
+    qp.setPrintLevel(PL_NONE);
 
     dbg.x = 0.0f;
     dbg.y = 0.0f;
@@ -137,37 +137,31 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
 
     // solve QP
     // quadratic cost x^T*H*x
-    real_t H[5*5] = {1.0, 0.0, 0.0, 0.0, 0.0,
+    real_t H[NV*NV] = {1.0, 0.0, 0.0, 0.0, 0.0,
                      0.0, 1.0, 0.0, 0.0, 0.0,
                      0.0, 0.0, 3.0, 0.0, 0.0,
                      0.0, 0.0, 0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0, 0.0, 0.0};
     // linear cost matrix g*x
-    real_t  g[5] = { 0.0, 0.0, 0.0, 50.0, 50.0 };
+    real_t  g[NV] = { 0.0, 0.0, 0.0, 50.0, 50.0 };
     // constraint matrix A
-    real_t  A[5*5] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,
+    real_t  A[NC*NV] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,
                       (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0, (real_t)0.0,
                       (real_t)Lg_h1(0), (real_t)Lg_h1(1), (real_t)Lg_h1(2), (real_t)1.0, (real_t)0.0,
                       (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0,
                       (real_t)Lg_h2(0), (real_t)Lg_h2(1), (real_t)Lg_h2(2), 0.0, (real_t)1.0};
     // bounds on Ax
-    real_t  lbA[5] = { (real_t)(-Lf_h - kappaFunction(h, _alpha) - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
-    // real_t  lbA[5] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
+    real_t  lbA[NC] = { (real_t)(-Lf_h - kappaFunction(h, _alpha) - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
     real_t* ubA = NULL;
     // bounds on x
     real_t* lb = NULL;
     real_t* ub = NULL;
     int_t nWSR = 50;
 
-    int_t nV = 5;
-    int_t nC = 5;
-    QProblem qp(nV, nC);
-    qp.setPrintLevel(PL_NONE);
     returnValue qp_status = qp.init(H, g, A, lb, ub, lbA, ubA, nWSR);
 
     switch(qp_status) {
         case SUCCESSFUL_RETURN: {
-            real_t xOpt[5];
             qp.getPrimalSolution(xOpt);
             Vector3f acceleration_correction(xOpt[0], xOpt[1], xOpt[2]);
             _body_acceleration_setpoint += acceleration_correction;
@@ -187,7 +181,7 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     dbg.timestamp = timestamp;
     dbg.x = h;
     dbg.y = h1;
-    dbg.z = h2;
+    dbg.z = (float) n;
     orb_publish(ORB_ID(debug_vect), pub_dbg, &dbg);
 }
 
