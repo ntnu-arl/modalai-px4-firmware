@@ -13,8 +13,8 @@ static struct debug_vect_s dbg;
 static orb_advert_t pub_dbg;
 
 CBFSafetyFilter::CBFSafetyFilter() {
-    qp = QProblem(_nV, _nC);
-    qp.setPrintLevel(PL_NONE);
+    // qp = QProblem(_nV, _nC);
+    // qp.setPrintLevel(PL_NONE);
 
     dbg.x = 0.0f;
     dbg.y = 0.0f;
@@ -51,17 +51,21 @@ void CBFSafetyFilter::updateAttitude() {
 }
 
 void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& velocity, uint64_t timestamp) {
+    // TODO reset obstacle with timer
     // pass through if no obstacles are recorded
+    updateAttitude();
     updateObstacles();
     const size_t n = _obstacles.size();
     if (n == 0) return;
 
     // compute local state
-    Eulerf euler_current(_attitude);
     Dcmf R_WB(_attitude);
     Dcmf R_BW = R_WB.transpose();
-    Dcmf R_VW(Eulerf(0.f, 0.f, -euler_current.psi()));
-    Dcmf R_BV = R_BW * R_VW.transpose();
+    Eulerf euler_current(_attitude);
+    Eulerf euler_WV(0.f, 0.f, euler_current.psi());
+    Dcmf R_WV(euler_WV);
+    Dcmf R_VW = R_WV.transpose();
+    Dcmf R_BV = R_BW * R_WV;
 
     _body_acceleration_setpoint = R_BW * acceleration_setpoint;
     _body_velocity = R_BW * velocity;
@@ -74,8 +78,7 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     for(size_t i = 0; i < n; i++) {
         float nu_i0 = _obstacles[i].norm_squared() - (_epsilon * _epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_body_velocity);
-        float nu_i1 = Lf_nu_i0 - _pole0 * nu_i0;
-        _nu1[i] = nu_i1;
+        _nu1[i] = Lf_nu_i0 - _pole0 * nu_i0;
     }
 
     // h(x)
@@ -118,32 +121,53 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     Vector3f Lg_h2 = R_BV * e2;
 
 
+    // analytical QP solution from: https://arxiv.org/abs/2206.03568
+    // float eta = 0.f;
+    // float Lg_h_mag2 = Lg_h.norm_squared();
+    // if (Lg_h_mag2 > 1e-5f) {
+    //     eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
+    // }
+    // Vector3f local_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
+    // dbg.x = local_correction(0);
+    // dbg.y = local_correction(1);
+    // dbg.z = local_correction(2);
+    // local_accel_setpoint += local_correction;
+    // acceleration_setpoint = R_IB * local_accel_setpoint;
+
+
     // solve QP
     // quadratic cost x^T*H*x
-    real_t H[_nV*_nV] = {1.0, 0.0, 0.0, 0.0, 0.0,
-                         0.0, 1.0, 0.0, 0.0, 0.0,
-                         0.0, 0.0, 3.0, 0.0, 0.0,
-                         0.0, 0.0, 0.0, 0.0, 0.0,
-                         0.0, 0.0, 0.0, 0.0, 0.0};
+    real_t H[5*5] = {1.0, 0.0, 0.0, 0.0, 0.0,
+                     0.0, 1.0, 0.0, 0.0, 0.0,
+                     0.0, 0.0, 3.0, 0.0, 0.0,
+                     0.0, 0.0, 0.0, 0.0, 0.0,
+                     0.0, 0.0, 0.0, 0.0, 0.0};
     // linear cost matrix g*x
-    real_t g[_nV] = { 0.0, 0.0, 0.0, 50.0, 50.0 };
+    real_t  g[5] = { 0.0, 0.0, 0.0, 50.0, 50.0 };
     // constraint matrix A
-    real_t A[_nC*_nV] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), 0.0, 0.0,
-                      0.0, 0.0, 0.0, 1.0, 0.0,
-                      (real_t)Lg_h1(0), (real_t)Lg_h1(1), (real_t)Lg_h1(2), 1.0, 0.0,
-                      0.0, 0.0, 0.0, 0.0, 1.0,
-                      (real_t)Lg_h2(0), (real_t)Lg_h2(1), (real_t)Lg_h2(2), 0.0, 1.0};
+    real_t  A[5*5] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,
+                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0, (real_t)0.0,
+                      (real_t)Lg_h1(0), (real_t)Lg_h1(1), (real_t)Lg_h1(2), (real_t)1.0, (real_t)0.0,
+                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0,
+                      (real_t)Lg_h2(0), (real_t)Lg_h2(1), (real_t)Lg_h2(2), 0.0, (real_t)1.0};
     // bounds on Ax
-    real_t lbA[_nC] = { (real_t)(-Lf_h - kappaFunction(h, _alpha) - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
+    real_t  lbA[5] = { (real_t)(-Lf_h - kappaFunction(h, _alpha) - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
+    // real_t  lbA[5] = { (real_t)(-Lf_h - _alpha * h - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
     real_t* ubA = NULL;
     // bounds on x
     real_t* lb = NULL;
     real_t* ub = NULL;
+    int_t nWSR = 50;
 
-    returnValue qp_status = qp.init(H, g, A, lb, ub, lbA, ubA, _nWSR);
+    int_t nV = 5;
+    int_t nC = 5;
+    QProblem qp(nV, nC);
+    qp.setPrintLevel(PL_NONE);
+    returnValue qp_status = qp.init(H, g, A, lb, ub, lbA, ubA, nWSR);
 
     switch(qp_status) {
         case SUCCESSFUL_RETURN: {
+            real_t xOpt[5];
             qp.getPrimalSolution(xOpt);
             Vector3f acceleration_correction(xOpt[0], xOpt[1], xOpt[2]);
             _body_acceleration_setpoint += acceleration_correction;

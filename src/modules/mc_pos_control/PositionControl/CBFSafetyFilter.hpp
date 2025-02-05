@@ -63,9 +63,9 @@ private:
     float saturateDerivative(float x);
     float kappaFunction(float h, float alpha);
 
-    int_t _nWSR = 50;
-    static const int_t _nV = 5;
-    static const int_t _nC = 5;
-    QProblem qp;
-    real_t xOpt[_nV];
+    // int_t _nWSR = 50;
+    // static const int_t _nV = 5;
+    // static const int_t _nC = 5;
+    // QProblem qp;
+    // real_t xOpt[_nV];
 };
