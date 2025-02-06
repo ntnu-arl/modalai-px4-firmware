@@ -564,6 +564,11 @@ void MulticopterPositionControl::Run()
 				_control.update(dt);
 			}
 
+      cbf_debug_s cbf_debug_msg;
+      cbf_debug_msg.timestamp = hrt_absolute_time();
+      _control.getCbf().getDebug(cbf_debug_msg);
+      _cbf_debug_pub.publish(cbf_debug_msg);
+
 			// Publish internal position control setpoints
 			// on top of the input/feed-forward setpoints these containt the PID corrections
 			// This message is used by other modules (such as Landdetector) to determine vehicle intention.

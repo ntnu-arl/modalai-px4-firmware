@@ -8,6 +8,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/tof_obstacles_chunk.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/cbf_debug.h>
 #include <qpOASES.hpp>
 
 #include <containers/Array.hpp>
@@ -37,6 +38,13 @@ public:
     void setAlpha(float alpha) { _alpha = alpha; }
     void setAlphaFov(float alpha) { _alpha_fov = alpha; }
 
+    void getDebug(cbf_debug_s& debug_msg)
+    {
+      debug_msg.h = _debug_msg.h;
+      memcpy(debug_msg.input, _debug_msg.input, 3);
+      memcpy(debug_msg.output, _debug_msg.output, 3);
+    };
+
 private:
     uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
     uORB::Subscription _tof_obstacles_chunk_sub{ORB_ID(tof_obstacles_chunk)};
@@ -48,6 +56,8 @@ private:
 
     px4::Array<Vector3f, CBF_MAX_OBSTACLES> _obstacles;
     px4::Array<float, CBF_MAX_OBSTACLES> _nu1;
+
+    cbf_debug_s _debug_msg;
 
     float _epsilon;
     float _pole0;

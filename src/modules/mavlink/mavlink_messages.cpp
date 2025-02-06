@@ -483,6 +483,9 @@ static const StreamListItem streams_list[] = {
 #if defined(UAVIONIX_ADSB_OUT_DYNAMIC_HPP)
 	create_stream_list_item<MavlinkStreamUavionixADSBOutDynamic>()
 #endif // UAVIONIX_ADSB_OUT_DYNAMIC_HPP
+#if defined(CBF_DEBUG_HPP)
+	create_stream_list_item<MavlinkStreamCbfDebug>(),
+#endif // CBF_DEBUG_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)

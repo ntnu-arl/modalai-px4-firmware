@@ -140,7 +140,6 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     Vector3f Lg_h1 = R_BV * e1;
     Vector3f Lg_h2 = R_BV * e2;
 
-
     // analytical QP solution from: https://arxiv.org/abs/2206.03568
     // float eta = 0.f;
     // float Lg_h_mag2 = Lg_h.norm_squared();
@@ -154,6 +153,11 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     // local_accel_setpoint += local_correction;
     // acceleration_setpoint = R_IB * local_accel_setpoint;
 
+    _debug_msg.h = h;
+    // _debug_msg.virtual_obstacle = ; // TODO: marvin
+    _debug_msg.input[0] = acceleration_setpoint(0);
+    _debug_msg.input[1] = acceleration_setpoint(1);
+    _debug_msg.input[2] = acceleration_setpoint(2);
 
     // solve QP
     // quadratic cost x^T*H*x
@@ -199,6 +203,10 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     }
 
     clampAccSetpoint(acceleration_setpoint);
+    
+    _debug_msg.output[0] = acceleration_setpoint(0);
+    _debug_msg.output[1] = acceleration_setpoint(1);
+    _debug_msg.output[2] = acceleration_setpoint(2);
 
     dbg.timestamp = timestamp;
     dbg.x = h;
