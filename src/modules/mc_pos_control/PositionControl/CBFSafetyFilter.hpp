@@ -41,8 +41,8 @@ public:
     void getDebug(cbf_debug_s& debug_msg)
     {
       debug_msg.h = _debug_msg.h;
-      memcpy(debug_msg.input, _debug_msg.input, 3);
-      memcpy(debug_msg.output, _debug_msg.output, 3);
+      memcpy(debug_msg.input, _debug_msg.input, 3 * sizeof(debug_msg.input[0]));
+      memcpy(debug_msg.output, _debug_msg.output, 3 * sizeof(debug_msg.input[0]));
     };
 
 private:
