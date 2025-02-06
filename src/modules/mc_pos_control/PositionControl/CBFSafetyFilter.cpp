@@ -161,7 +161,7 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
                      0.0, 0.0, 0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0, 0.0, 0.0};
     // linear cost matrix g*x
-    real_t  g[NV] = { 0.0, 0.0, 0.0, 50.0, 50.0 };
+    real_t  g[NV] = { 0.0, 0.0, 0.0, (real_t)_fov_slack, (real_t)_fov_slack };
     // constraint matrix A
     real_t  A[NC*NV] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,
                       (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0, (real_t)0.0,
@@ -169,7 +169,7 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
                       (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0,
                       (real_t)Lg_h2(0), (real_t)Lg_h2(1), (real_t)Lg_h2(2), 0.0, (real_t)1.0};
     // bounds on Ax
-    real_t  lbA[NC] = { (real_t)(-Lf_h - kappaFunction(h, _alpha) - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _alpha_fov * h1), 0.0, (real_t)(-Lf_h2 - _alpha_fov * h2) };
+    real_t  lbA[NC] = { (real_t)(-Lf_h - kappaFunction(h, _alpha) - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _fov_alpha * h1), 0.0, (real_t)(-Lf_h2 - _fov_alpha * h2) };
     real_t* ubA = NULL;
     // bounds on x
     real_t* lb = NULL;
@@ -182,8 +182,8 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
 
     switch(qp_status) {
         case SUCCESSFUL_RETURN: {
-            qp.getPrimalSolution(xOpt);
-            Vector3f acceleration_correction(xOpt[0], xOpt[1], xOpt[2]);
+            qp.getPrimalSolution(_xOpt);
+            Vector3f acceleration_correction(_xOpt[0], _xOpt[1], _xOpt[2]);
             _body_acceleration_setpoint += acceleration_correction;
             acceleration_setpoint = R_WB * _body_acceleration_setpoint;
             _debug_msg.qp_fail = 0;
@@ -204,8 +204,8 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     _debug_msg.output[0] = acceleration_setpoint(0);
     _debug_msg.output[1] = acceleration_setpoint(1);
     _debug_msg.output[2] = acceleration_setpoint(2);
-    _debug_msg.slack[0] = xOpt(3);
-    _debug_msg.slack[1] = xOpt(4);
+    _debug_msg.slack[0] = _xOpt[3];
+    _debug_msg.slack[1] = _xOpt[4];
 }
 
 void CBFSafetyFilter::clampAccSetpoint(Vector3f& acceleration_setpoint) {

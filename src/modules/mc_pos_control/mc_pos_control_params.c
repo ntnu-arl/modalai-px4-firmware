@@ -975,7 +975,20 @@ PARAM_DEFINE_FLOAT(CBF_ALPHA, 1.f);
  * @increment 0.01
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(CBF_ALPHA_FOV, 1.f);
+PARAM_DEFINE_FLOAT(CBF_FOV_ALPHA, 1.f);
+
+/**
+ * FoV constraints slack gain
+ *
+ * ...
+ *
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter Position Control
+ */
+ PARAM_DEFINE_FLOAT(CBF_FOV_SLACK, 50.f);
 
 /**
  * Enable CBF safety filter
