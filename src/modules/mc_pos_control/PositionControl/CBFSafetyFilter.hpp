@@ -40,7 +40,6 @@ public:
 private:
     uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
     uORB::Subscription _tof_obstacles_chunk_sub{ORB_ID(tof_obstacles_chunk)};
-    int _prev_obstacles_chunk_id = -1;
 
     Quatf _attitude;
     Vector3f _body_velocity;

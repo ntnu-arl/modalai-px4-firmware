@@ -26,18 +26,38 @@ void CBFSafetyFilter::updateObstacles() {
     tof_obstacles_chunk_s tof_obstacles_chunk;
     if (_tof_obstacles_chunk_sub.update(&tof_obstacles_chunk))
     {
-        if (_prev_obstacles_chunk_id < 0 || (int)tof_obstacles_chunk.chunk_id <= _prev_obstacles_chunk_id)
+        // TODO make this part of the message
+        size_t max_chunk_size = 20;
+
+        // if we get a new pointcloud with fewer points than the previous, remove the overflow
+        for (size_t i = _obstacles.size() ; i >= tof_obstacles_chunk.num_points_total ; i--)
         {
-            _obstacles.clear();
+            _obstacles.remove(i);
         }
-        _prev_obstacles_chunk_id = (int)tof_obstacles_chunk.chunk_id;
-        for (int i = 0; i < tof_obstacles_chunk.num_points_chunk; i++)
-        {
-            _obstacles.push_back(Vector3f(
-                tof_obstacles_chunk.points_x[i],
-                tof_obstacles_chunk.points_y[i],
-                tof_obstacles_chunk.points_z[i]
-            ));
+
+        for (
+            size_t i_obs = tof_obstacles_chunk.chunk_id * max_chunk_size, i_chnk = 0 ;
+            i_chnk < tof_obstacles_chunk.num_points_chunk ;
+            i_obs++, i_chnk++
+        ) {
+            // if the obstacle array is already large enough, replace
+            if (i_obs < _obstacles.size())
+            {
+                _obstacles[i_obs] = Vector3f(
+                    tof_obstacles_chunk.points_x[i_chnk],
+                    tof_obstacles_chunk.points_y[i_chnk],
+                    tof_obstacles_chunk.points_z[i_chnk]
+                );
+            }
+            // else, pushback
+            else
+            {
+                _obstacles.push_back(Vector3f(
+                    tof_obstacles_chunk.points_x[i_chnk],
+                    tof_obstacles_chunk.points_y[i_chnk],
+                    tof_obstacles_chunk.points_z[i_chnk]
+                ));
+            }
         }
     }
 }
@@ -158,6 +178,8 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     real_t* ub = NULL;
     int_t nWSR = 50;
 
+    qp = QProblem(NV, NC);
+    qp.setPrintLevel(PL_NONE);
     returnValue qp_status = qp.init(H, g, A, lb, ub, lbA, ubA, nWSR);
 
     switch(qp_status) {

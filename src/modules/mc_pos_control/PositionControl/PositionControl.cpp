@@ -147,7 +147,10 @@ void PositionControl::_velocityControl(const float dt)
 
 	// TODO: add enable flag as parameter
 	// TODO: check if _vel can be NAN
+	// [[maybe_unused]] hrt_abstime tic = hrt_absolute_time();
 	_cbf.filter(_acc_sp, _vel, hrt_absolute_time());
+	// [[maybe_unused]] hrt_abstime toc = hrt_absolute_time();
+	// PX4_INFO("cbf_filter duration: %llu", toc - tic);
 
 	_accelerationControl();
 
