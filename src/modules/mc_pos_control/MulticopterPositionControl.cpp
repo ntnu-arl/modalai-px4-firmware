@@ -564,7 +564,7 @@ void MulticopterPositionControl::Run()
 				_control.update(dt);
 			}
 
-      cbf_debug_s cbf_debug_msg;
+      cbf_debug_s cbf_debug_msg{};
       cbf_debug_msg.timestamp = hrt_absolute_time();
       _control.getCbf().getDebug(cbf_debug_msg);
       _cbf_debug_pub.publish(cbf_debug_msg);

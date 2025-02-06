@@ -56,7 +56,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
 	add_topic_multi("cpuload");
-	add_topic("debug_vect", 10);
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
@@ -133,6 +132,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
 	add_topic("actuator_outputs_debug");
+	add_topic("cbf_debug", 10);
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);

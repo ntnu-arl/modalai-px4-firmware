@@ -4,22 +4,12 @@
 #include <CBFSafetyFilter.hpp>
 
 #include <px4_platform_common/module.h>
-#include <uORB/topics/debug_vect.h>
-#include <uORB/Publication.hpp>
 #include <math.h>
 #include <string.h>
-
-static struct debug_vect_s dbg;
-static orb_advert_t pub_dbg;
 
 CBFSafetyFilter::CBFSafetyFilter() {
     qp = QProblem(NV, NC);
     qp.setPrintLevel(PL_NONE);
-
-    dbg.x = 0.0f;
-    dbg.y = 0.0f;
-    dbg.z = 0.0f;
-    pub_dbg = orb_advertise(ORB_ID(debug_vect), &dbg);
 }
 
 void CBFSafetyFilter::updateObstacles() {
@@ -203,16 +193,10 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     }
 
     clampAccSetpoint(acceleration_setpoint);
-    
+
     _debug_msg.output[0] = acceleration_setpoint(0);
     _debug_msg.output[1] = acceleration_setpoint(1);
     _debug_msg.output[2] = acceleration_setpoint(2);
-
-    dbg.timestamp = timestamp;
-    dbg.x = h;
-    dbg.y = h1;
-    dbg.z = (float) n;
-    orb_publish(ORB_ID(debug_vect), pub_dbg, &dbg);
 }
 
 void CBFSafetyFilter::clampAccSetpoint(Vector3f& acceleration_setpoint) {
