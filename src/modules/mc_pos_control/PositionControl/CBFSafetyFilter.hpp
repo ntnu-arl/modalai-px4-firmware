@@ -38,6 +38,7 @@ public:
     void setAlpha(float alpha) { _alpha = alpha; }
     void setFovAlpha(float fov_alpha) { _fov_alpha = fov_alpha; }
     void setFovSlack(float fov_slack) { _fov_slack = fov_slack; }
+    void setLpGain(float lp_gain) { _lp_gain = lp_gain; }
     void setEnabled(bool enabled) { _enabled = enabled; }
 
     void getDebug(cbf_debug_s& debug_msg)
@@ -60,6 +61,7 @@ private:
     Vector3f _body_velocity;
     Vector3f _vehicle_velocity;
     Vector3f _body_acceleration_setpoint;
+    Vector3f _acceleration_setpoint_filt;
 
     px4::Array<Vector3f, CBF_MAX_OBSTACLES> _obstacles;
     px4::Array<float, CBF_MAX_OBSTACLES> _nu1;
@@ -73,6 +75,7 @@ private:
     float _alpha;
     float _fov_alpha;
     float _fov_slack;
+    float _lp_gain;
     bool _enabled;
     const float _fov_h = 40.f / 180.f * 3.1415f;  // TODO set as param
 

@@ -990,6 +990,19 @@ PARAM_DEFINE_FLOAT(CBF_FOV_ALPHA, 1.f);
  */
  PARAM_DEFINE_FLOAT(CBF_FOV_SLACK, 50.f);
 
+ /**
+  * CBF low pass filter gain
+  *
+  * ...
+  *
+  * @min 0.0
+  * @max 1.0
+  * @decimal 2
+  * @increment 0.001
+  * @group Multicopter Position Control
+  */
+  PARAM_DEFINE_FLOAT(CBF_LP_GAIN, 0.01f);
+
 /**
  * Enable CBF safety filter
  *

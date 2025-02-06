@@ -189,6 +189,7 @@ private:
 		(ParamFloat<px4::params::CBF_ALPHA>)		_param_cbf_alpha,
 		(ParamFloat<px4::params::CBF_FOV_ALPHA>)	_param_cbf_fov_alpha,
 		(ParamFloat<px4::params::CBF_FOV_SLACK>)	_param_cbf_fov_slack,
+		(ParamFloat<px4::params::CBF_LP_GAIN>)		_param_cbf_lp_gain,
 		(ParamBool<px4::params::CBF_ENABLED>)		_param_cbf_enabled
 	);
 

@@ -65,6 +65,8 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     if  (!_enabled) return;
     uint64_t tic = hrt_absolute_time();
 
+    _acceleration_setpoint_filt = (1.f - _lp_gain) * _acceleration_setpoint_filt + _lp_gain * acceleration_setpoint;
+
     // TODO reset obstacle with timer
     // pass through if no obstacles are recorded
     updateAttitude();
@@ -78,12 +80,12 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     Eulerf euler_current(_attitude);
     Eulerf euler_WV(0.f, 0.f, euler_current.psi());
     Dcmf R_WV(euler_WV);
-    Dcmf R_VW = R_WV.transpose();
+    // Dcmf R_VW = R_WV.transpose();
     Dcmf R_BV = R_BW * R_WV;
 
-    _body_acceleration_setpoint = R_BW * acceleration_setpoint;
+    _body_acceleration_setpoint = R_BW * _acceleration_setpoint_filt;
     _body_velocity = R_BW * velocity;
-    _vehicle_velocity = R_VW * velocity;
+    // _vehicle_velocity = R_VW * velocity;
 
 
     // composite collision CBF
@@ -126,12 +128,14 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     // horizontal FoV CBF
     Vector3f e1(sinf(_fov_h), cosf(_fov_h), 0.f);
     Vector3f e2(sinf(_fov_h), -cosf(_fov_h), 0.f);
-    float h1 = (e1).dot(_vehicle_velocity);
-    float h2 = (e2).dot(_vehicle_velocity);
+    e1 = R_BV * e1;
+    e2 = R_BV * e2;
+    float h1 = (e1).dot(_body_velocity);
+    float h2 = (e2).dot(_body_velocity);
     float Lf_h1 = 0.f;
     float Lf_h2 = 0.f;
-    Vector3f Lg_h1 = R_BV * e1;
-    Vector3f Lg_h2 = R_BV * e2;
+    Vector3f Lg_h1 = e1;
+    Vector3f Lg_h2 = e2;
 
     // analytical QP solution from: https://arxiv.org/abs/2206.03568
     // float eta = 0.f;
@@ -157,18 +161,18 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     // solve QP
     // quadratic cost x^T*H*x
     real_t H[NV*NV] = {1.0, 0.0, 0.0, 0.0, 0.0,
-                     0.0, 1.0, 0.0, 0.0, 0.0,
-                     0.0, 0.0, 3.0, 0.0, 0.0,
-                     0.0, 0.0, 0.0, 0.0, 0.0,
-                     0.0, 0.0, 0.0, 0.0, 0.0};
+                       0.0, 1.0, 0.0, 0.0, 0.0,
+                       0.0, 0.0, 3.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0, 0.0, 0.0};
     // linear cost matrix g*x
     real_t  g[NV] = { 0.0, 0.0, 0.0, (real_t)_fov_slack, (real_t)_fov_slack };
     // constraint matrix A
-    real_t  A[NC*NV] = {(real_t)Lg_h(0), (real_t)Lg_h(1), (real_t)Lg_h(2), (real_t)0.0, (real_t)0.0,
-                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0, (real_t)0.0,
-                      (real_t)Lg_h1(0), (real_t)Lg_h1(1), (real_t)Lg_h1(2), (real_t)1.0, (real_t)0.0,
-                      (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)0.0, (real_t)1.0,
-                      (real_t)Lg_h2(0), (real_t)Lg_h2(1), (real_t)Lg_h2(2), 0.0, (real_t)1.0};
+    real_t  A[NC*NV] = {(real_t)Lg_h(0),  (real_t)Lg_h(1),  (real_t)Lg_h(2),  (real_t)0.0, (real_t)0.0,
+                        (real_t)0.0,      (real_t)0.0,      (real_t)0.0,      (real_t)1.0, (real_t)0.0,
+                        (real_t)Lg_h1(0), (real_t)Lg_h1(1), (real_t)Lg_h1(2), (real_t)1.0, (real_t)0.0,
+                        (real_t)0.0,      (real_t)0.0,      (real_t)0.0,      (real_t)0.0, (real_t)1.0,
+                        (real_t)Lg_h2(0), (real_t)Lg_h2(1), (real_t)Lg_h2(2), (real_t)0.0, (real_t)1.0};
     // bounds on Ax
     real_t  lbA[NC] = { (real_t)(-Lf_h - kappaFunction(h, _alpha) - Lg_h_u), 0.0, (real_t)(-Lf_h1 - _fov_alpha * h1), 0.0, (real_t)(-Lf_h2 - _fov_alpha * h2) };
     real_t* ubA = NULL;
