@@ -976,3 +976,13 @@ PARAM_DEFINE_FLOAT(CBF_ALPHA, 1.f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(CBF_ALPHA_FOV, 1.f);
+
+/**
+ * Enable CBF safety filter
+ *
+ * ...
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(CBF_ENABLED, 0);

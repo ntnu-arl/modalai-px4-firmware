@@ -268,6 +268,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_control.getCbf().setGamma(_param_cbf_gamma.get());
 		_control.getCbf().setAlpha(_param_cbf_alpha.get());
 		_control.getCbf().setAlphaFov(_param_cbf_alpha_fov.get());
+		_control.getCbf().setEnabled((bool)_param_cbf_enabled.get());		
 	}
 }
 

@@ -36,7 +36,8 @@ public:
     void setKappa(float kappa) { _kappa = kappa; }
     void setGamma(float gamma) { _gamma = gamma; }
     void setAlpha(float alpha) { _alpha = alpha; }
-    void setAlphaFov(float alpha) { _alpha_fov = alpha; }
+    void setAlphaFov(float alpha_fov) { _alpha_fov = alpha_fov; }
+    void setEnabled(bool enabled) { _enabled = enabled; }
 
     void getDebug(cbf_debug_s& debug_msg)
     {
@@ -65,6 +66,7 @@ private:
     float _gamma;
     float _alpha;
     float _alpha_fov;
+    bool _enabled;
     const float _fov_h = 40.f / 180.f * 3.1415f;  // TODO set as param
 
     const float max_acc_xy = 2.f;  // TODO set as param

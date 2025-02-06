@@ -62,6 +62,8 @@ void CBFSafetyFilter::updateAttitude() {
 }
 
 void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& velocity, uint64_t timestamp) {
+    if  (!_enabled) return;
+
     // TODO reset obstacle with timer
     // pass through if no obstacles are recorded
     updateAttitude();
