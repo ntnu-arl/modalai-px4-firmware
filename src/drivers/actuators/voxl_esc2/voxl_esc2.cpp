@@ -49,7 +49,7 @@ VoxlEsc::VoxlEsc() : OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(V
 					 _output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": output update interval")),
 					 _battery(1, nullptr, _battery_report_interval, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
-	_device = VOXL_ESC_DEFAULT_PORT;
+	_device = "6";
 
 	_mixing_output.setAllFailsafeValues(0);
 	_mixing_output.setAllDisarmedValues(0);
