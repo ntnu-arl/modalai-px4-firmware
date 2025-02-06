@@ -67,7 +67,7 @@ private:
 			mavlink_cbf_debug_t msg{};
 
 			msg.time_usec = cbf_debug.timestamp;
-
+			msg.cbf_duration = cbf_debug.cbf_duration;
 			msg.qp_fail = cbf_debug.qp_fail;
 			msg.h = cbf_debug.h;
 			msg.h1 = cbf_debug.h1;

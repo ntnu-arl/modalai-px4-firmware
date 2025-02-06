@@ -61,8 +61,9 @@ void CBFSafetyFilter::updateAttitude() {
     }
 }
 
-void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& velocity, uint64_t timestamp) {
+void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& velocity) {
     if  (!_enabled) return;
+    uint64_t tic = hrt_absolute_time();
 
     // TODO reset obstacle with timer
     // pass through if no obstacles are recorded
@@ -201,6 +202,8 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
 
     clampAccSetpoint(acceleration_setpoint);
 
+    uint64_t toc = hrt_absolute_time();
+    _debug_msg.cbf_duration = toc - tic;
     _debug_msg.output[0] = acceleration_setpoint(0);
     _debug_msg.output[1] = acceleration_setpoint(1);
     _debug_msg.output[2] = acceleration_setpoint(2);

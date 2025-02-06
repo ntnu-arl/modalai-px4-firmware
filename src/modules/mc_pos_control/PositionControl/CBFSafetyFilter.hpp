@@ -29,7 +29,7 @@ public:
     void updateObstacles();
     void updateAttitude();
 
-    void filter(Vector3f& acceleration_setpoint, const Vector3f& velocity, uint64_t timestamp);
+    void filter(Vector3f& acceleration_setpoint, const Vector3f& velocity);
 
     void setEpsilon(float epsilon) { _epsilon = epsilon; }
     void setPole0(float pole0) { _pole0 = pole0; }
@@ -42,6 +42,7 @@ public:
 
     void getDebug(cbf_debug_s& debug_msg)
     {
+        debug_msg.cbf_duration = _debug_msg.cbf_duration;
         debug_msg.qp_fail = _debug_msg.qp_fail;
         debug_msg.h = _debug_msg.h;
         debug_msg.h1 = _debug_msg.h1;
