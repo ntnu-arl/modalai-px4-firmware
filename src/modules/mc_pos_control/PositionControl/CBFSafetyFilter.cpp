@@ -146,6 +146,8 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     // acceleration_setpoint = R_IB * local_accel_setpoint;
 
     _debug_msg.h = h;
+    _debug_msg.h1 = h1;
+    _debug_msg.h2 = h2;
     // _debug_msg.virtual_obstacle = ; // TODO: marvin
     _debug_msg.input[0] = acceleration_setpoint(0);
     _debug_msg.input[1] = acceleration_setpoint(1);
@@ -184,13 +186,16 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
             Vector3f acceleration_correction(xOpt[0], xOpt[1], xOpt[2]);
             _body_acceleration_setpoint += acceleration_correction;
             acceleration_setpoint = R_WB * _body_acceleration_setpoint;
+            _debug_msg.qp_fail = 0;
             break;
         }
         case RET_MAX_NWSR_REACHED:
             PX4_ERR("QP could not be solved within the given number of working set recalculations");
+            _debug_msg.qp_fail = 1;
             break;
         default:
             PX4_ERR("QP failed: returned %d", qp_status);
+            _debug_msg.qp_fail = 1;
             break;
     }
 
@@ -199,6 +204,8 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     _debug_msg.output[0] = acceleration_setpoint(0);
     _debug_msg.output[1] = acceleration_setpoint(1);
     _debug_msg.output[2] = acceleration_setpoint(2);
+    _debug_msg.slack[0] = xOpt(3);
+    _debug_msg.slack[1] = xOpt(4);
 }
 
 void CBFSafetyFilter::clampAccSetpoint(Vector3f& acceleration_setpoint) {

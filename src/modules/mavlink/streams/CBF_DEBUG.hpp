@@ -68,13 +68,18 @@ private:
 
 			msg.time_usec = cbf_debug.timestamp;
 
+			msg.qp_fail = cbf_debug.qp_fail;
 			msg.h = cbf_debug.h;
+			msg.h1 = cbf_debug.h1;
+			msg.h2 = cbf_debug.h2;
 			msg.input[0] = cbf_debug.input[0];
 			msg.input[1] = cbf_debug.input[1];
 			msg.input[2] = cbf_debug.input[2];
 			msg.output[0] = cbf_debug.output[0];
 			msg.output[1] = cbf_debug.output[1];
 			msg.output[2] = cbf_debug.output[2];
+			msg.slack[0] = cbf_debug.slack[0];
+			msg.slack[1] = cbf_debug.slack[1];
 
 			mavlink_msg_cbf_debug_send_struct(_mavlink->get_channel(), &msg);
 

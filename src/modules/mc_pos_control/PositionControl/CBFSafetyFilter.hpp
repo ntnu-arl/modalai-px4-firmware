@@ -41,9 +41,13 @@ public:
 
     void getDebug(cbf_debug_s& debug_msg)
     {
-      debug_msg.h = _debug_msg.h;
-      memcpy(debug_msg.input, _debug_msg.input, 3 * sizeof(debug_msg.input[0]));
-      memcpy(debug_msg.output, _debug_msg.output, 3 * sizeof(debug_msg.input[0]));
+        debug_msg.qp_fail = _debug_msg.qp_fail;
+        debug_msg.h = _debug_msg.h;
+        debug_msg.h1 = _debug_msg.h1;
+        debug_msg.h2 = _debug_msg.h2;
+        memcpy(debug_msg.input, _debug_msg.input, 3 * sizeof(debug_msg.input[0]));
+        memcpy(debug_msg.output, _debug_msg.output, 3 * sizeof(debug_msg.output[0]));
+        memcpy(debug_msg.slack, _debug_msg.slack, 3 * sizeof(debug_msg.slack[0]));
     };
 
 private:
