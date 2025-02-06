@@ -69,9 +69,9 @@ private:
 			msg.time_usec = cbf_debug.timestamp;
 
 			msg.h = cbf_debug.h;
-			msg.input[0] = cbf_debug.output[0];
-			msg.input[1] = cbf_debug.output[1];
-			msg.input[2] = cbf_debug.output[2];
+			msg.input[0] = cbf_debug.input[0];
+			msg.input[1] = cbf_debug.input[1];
+			msg.input[2] = cbf_debug.input[2];
 			msg.output[0] = cbf_debug.output[0];
 			msg.output[1] = cbf_debug.output[1];
 			msg.output[2] = cbf_debug.output[2];
