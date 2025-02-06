@@ -537,7 +537,6 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 				{
 
 					int motor_idx = _output_map[id].number - 1; // mapped motor id.. user defined mapping is 1-4, array is 0-3
-
 					if (print_feedback)
 					{
 						uint32_t rpm = fb.rpm;
@@ -559,15 +558,15 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					_esc_chans[id].feedback_time = tnow;
 
 					// also update our internal report for logging
-					_esc_status.esc[id].esc_address = motor_idx + 1; // remapped motor ID
-					_esc_status.esc[id].timestamp = tnow;
-					_esc_status.esc[id].esc_rpm = fb.rpm;
-					_esc_status.esc[id].esc_power = fb.power;
-					_esc_status.esc[id].esc_state = fb.id_state & 0x0F;
-					_esc_status.esc[id].esc_cmdcount = fb.cmd_counter;
-					_esc_status.esc[id].esc_voltage = _esc_chans[id].voltage;
-					_esc_status.esc[id].esc_current = _esc_chans[id].current;
-					_esc_status.esc[id].failures = 0; // not implemented
+					_esc_status.esc[motor_idx].esc_address = motor_idx + 1; // remapped motor ID
+					_esc_status.esc[motor_idx].timestamp = tnow;
+					_esc_status.esc[motor_idx].esc_rpm = fb.rpm;
+					_esc_status.esc[motor_idx].esc_power = fb.power;
+					_esc_status.esc[motor_idx].esc_state = fb.id_state & 0x0F;
+					_esc_status.esc[motor_idx].esc_cmdcount = fb.cmd_counter;
+					_esc_status.esc[motor_idx].esc_voltage = _esc_chans[id].voltage;
+					_esc_status.esc[motor_idx].esc_current = _esc_chans[id].current;
+					_esc_status.esc[motor_idx].failures = 0; // not implemented
 
 					// this is hacky, but we need to set all 4 to online/armed otherwise commander times out on arming
 					_esc_status.esc_online_flags = (1 << _esc_status.esc_count) - 1;
@@ -586,20 +585,20 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 						t = +127;
 					}
 
-					_esc_status.esc[id].esc_temperature = t;
+					_esc_status.esc[motor_idx].esc_temperature = t;
 
-					_esc_status.timestamp = _esc_status.esc[id].timestamp;
+					_esc_status.timestamp = _esc_status.esc[motor_idx].timestamp;
 					_esc_status.counter++;
 
-					if ((_parameters.esc_over_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_over_temp_threshold))
+					if ((_parameters.esc_over_temp_threshold > 0) && (_esc_status.esc[motor_idx].esc_temperature > _parameters.esc_over_temp_threshold))
 					{
-						_esc_status.esc[id].failures |= 1 << (esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
+						_esc_status.esc[motor_idx].failures |= 1 << (esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
 					}
 
 					// TODO: do we also issue a warning if over-temperature threshold is exceeded?
-					if ((_parameters.esc_warn_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_warn_temp_threshold))
+					if ((_parameters.esc_warn_temp_threshold > 0) && (_esc_status.esc[motor_idx].esc_temperature > _parameters.esc_warn_temp_threshold))
 					{
-						_esc_status.esc[id].failures |= 1 << (esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
+						_esc_status.esc[motor_idx].failures |= 1 << (esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
 					}
 
 					// print ESC status just for debugging

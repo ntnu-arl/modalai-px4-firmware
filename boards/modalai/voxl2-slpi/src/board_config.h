@@ -45,7 +45,7 @@
  * I2C buses
  */
 #define CONFIG_I2C 1
-#define PX4_NUMBER_I2C_BUSES    4
+#define PX4_NUMBER_I2C_BUSES 4
 
 /*
  * SPI buses
@@ -62,21 +62,21 @@
 /*
  *  Default port for the ESC
  */
-#define VOXL_ESC_DEFAULT_PORT 	"2"
+#define VOXL_ESC_DEFAULT_PORT "2"  // 2
+#define VOXL_ESC2_DEFAULT_PORT "6" // 6
 
 /*
  *  Default port for the GHST RC
  */
-#define GHST_RC_DEFAULT_PORT 	"7"
+#define GHST_RC_DEFAULT_PORT "7"
 
 /*
  * Default port for M0065
-*/
-#define VOXL2_IO_DEFAULT_PORT 	"2"
-
+ */
+#define VOXL2_IO_DEFAULT_PORT "2"
 
 /*
- * M0065 PWM 
+ * M0065 PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS 4
 #define MAX_IO_TIMERS 3

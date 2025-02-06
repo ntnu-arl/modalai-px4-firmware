@@ -1,5 +1,5 @@
-menuconfig DRIVERS_ACTUATORS_VOXL_ESC
+menuconfig DRIVERS_ACTUATORS_VOXL_ESC2
 	bool "voxl_esc2"
 	default n
 	---help---
-		Enable support for voxl_esc
+		Enable support for voxl_esc2

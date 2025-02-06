@@ -91,15 +91,15 @@ qshell ist8310 start -R 10 -X -b 1
 qshell ist8308 start -R 12 -X -b 1
 
 # GPS and magnetometer
-if [ "$GPS" != "NONE" ]; then
-	# On M0052 the GPS driver runs on the apps processor
-	if [ $PLATFORM = "M0052" ]; then
-	    gps start -d /dev/ttyHS2
-	# On M0054 and M0104 the GPS driver runs on SLPI DSP
-	else
-	    qshell gps start
-	fi
-fi
+# if [ "$GPS" != "NONE" ]; then
+# 	# On M0052 the GPS driver runs on the apps processor
+# 	if [ $PLATFORM = "M0052" ]; then
+# 	    gps start -d /dev/ttyHS2
+# 	# On M0054 and M0104 the GPS driver runs on SLPI DSP
+# 	else
+# 	    qshell gps start
+# 	fi
+# fi
 
 # Auto detect an ncp5623c i2c RGB LED. If one isn't connected this will
 # fail but not cause any harm.
@@ -113,8 +113,10 @@ param touch SDLOG_MODE
 
 # ESC driver
 if [ "$ESC" == "VOXL_ESC" ]; then
-    /bin/echo "Starting VOXL ESC driver"
 	qshell voxl_esc start
+    /bin/echo "Starting VOXL ESC driver"
+	qshell voxl_esc2 start
+	/bin/echo "Starting VOXL ESC2 driver"
 elif [ "$ESC" == "VOXL2_IO_PWM_ESC" ]; then
 	if [ "$RC" == "M0065_SBUS" ]; then
 		/bin/echo "Starting VOXL IO for PWM ESC with SBUS RC"
