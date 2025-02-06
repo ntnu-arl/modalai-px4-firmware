@@ -35,16 +35,16 @@ px4_add_module(
 	MODULE drivers__actuators__voxl_esc2
 	MAIN voxl_esc2
 	SRCS
-		#crc16.c
-		#crc16.h
+		# crc16.c
+		# crc16.h
 
-		#voxl_esc_serial.cpp
-		#voxl_esc_serial.hpp
+		# voxl_esc_serial.cpp
+		# voxl_esc_serial.hpp
 		voxl_esc2.cpp
 		voxl_esc2.hpp
-		#qc_esc_packet_types.h
-		#qc_esc_packet.c
-		#qc_esc_packet.h
+		# qc_esc_packet_types.h
+		# qc_esc_packet.c
+		# qc_esc_packet.h
 	DEPENDS
 		battery
 		px4_work_queue

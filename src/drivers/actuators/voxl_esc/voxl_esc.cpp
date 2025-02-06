@@ -34,7 +34,7 @@
 #include <inttypes.h>
 
 #include <px4_platform_common/getopt.h>
-
+#include <algorithm>
 #include "voxl_esc.hpp"
 #include "voxl_esc_serial.hpp"
 
