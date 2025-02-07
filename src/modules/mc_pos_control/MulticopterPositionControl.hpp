@@ -191,6 +191,9 @@ private:
 		(ParamFloat<px4::params::CBF_FOV_SLACK>)	_param_cbf_fov_slack,
 		(ParamFloat<px4::params::CBF_LP_GAIN_IN>)	_param_cbf_lp_gain_in,
 		(ParamFloat<px4::params::CBF_LP_GAIN_OUT>)	_param_cbf_lp_gain_out,
+		(ParamFloat<px4::params::CBF_QP_GAIN_X>)	_param_cbf_qp_gain_x,
+		(ParamFloat<px4::params::CBF_QP_GAIN_Y>)	_param_cbf_qp_gain_y,
+		(ParamFloat<px4::params::CBF_QP_GAIN_Z>)	_param_cbf_qp_gain_z,
 		(ParamFloat<px4::params::CBF_CLAMP_XY>)		_param_cbf_clamp_xy,
 		(ParamFloat<px4::params::CBF_CLAMP_Z>)		_param_cbf_clamp_z,
 		(ParamBool<px4::params::CBF_ENABLED>)		_param_cbf_enabled

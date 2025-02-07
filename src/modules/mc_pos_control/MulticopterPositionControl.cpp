@@ -271,6 +271,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_control.getCbf().setFovSlack(_param_cbf_fov_slack.get());
 		_control.getCbf().setLpGainIn(_param_cbf_lp_gain_in.get());
 		_control.getCbf().setLpGainOut(_param_cbf_lp_gain_out.get());
+		_control.getCbf().setQpGains(_param_cbf_qp_gain_x.get(), _param_cbf_qp_gain_y.get(), _param_cbf_qp_gain_z.get());
 		_control.getCbf().setClampXY(_param_cbf_clamp_xy.get());
 		_control.getCbf().setClampZ(_param_cbf_clamp_z.get());
 		_control.getCbf().setEnabled((bool)_param_cbf_enabled.get());

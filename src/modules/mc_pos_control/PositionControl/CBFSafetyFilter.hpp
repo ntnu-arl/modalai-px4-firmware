@@ -40,6 +40,7 @@ public:
     void setFovSlack(float fov_slack) { _fov_slack = fov_slack; }
     void setLpGainIn(float lp_gain_in) { _lp_gain_in = lp_gain_in; }
     void setLpGainOut(float lp_gain_out) { _lp_gain_out = lp_gain_out; }
+    void setQpGains(float gain_x, float gain_y, float gain_z) { _qp_gain_x = gain_x; _qp_gain_y = gain_y; _qp_gain_z = gain_z; }
     void setClampXY(float max_acc_xy) { _max_acc_xy = max_acc_xy; }
     void setClampZ(float max_acc_z) { _max_acc_z = max_acc_z; }
     void setEnabled(bool enabled) { _enabled = enabled; }
@@ -85,6 +86,9 @@ private:
     float _fov_slack;
     float _lp_gain_in;
     float _lp_gain_out;
+    float _qp_gain_x;
+    float _qp_gain_y;
+    float _qp_gain_z;
     float _max_acc_xy;
     float _max_acc_z;
     bool _enabled;
