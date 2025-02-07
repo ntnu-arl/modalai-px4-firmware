@@ -38,7 +38,10 @@ public:
     void setAlpha(float alpha) { _alpha = alpha; }
     void setFovAlpha(float fov_alpha) { _fov_alpha = fov_alpha; }
     void setFovSlack(float fov_slack) { _fov_slack = fov_slack; }
-    void setLpGain(float lp_gain) { _lp_gain = lp_gain; }
+    void setLpGainIn(float lp_gain_in) { _lp_gain_in = lp_gain_in; }
+    void setLpGainOut(float lp_gain_out) { _lp_gain_out = lp_gain_out; }
+    void setClampXY(float max_acc_xy) { _max_acc_xy = max_acc_xy; }
+    void setClampZ(float max_acc_z) { _max_acc_z = max_acc_z; }
     void setEnabled(bool enabled) { _enabled = enabled; }
 
     void getDebug(cbf_debug_s& debug_msg)
@@ -61,7 +64,10 @@ private:
     Vector3f _body_velocity;
     Vector3f _vehicle_velocity;
     Vector3f _body_acceleration_setpoint;
-    Vector3f _acceleration_setpoint_filt;
+
+    Vector3f _filtered_input;
+    Vector3f _filtered_ouput;
+    Vector3f _unfiltered_ouput;
 
     px4::Array<Vector3f, CBF_MAX_OBSTACLES> _obstacles;
     px4::Array<float, CBF_MAX_OBSTACLES> _nu1;
@@ -75,14 +81,14 @@ private:
     float _alpha;
     float _fov_alpha;
     float _fov_slack;
-    float _lp_gain;
+    float _lp_gain_in;
+    float _lp_gain_out;
+    float _max_acc_xy;
+    float _max_acc_z;
     bool _enabled;
     const float _fov_h = 40.f / 180.f * 3.1415f;  // TODO set as param
 
-    const float max_acc_xy = 2.f;  // TODO set as param
-    const float max_acc_z = 3.f;  // TODO set as param
     void clampAccSetpoint(Vector3f& acceleration_setpoint);
-
     float saturate(float x);
     float saturateDerivative(float x);
     float kappaFunction(float h, float alpha);

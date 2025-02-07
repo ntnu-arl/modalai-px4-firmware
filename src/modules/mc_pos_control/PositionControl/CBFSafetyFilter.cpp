@@ -65,7 +65,7 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     if  (!_enabled) return;
     uint64_t tic = hrt_absolute_time();
 
-    _acceleration_setpoint_filt = (1.f - _lp_gain) * _acceleration_setpoint_filt + _lp_gain * acceleration_setpoint;
+    _filtered_input = (1.f - _lp_gain_in) * _filtered_input + _lp_gain_in * acceleration_setpoint;
 
     // TODO reset obstacle with timer
     // pass through if no obstacles are recorded
@@ -83,7 +83,7 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     // Dcmf R_VW = R_WV.transpose();
     Dcmf R_BV = R_BW * R_WV;
 
-    _body_acceleration_setpoint = R_BW * _acceleration_setpoint_filt;
+    _body_acceleration_setpoint = R_BW * _filtered_input;
     _body_velocity = R_BW * velocity;
     // _vehicle_velocity = R_VW * velocity;
 
@@ -190,7 +190,7 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
             qp.getPrimalSolution(_xOpt);
             Vector3f acceleration_correction(_xOpt[0], _xOpt[1], _xOpt[2]);
             _body_acceleration_setpoint += acceleration_correction;
-            acceleration_setpoint = R_WB * _body_acceleration_setpoint;
+            _unfiltered_ouput = R_WB * _body_acceleration_setpoint;
             _debug_msg.qp_fail = 0;
             break;
         }
@@ -204,7 +204,12 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
             break;
     }
 
-    clampAccSetpoint(acceleration_setpoint);
+    clampAccSetpoint(_unfiltered_ouput);
+    _filtered_ouput = (1.f - _lp_gain_out) * _filtered_ouput + _lp_gain_out * _unfiltered_ouput;
+
+    acceleration_setpoint(0) = _filtered_ouput(0);
+    acceleration_setpoint(1) = _filtered_ouput(1);
+    acceleration_setpoint(2) = _filtered_ouput(2);
 
     uint64_t toc = hrt_absolute_time();
     _debug_msg.cbf_duration = toc - tic;
@@ -215,10 +220,10 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     _debug_msg.slack[1] = _xOpt[4];
 }
 
-void CBFSafetyFilter::clampAccSetpoint(Vector3f& acceleration_setpoint) {
-    acceleration_setpoint(0) = math::constrain(acceleration_setpoint(0), -max_acc_xy, max_acc_xy);
-    acceleration_setpoint(1) = math::constrain(acceleration_setpoint(1), -max_acc_xy, max_acc_xy);
-    acceleration_setpoint(2) = math::constrain(acceleration_setpoint(2), -max_acc_z, max_acc_z);
+void CBFSafetyFilter::clampAccSetpoint(Vector3f& acc) {
+    acc(0) = math::constrain(acc(0), -_max_acc_xy, _max_acc_xy);
+    acc(1) = math::constrain(acc(1), -_max_acc_xy, _max_acc_xy);
+    acc(2) = math::constrain(acc(2), -_max_acc_z, _max_acc_z);
 }
 
 float CBFSafetyFilter::saturate(float x) {
