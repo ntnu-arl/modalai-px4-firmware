@@ -146,6 +146,7 @@ void PositionControl::_velocityControl(const float dt)
 	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
 
 	// TODO: check if _vel can be NAN
+	Vector3f _acc_sp_unfiltered = _acc_sp;
 	_cbf.filter(_acc_sp, _vel);
 
 	_accelerationControl();
@@ -188,10 +189,14 @@ void PositionControl::_velocityControl(const float dt)
 
 	// The produced acceleration can be greater or smaller than the desired acceleration due to the saturations and the actual vertical thrust (computed independently).
 	// The ARW loop needs to run if the signal is saturated only.
-	const Vector2f acc_sp_xy = _acc_sp.xy();
+	const Vector2f acc_sp_xy = _acc_sp_unfiltered.xy();
+
+	// replace acc_sp_xy here with the actual output of velocity P controller
+	// replace acc_sp_xy_produced should be the actual command after all saturations (CBF and clampings)
 	const Vector2f acc_limited_xy = (acc_sp_xy.norm_squared() > acc_sp_xy_produced.norm_squared())
 					? acc_sp_xy_produced
 					: acc_sp_xy;
+
 	vel_error.xy() = Vector2f(vel_error) - arw_gain * (acc_sp_xy - acc_limited_xy);
 
 	// Make sure integral doesn't get NAN
