@@ -8,7 +8,6 @@
 #include <string.h>
 
 CBFSafetyFilter::CBFSafetyFilter() {
-    qp = QProblem(NV, NC);
     qp.setPrintLevel(PL_NONE);
 }
 
@@ -16,6 +15,7 @@ void CBFSafetyFilter::updateObstacles() {
     tof_obstacles_chunk_s tof_obstacles_chunk;
     if (_tof_obstacles_chunk_sub.update(&tof_obstacles_chunk))
     {
+        _ts_obs = hrt_absolute_time();
         // TODO make this part of the message
         size_t max_chunk_size = 20;
 
@@ -65,9 +65,10 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     if  (!_enabled) return;
     uint64_t tic = hrt_absolute_time();
 
-    _filtered_input = (1.f - _lp_gain_in) * _filtered_input + _lp_gain_in * acceleration_setpoint;
+    // timeout obstacles
+    if (tic - _ts_obs > _obstacle_timeout)
+        _obstacles.clear();
 
-    // TODO reset obstacle with timer
     // pass through if no obstacles are recorded
     updateAttitude();
     updateObstacles();
@@ -82,6 +83,9 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
     Dcmf R_WV(euler_WV);
     // Dcmf R_VW = R_WV.transpose();
     Dcmf R_BV = R_BW * R_WV;
+
+    // low pass acceleration setpoint
+    _filtered_input = (1.f - _lp_gain_in) * _filtered_input + _lp_gain_in * acceleration_setpoint;
 
     _body_acceleration_setpoint = R_BW * _filtered_input;
     _body_velocity = R_BW * velocity;
@@ -204,6 +208,7 @@ void CBFSafetyFilter::filter(Vector3f& acceleration_setpoint, const Vector3f& ve
             break;
     }
 
+    // clamp and low pass acceleration ouptput
     clampAccSetpoint(_unfiltered_ouput);
     _filtered_ouput = (1.f - _lp_gain_out) * _filtered_ouput + _lp_gain_out * _unfiltered_ouput;
 

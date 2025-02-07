@@ -70,6 +70,8 @@ private:
     Vector3f _unfiltered_ouput;
 
     px4::Array<Vector3f, CBF_MAX_OBSTACLES> _obstacles;
+    uint64_t _ts_obs;
+    uint64_t _obstacle_timeout = 1000000;  // 1sec
     px4::Array<float, CBF_MAX_OBSTACLES> _nu1;
 
     cbf_debug_s _debug_msg;
@@ -93,6 +95,6 @@ private:
     float saturateDerivative(float x);
     float kappaFunction(float h, float alpha);
 
-    QProblem qp;
+    QProblem qp = QProblem(NV, NC);
     real_t _xOpt[NV];
 };
