@@ -55,6 +55,7 @@ set(msg_files
 	CameraCapture.msg
 	CameraStatus.msg
 	CameraTrigger.msg
+	CbfDebug.msg
 	CellularStatus.msg
 	CollisionConstraints.msg
 	CollisionReport.msg
@@ -200,7 +201,7 @@ set(msg_files
 	UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
-	UwbDistance.msg
+	# UwbDistance.msg
 	UwbGrid.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg

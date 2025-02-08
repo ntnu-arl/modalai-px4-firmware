@@ -64,6 +64,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/cbf_debug.h>
 
 using namespace time_literals;
 
@@ -95,6 +96,7 @@ private:
 	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub{ORB_ID(takeoff_status)};
 	uORB::Publication<vehicle_attitude_setpoint_s>	     _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
+	uORB::Publication<cbf_debug_s> 											 _cbf_debug_pub{ORB_ID(cbf_debug)};
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
@@ -177,7 +179,24 @@ private:
 		(ParamFloat<px4::params::MPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
 
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
-		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
+		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all,
+
+		// CBF parameters
+		(ParamFloat<px4::params::CBF_EPSILON>)		_param_cbf_epsilon,  /**< TODO describe */
+		(ParamFloat<px4::params::CBF_POLE0>)		_param_cbf_pole0,
+		(ParamFloat<px4::params::CBF_KAPPA>)		_param_cbf_kappa,
+		(ParamFloat<px4::params::CBF_GAMMA>)		_param_cbf_gamma,
+		(ParamFloat<px4::params::CBF_ALPHA>)		_param_cbf_alpha,
+		(ParamFloat<px4::params::CBF_FOV_ALPHA>)	_param_cbf_fov_alpha,
+		(ParamFloat<px4::params::CBF_FOV_SLACK>)	_param_cbf_fov_slack,
+		(ParamFloat<px4::params::CBF_LP_GAIN_IN>)	_param_cbf_lp_gain_in,
+		(ParamFloat<px4::params::CBF_LP_GAIN_OUT>)	_param_cbf_lp_gain_out,
+		(ParamFloat<px4::params::CBF_QP_GAIN_X>)	_param_cbf_qp_gain_x,
+		(ParamFloat<px4::params::CBF_QP_GAIN_Y>)	_param_cbf_qp_gain_y,
+		(ParamFloat<px4::params::CBF_QP_GAIN_Z>)	_param_cbf_qp_gain_z,
+		(ParamFloat<px4::params::CBF_CLAMP_XY>)		_param_cbf_clamp_xy,
+		(ParamFloat<px4::params::CBF_CLAMP_Z>)		_param_cbf_clamp_z,
+		(ParamBool<px4::params::CBF_ENABLED>)		_param_cbf_enabled
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */

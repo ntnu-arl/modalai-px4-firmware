@@ -39,6 +39,8 @@
 
 #pragma once
 
+#include "CBFSafetyFilter.hpp"
+
 #include <lib/mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/trajectory_setpoint.h>
@@ -184,6 +186,11 @@ public:
 	 */
 	static const trajectory_setpoint_s empty_trajectory_setpoint;
 
+	/**
+	 * Get reference to _cbf private member.
+	 */
+	 CBFSafetyFilter& getCbf() { return _cbf; }
+
 private:
 	bool _inputValid();
 
@@ -222,4 +229,7 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+	// Safety Filter
+	CBFSafetyFilter _cbf; /**< class for CBF safety filter */
 };

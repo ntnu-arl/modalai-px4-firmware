@@ -260,6 +260,21 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_takeoff.setSpoolupTime(_param_com_spoolup_time.get());
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
 		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
+
+		// CBF parameters
+		_control.getCbf().setEpsilon(_param_cbf_epsilon.get());
+		_control.getCbf().setPole0(_param_cbf_pole0.get());
+		_control.getCbf().setKappa(_param_cbf_kappa.get());
+		_control.getCbf().setGamma(_param_cbf_gamma.get());
+		_control.getCbf().setAlpha(_param_cbf_alpha.get());
+		_control.getCbf().setFovAlpha(_param_cbf_fov_alpha.get());
+		_control.getCbf().setFovSlack(_param_cbf_fov_slack.get());
+		_control.getCbf().setLpGainIn(_param_cbf_lp_gain_in.get());
+		_control.getCbf().setLpGainOut(_param_cbf_lp_gain_out.get());
+		_control.getCbf().setQpGains(_param_cbf_qp_gain_x.get(), _param_cbf_qp_gain_y.get(), _param_cbf_qp_gain_z.get());
+		_control.getCbf().setClampXY(_param_cbf_clamp_xy.get());
+		_control.getCbf().setClampZ(_param_cbf_clamp_z.get());
+		_control.getCbf().setEnabled((bool)_param_cbf_enabled.get());
 	}
 }
 
@@ -555,6 +570,11 @@ void MulticopterPositionControl::Run()
 				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
 				_control.update(dt);
 			}
+
+      cbf_debug_s cbf_debug_msg{};
+      cbf_debug_msg.timestamp = hrt_absolute_time();
+      _control.getCbf().getDebug(cbf_debug_msg);
+      _cbf_debug_pub.publish(cbf_debug_msg);
 
 			// Publish internal position control setpoints
 			// on top of the input/feed-forward setpoints these containt the PID corrections

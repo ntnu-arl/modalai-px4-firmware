@@ -100,7 +100,7 @@ if [ "$GPS" != "NONE" ]; then
 fi
 
 # Auto detect an ncp5623c i2c RGB LED. If one isn't connected this will
-# fail but not cause any harm. 
+# fail but not cause any harm.
 /bin/echo "Looking for ncp5623c RGB LED"
 qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 
@@ -187,7 +187,6 @@ qshell mc_att_control start
 qshell mc_rate_control start
 qshell mc_hover_thrust_estimator start
 qshell mc_autotune_attitude_control start
-qshell mc_safe_control start
 qshell land_detector start multicopter
 qshell manual_control start
 qshell control_allocator start

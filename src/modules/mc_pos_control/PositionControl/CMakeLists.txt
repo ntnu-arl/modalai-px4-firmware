@@ -36,8 +36,11 @@ px4_add_library(PositionControl
 	ControlMath.hpp
 	PositionControl.cpp
 	PositionControl.hpp
+	CBFSafetyFilter.cpp
+	CBFSafetyFilter.hpp
 )
-target_include_directories(PositionControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(PositionControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(PositionControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/src/lib/qpoases/qpOASES/include)
 
 px4_add_unit_gtest(SRC ControlMathTest.cpp LINKLIBS PositionControl)
 px4_add_unit_gtest(SRC PositionControlTest.cpp LINKLIBS PositionControl)
