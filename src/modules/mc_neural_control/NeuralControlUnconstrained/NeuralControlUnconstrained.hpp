@@ -15,11 +15,11 @@
 
 using namespace matrix;
 
-class NeuralControl
+class NeuralControlUnconstrained
 {
 public:
-	NeuralControl();
-	~NeuralControl() = default;
+	NeuralControlUnconstrained( int n_motors);
+	~NeuralControlUnconstrained() = default;
 
 	void setPositionSetpoint(const Vector3f &position_setpoint) { _position_setpoint = position_setpoint; }
 
@@ -49,10 +49,12 @@ public:
 
   Eigen::Quaternionf transform_orientation_ned_enu(Eigen::Quaternionf quat_ned);
 
+  int _n_motors; 
+
   /**
    * Run one control loop cycle calculation
    */
-  Vector4f updateNeural();
+  matrix::Vector<float,6> updateNeural();
 
 private:
 
@@ -66,14 +68,11 @@ private:
   Eigen::MatrixXf _weight_allocation_net_layer_1;
   Eigen::VectorXf _bias_allocation_net_layer_2;
   Eigen::MatrixXf _weight_allocation_net_layer_2;
-  Eigen::VectorXf _max_thrust;
-  Eigen::VectorXf _min_thrust;
-  Eigen::VectorXf _max_torque;
-  Eigen::VectorXf _min_torque;
-  Vector3f _smoothed_pos;
-  Vector3f _smoothed_vel;
-  Eulerf _smoothed_att;
-  Vector3f _smoothed_ang_vel;
+  Eigen::VectorXf _max_wrench;
+  Eigen::VectorXf _min_wrench;
+  Eigen::MatrixXf _pa_rot_mat;
+  Eigen::VectorXf _pa_center;
+  Eigen::VectorXf _limits_u;
 
   float _min_u_training;
   float _max_u_training;
@@ -81,6 +80,10 @@ private:
   int _min_rpm;
   float _max_error;
   float _thrust_coefficient;
+
+  // transform observations in correct frame
+  matrix::Dcmf _frame_transf;
+  matrix::Dcmf _frame_transf_2;
 
   // this are the min and max forces that the motor 
   // can generate and have to be estimated from the real system

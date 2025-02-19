@@ -66,7 +66,8 @@
 #include <lib/slew_rate/SlewRate.hpp>
 #include <uORB/topics/offboard_control_mode.h>
 
-#include <NeuralControl.hpp>
+#include <NeuralControlConstrained.hpp>
+#include <NeuralControlUnconstrained.hpp>
 #include <PDAttitudeControl.hpp>
 #include <PDPositionControl.hpp>
 
@@ -78,6 +79,7 @@ class MulticopterNeuralControl : public ModuleBase<MulticopterNeuralControl>, pu
 public:
 	#define NONLINEAR_PD 0
 	#define NEURAL 1
+	#define CONSTRAINED false
 
 	MulticopterNeuralControl(bool vtol = false);
 	~MulticopterNeuralControl() override;
@@ -105,11 +107,14 @@ private:
 
 	void generateFailsafeTrajectory(trajectory_setpoint_s& traj_sp, const Vector3f& position, const Quatf& attitude);
 
-	NeuralControl _neural_control; /**< class for position control calculations */
 	PDAttitudeControl _pd_attitude_control; /**< class for attitude control calculations */	
 	PDPositionControl _pd_position_control; /**< class for position control calculations */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	using VariableType = std::conditional<CONSTRAINED, NeuralControlConstrained, NeuralControlUnconstrained>::type;
+	const int _n_motors = 6;
+	std::unique_ptr<VariableType> _neural_control;
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -131,8 +136,8 @@ private:
 	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
 	// =================================================
 
-  // manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
-  vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
+  	// manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
+  	vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
 
 	perf_counter_t  _loop_perf;             /**< loop duration performance counter */
 

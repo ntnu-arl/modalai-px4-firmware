@@ -57,15 +57,12 @@ MulticopterNeuralControl::MulticopterNeuralControl(bool vtol) :
 	// _vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+  _neural_control = std::make_unique<VariableType>(_n_motors);
 	parameters_updated();
-  _neural_control.setMaxRPM(_max_rpm.get());
-	_neural_control.setMinRPM(_min_rpm.get());
-	_neural_control.setThrustCoefficient(_thrust_coefficient.get());
-  _neural_control.setMaxError(_max_err.get());
-	// Rate of change 5% per second -> 1.6 seconds to ramp to default 8% MPC_MANTHR_MIN
-	//_manual_throttle_minimum.setSlewRate(0.05f);
-	// Rate of change 50% per second -> 2 seconds to ramp to 100%
-	//_manual_throttle_maximum.setSlewRate(0.5f);
+  _neural_control->setMaxRPM(_max_rpm.get());
+	_neural_control->setMinRPM(_min_rpm.get());
+	_neural_control->setThrustCoefficient(_thrust_coefficient.get());
+  _neural_control->setMaxError(_max_err.get());
 }
 
 MulticopterNeuralControl::~MulticopterNeuralControl()
@@ -167,7 +164,7 @@ void MulticopterNeuralControl::Run()
     // Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
     // const float dt = math::constrain(((vehicle_attitude.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
     _last_run = vehicle_angular_velocity.timestamp_sample;
-    _neural_control.setAngularVelocity(Vector3f(vehicle_angular_velocity.xyz));
+    _neural_control->setAngularVelocity(Vector3f(vehicle_angular_velocity.xyz));
 
     _pd_attitude_control.setAngularVelocity(Vector3f(vehicle_angular_velocity.xyz));
     _pd_attitude_control.setAngularAcceleration(Vector3f(vehicle_angular_velocity.xyz));
@@ -179,7 +176,7 @@ void MulticopterNeuralControl::Run()
       if (_vehicle_attitude_sub.copy(&vehicle_attitude))
       {
         _attitude = Quatf(vehicle_attitude.q);
-        _neural_control.setAttitude(_attitude);
+        _neural_control->setAttitude(_attitude);
 
         _pd_position_control.setAttitude(_attitude);
         _pd_attitude_control.setAttitude(_attitude);
@@ -193,9 +190,9 @@ void MulticopterNeuralControl::Run()
         //PX4_INFO("vehicle_local_position: %f | %f | %f", (double)vehicle_local_position.x,
         //(double)vehicle_local_position.y, (double)vehicle_local_position.z);
 
-      _neural_control.setPosition(
+      _neural_control->setPosition(
           Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z));
-      _neural_control.setLinearVelocity(
+      _neural_control->setLinearVelocity(
           Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz));
 
       _pd_position_control.setPosition(
@@ -359,7 +356,7 @@ void MulticopterNeuralControl::Run()
         local_pos_sp.timestamp = hrt_absolute_time();
         _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
 
-        _neural_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        _neural_control->setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
 
         _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
         _pd_position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
@@ -392,7 +389,7 @@ void MulticopterNeuralControl::Run()
 
       // run attitude controller
       Vector3f torque_setpoint;
-      matrix::Vector4f motor_commands;
+      matrix::Vector<float,6> motor_commands;
       switch (_param_controller.get())
       {
         case NONLINEAR_PD:
@@ -400,7 +397,7 @@ void MulticopterNeuralControl::Run()
           break;
 
         case NEURAL:
-          motor_commands = _neural_control.updateNeural();
+          motor_commands = _neural_control->updateNeural();
           break;
 
         default:
@@ -481,18 +478,35 @@ void MulticopterNeuralControl::Run()
       else if (_param_controller.get() == NEURAL)
       {
         neural_control_s neural_control_msg;
-        _neural_control.fillDebugMessage(neural_control_msg);
+        _neural_control->fillDebugMessage(neural_control_msg);
         _neural_control_pub.publish(neural_control_msg);
 
         actuator_motors_s actuator_motors;
         actuator_motors.timestamp = hrt_absolute_time();
         
-        actuator_motors.control[0] = PX4_ISFINITE(motor_commands(0)) ? motor_commands(0) : NAN;
-        actuator_motors.control[1] = PX4_ISFINITE(motor_commands(1)) ? motor_commands(1) : NAN;
-        actuator_motors.control[2] = PX4_ISFINITE(motor_commands(2)) ? motor_commands(2) : NAN;
-        actuator_motors.control[3] = PX4_ISFINITE(motor_commands(3)) ? motor_commands(3) : NAN;
-        actuator_motors.control[4] = -NAN;
-        actuator_motors.control[5] = -NAN;
+        if (_n_motors ==4){
+          actuator_motors.control[0] = PX4_ISFINITE(motor_commands(0)) ? motor_commands(0) : NAN;
+          actuator_motors.control[1] = PX4_ISFINITE(motor_commands(1)) ? motor_commands(1) : NAN;
+          actuator_motors.control[2] = PX4_ISFINITE(motor_commands(2)) ? motor_commands(2) : NAN;
+          actuator_motors.control[3] = PX4_ISFINITE(motor_commands(3)) ? motor_commands(3) : NAN;
+          actuator_motors.control[4] = -NAN;
+          actuator_motors.control[5] = -NAN;
+        }
+        else if (_n_motors == 6){
+          actuator_motors.control[0] = PX4_ISFINITE(motor_commands(0)) ? motor_commands(0) : NAN;
+          actuator_motors.control[1] = PX4_ISFINITE(motor_commands(1)) ? motor_commands(1) : NAN;
+          actuator_motors.control[2] = PX4_ISFINITE(motor_commands(2)) ? motor_commands(2) : NAN;
+          actuator_motors.control[3] = PX4_ISFINITE(motor_commands(3)) ? motor_commands(3) : NAN;
+          actuator_motors.control[4] = PX4_ISFINITE(motor_commands(4)) ? motor_commands(4) : NAN;
+          actuator_motors.control[5] = PX4_ISFINITE(motor_commands(5)) ? motor_commands(5) : NAN;
+        }
+
+        PX4_INFO("motor commands: %f %f %f %f %f %f", double(actuator_motors.control[0]),
+                double(actuator_motors.control[1]), double(actuator_motors.control[2]), double(actuator_motors.control[3]),
+                double(actuator_motors.control[4]), double(actuator_motors.control[5]));
+
+        PX4_INFO("________________________");
+
         actuator_motors.control[6] = -NAN;
         actuator_motors.control[7] = -NAN;
         actuator_motors.control[8] = -NAN;

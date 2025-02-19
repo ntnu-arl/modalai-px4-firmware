@@ -80,3 +80,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS 4
 #define MAX_IO_TIMERS 3
+
+// #define BOARD_FLASH_SIZE (1024 * 1024 * 5) // 16MB
+// #define BOARD_RAM_SIZE (30 * 1024 * 1024)

@@ -31,7 +31,8 @@
 #
 ############################################################################
 
-add_subdirectory(NeuralControl)
+add_subdirectory(NeuralControlUnconstrained)
+add_subdirectory(NeuralControlConstrained)
 add_subdirectory(PDPositionControl)
 add_subdirectory(PDAttitudeControl)
 
@@ -44,7 +45,8 @@ px4_add_module(
 		MulticopterNeuralControl.cpp
 		MulticopterNeuralControl.hpp
 	DEPENDS
-		NeuralControl
+		NeuralControlUnconstrained
+		NeuralControlConstrained
 		PDPositionControl
 		PDAttitudeControl
 		circuit_breaker

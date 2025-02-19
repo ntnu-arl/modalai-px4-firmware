@@ -42,7 +42,7 @@
 
 #include "qshell.h"
 
-#define QSHELL_RESPONSE_WAIT_TIME_US (20 * 1000000) // 20 sec, for temporary ESC calibration
+#define QSHELL_RESPONSE_WAIT_TIME_US (40 * 1000000) // 20 sec, for temporary ESC calibration
 
 // Static variables
 px4::AppState QShell::appState;
