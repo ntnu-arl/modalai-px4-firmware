@@ -510,11 +510,7 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 	if (_reverse_output_mask & (1 << i)) {
 		value = -1.f * value;
 	}
-
-	//PX4_WARN("value mixer module: %f", double(value));
 	uint16_t effective_output = value * (_max_value[i] - _min_value[i]) / 2 + (_max_value[i] + _min_value[i]) / 2;
-
-	//PX4_WARN("effective_output mixer module: %d", effective_output);
 
 	// last line of defense against invalid inputs
 	return math::constrain(effective_output, _min_value[i], _max_value[i]);
@@ -643,17 +639,16 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 				if (_reverse_output_mask & (1 << i)) {
 					control_value = -1.f * control_value;
 				}
-
-				_current_output_value[i] = control_value * (_max_value[i] - ramp_min_output) / 2 + (_max_value[i] + ramp_min_output) /
-							   2;
+				
+				_current_output_value[i] = control_value * (_max_value[i] - ramp_min_output) / 2 + (_max_value[i] + ramp_min_output) /2;
 
 				/* last line of defense against invalid inputs */
 				_current_output_value[i] = math::constrain(_current_output_value[i], ramp_min_output, _max_value[i]);
 			}
 		}
 		break;
-
 	case OutputLimitState::ON:
+		
 		for (int i = 0; i < num_channels; i++) {
 			_current_output_value[i] = output_limit_calc_single(i, output[i]);
 		}

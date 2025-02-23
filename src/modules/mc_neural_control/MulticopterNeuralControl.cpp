@@ -501,11 +501,9 @@ void MulticopterNeuralControl::Run()
           actuator_motors.control[5] = PX4_ISFINITE(motor_commands(5)) ? motor_commands(5) : NAN;
         }
 
-        PX4_INFO("motor commands: %f %f %f %f %f %f", double(actuator_motors.control[0]),
-                double(actuator_motors.control[1]), double(actuator_motors.control[2]), double(actuator_motors.control[3]),
-                double(actuator_motors.control[4]), double(actuator_motors.control[5]));
-
-        PX4_INFO("________________________");
+        // PX4_INFO("motor commands: %f %f %f %f %f %f", double(actuator_motors.control[0]),
+        //         double(actuator_motors.control[1]), double(actuator_motors.control[2]), double(actuator_motors.control[3]),
+        //         double(actuator_motors.control[4]), double(actuator_motors.control[5]));
 
         actuator_motors.control[6] = -NAN;
         actuator_motors.control[7] = -NAN;
