@@ -196,9 +196,6 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   _input = Eigen::VectorXf::Zero(15);
   _input << pos_input_clamped, attitude_state, vel_state, angular_velocity_state;
 
-  //PX4_INFO("obs:  %f %f %f %f %f %f %f %f %f", (double)_input(0), (double)_input(1), (double)_input(2), (double)_input(3), (double)_input(4), (double)_input(5), (double)_input(6), (double)_input(7), (double)_input(8));
-  //PX4_INFO("obs:  %f %f %f %f %f %f", (double)_input(9), (double)_input(10), (double)_input(11), (double)_input(12), (double)_input(13), (double)_input(14));
-  
   // forward path
   Eigen::VectorXf co1 = _weight_control_net_layer_1 * _input + _bias_control_net_layer_1;
   Eigen::VectorXf ca1 = co1.array().tanh();
@@ -215,8 +212,6 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   Eigen::VectorXf ao2 = _weight_allocation_net_layer_2 * ao1 + _bias_allocation_net_layer_2;
   Eigen::VectorXf output_allocation_net = ao2;
 
-  //PX4_INFO("commands network:  %f %f %f %f %f %f", (double)output_allocation_net(0), (double)output_allocation_net(1), (double)output_allocation_net(2), (double)output_allocation_net(3), (double)output_allocation_net(4), (double)output_allocation_net(5));
-
   _force_clamped = Eigen::VectorXf::Zero(_n_motors);
   _force_clamped = output_allocation_net.cwiseMax(_min_u_training).cwiseMin(_max_u_training);
 
@@ -227,8 +222,6 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   rps = _force_clamped / _thrust_coefficient;
   rps = rps.cwiseSqrt();
   Eigen::VectorXf rpm = rps * 60;
-
-  // PX4_INFO("rpm: %f", (double)rpm(0));
 
   // conversion to motor commands (inverse of the scaling done in mixer module)
   matrix::Vector<float,6> motor_commands;
@@ -243,18 +236,17 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   }
   else if (_n_motors == 6)
   {
-    motor_commands(0) = (rpm(1) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
-    motor_commands(1) = (rpm(3) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
-    motor_commands(2) = (rpm(5) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
-    motor_commands(3) = (rpm(4) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
-    motor_commands(4) = (rpm(2) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
-    motor_commands(5) = (rpm(0) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
+    motor_commands(0) = (rpm(0) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
+    motor_commands(1) = (rpm(2) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
+    motor_commands(2) = (rpm(3) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
+    motor_commands(3) = (rpm(5) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
+    motor_commands(4) = (rpm(1) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
+    motor_commands(5) = (rpm(4) * 2 - _max_rpm - _min_rpm) / (_max_rpm - _min_rpm);
   }
   else
   {
     PX4_INFO("Error: number of motors not supported");
   }
-  
 
   matrix::Vector<float,6> mixer_values;
 

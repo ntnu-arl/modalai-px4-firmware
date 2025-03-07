@@ -80,7 +80,7 @@ public:
 		if (thrust_factor > 0.f && thrust_factor <= 1.f) {
 			// thrust factor
 			//  rel_thrust = factor * x^2 + (1-factor) * x,
-
+			
 			const float a = thrust_factor;
 			const float b = (1.f - thrust_factor);
 

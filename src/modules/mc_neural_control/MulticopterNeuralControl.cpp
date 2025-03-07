@@ -124,9 +124,6 @@ void MulticopterNeuralControl::generateFailsafeTrajectory(trajectory_setpoint_s&
 
 void MulticopterNeuralControl::Run()
 {
-
-  //PX4_WARN("trajectory setpoint: %f %f %f", double(_trajectory_setpoint.velocity[0]),
-  //               double(_trajectory_setpoint.velocity[1]), double(_trajectory_setpoint.velocity[2]));
   
   if (should_exit())
   {
@@ -152,15 +149,6 @@ void MulticopterNeuralControl::Run()
   vehicle_angular_velocity_s vehicle_angular_velocity;
   if (_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity))
   {
-    //static size_t counter = 0;
-
-    //if (counter > 1){
-    //  counter = 0;
-    //  return;
-    //}
-
-    //counter ++;
-
     // Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
     // const float dt = math::constrain(((vehicle_attitude.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
     _last_run = vehicle_angular_velocity.timestamp_sample;
@@ -256,12 +244,6 @@ void MulticopterNeuralControl::Run()
       
       PX4_WARN("setpoint_updated: %f %f %f ", double(_trajectory_setpoint.position[0]),
                 double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
-
-      // if(_trajectory_setpoint_sub.copy(&_trajectory_setpoint))
-      // {
-      //   PX4_INFO("setpoint received: %f %f %f", double(_trajectory_setpoint.position[0]),
-      //         double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
-      // }
     }
     // _trajectory_setpoint_sub.update(&_trajectory_setpoint);
     if (_vehicle_control_mode.flag_control_offboard_enabled)
@@ -271,15 +253,10 @@ void MulticopterNeuralControl::Run()
       if ((_trajectory_setpoint.timestamp < _time_offboard_enabled) &&
           (vehicle_angular_velocity.timestamp_sample > _time_offboard_enabled))
       {
-        // PX4_WARN("invalid setpoint, impl failsafe: %f %f %f", double(_trajectory_setpoint.position[0]),
-        //          double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
-
         _trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
         
         generateFailsafeTrajectory(_trajectory_setpoint, _pd_position_control.getPosition(),
                                    _pd_position_control.getAttitude());
-        // PX4_WARN("failsafe setpoint set to: %f %f %f", double(_trajectory_setpoint.position[0]),
-        //          double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
       }
       else {
         if (_trajectory_setpoint_sub.updated())
@@ -287,11 +264,6 @@ void MulticopterNeuralControl::Run()
         PX4_INFO("valid setpoint: %f %f %f", double(_trajectory_setpoint.position[0]),
                 double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
         }
-        // PX4_INFO("vel: %f %f %f", double(_trajectory_setpoint.velocity[0]),
-        //         double(_trajectory_setpoint.velocity[1]), double(_trajectory_setpoint.velocity[2]));
-        // PX4_INFO("acc: %f %f %f", double(_trajectory_setpoint.acceleration[0]),
-        //         double(_trajectory_setpoint.acceleration[1]), double(_trajectory_setpoint.acceleration[2]));
-        //         PX4_INFO("yaw yawspeed: %f %f", double(_trajectory_setpoint.yaw), double(_trajectory_setpoint.yawspeed));
       }
     }
 
@@ -474,6 +446,7 @@ void MulticopterNeuralControl::Run()
         vehicle_torque_setpoint.timestamp = hrt_absolute_time();
         _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 
+
       }
       else if (_param_controller.get() == NEURAL)
       {
@@ -500,10 +473,6 @@ void MulticopterNeuralControl::Run()
           actuator_motors.control[4] = PX4_ISFINITE(motor_commands(4)) ? motor_commands(4) : NAN;
           actuator_motors.control[5] = PX4_ISFINITE(motor_commands(5)) ? motor_commands(5) : NAN;
         }
-
-        // PX4_INFO("motor commands: %f %f %f %f %f %f", double(actuator_motors.control[0]),
-        //         double(actuator_motors.control[1]), double(actuator_motors.control[2]), double(actuator_motors.control[3]),
-        //         double(actuator_motors.control[4]), double(actuator_motors.control[5]));
 
         actuator_motors.control[6] = -NAN;
         actuator_motors.control[7] = -NAN;
