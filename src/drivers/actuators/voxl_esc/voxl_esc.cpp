@@ -1080,8 +1080,6 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		mix_turtle_mode(outputs);
 	}
 
-	PX4_INFO("ESC rpm command: %d", outputs[0]);
-
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		if (!_outputs_on || stop_motors) {
 			_esc_chans[i].rate_req = 0;

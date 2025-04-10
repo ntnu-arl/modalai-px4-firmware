@@ -329,6 +329,7 @@ void MulticopterNeuralControl::Run()
         _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
 
         _neural_control->setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        _neural_control->setVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
 
         _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
         _pd_position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
@@ -457,22 +458,12 @@ void MulticopterNeuralControl::Run()
         actuator_motors_s actuator_motors;
         actuator_motors.timestamp = hrt_absolute_time();
         
-        if (_n_motors ==4){
-          actuator_motors.control[0] = PX4_ISFINITE(motor_commands(0)) ? motor_commands(0) : NAN;
-          actuator_motors.control[1] = PX4_ISFINITE(motor_commands(1)) ? motor_commands(1) : NAN;
-          actuator_motors.control[2] = PX4_ISFINITE(motor_commands(2)) ? motor_commands(2) : NAN;
-          actuator_motors.control[3] = PX4_ISFINITE(motor_commands(3)) ? motor_commands(3) : NAN;
-          actuator_motors.control[4] = -NAN;
-          actuator_motors.control[5] = -NAN;
-        }
-        else if (_n_motors == 6){
-          actuator_motors.control[0] = PX4_ISFINITE(motor_commands(0)) ? motor_commands(0) : NAN;
-          actuator_motors.control[1] = PX4_ISFINITE(motor_commands(1)) ? motor_commands(1) : NAN;
-          actuator_motors.control[2] = PX4_ISFINITE(motor_commands(2)) ? motor_commands(2) : NAN;
-          actuator_motors.control[3] = PX4_ISFINITE(motor_commands(3)) ? motor_commands(3) : NAN;
-          actuator_motors.control[4] = PX4_ISFINITE(motor_commands(4)) ? motor_commands(4) : NAN;
-          actuator_motors.control[5] = PX4_ISFINITE(motor_commands(5)) ? motor_commands(5) : NAN;
-        }
+        actuator_motors.control[0] = PX4_ISFINITE(motor_commands(0)) ? motor_commands(0) : NAN;
+        actuator_motors.control[1] = PX4_ISFINITE(motor_commands(1)) ? motor_commands(1) : NAN;
+        actuator_motors.control[2] = PX4_ISFINITE(motor_commands(2)) ? motor_commands(2) : NAN;
+        actuator_motors.control[3] = PX4_ISFINITE(motor_commands(3)) ? motor_commands(3) : NAN;
+        actuator_motors.control[4] = PX4_ISFINITE(motor_commands(4)) ? motor_commands(4) : NAN;
+        actuator_motors.control[5] = PX4_ISFINITE(motor_commands(5)) ? motor_commands(5) : NAN;
 
         actuator_motors.control[6] = -NAN;
         actuator_motors.control[7] = -NAN;

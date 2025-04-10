@@ -23,6 +23,8 @@ public:
 
 	void setPositionSetpoint(const Vector3f &position_setpoint) { _position_setpoint = position_setpoint; }
 
+  void setVelocitySetpoint(const Vector3f &velocity_setpoint) { _velocity_setpoint = velocity_setpoint; }
+
 	void setAttitude(const Quatf &quaternion) { _attitude = quaternion;	}
 
 	void setAngularVelocity(const matrix::Vector3f &angular_velocity) {_angular_velocity = angular_velocity; }
@@ -58,20 +60,16 @@ public:
 
 private:
 
+  Eigen::VectorXf _bias_control_net_layer_0;
+  Eigen::MatrixXf _weight_control_net_layer_0;
   Eigen::VectorXf _bias_control_net_layer_1;
   Eigen::MatrixXf _weight_control_net_layer_1;
-  Eigen::VectorXf _bias_control_net_layer_2;
-  Eigen::MatrixXf _weight_control_net_layer_2;
   Eigen::VectorXf _bias_control_net_layer_3;
   Eigen::MatrixXf _weight_control_net_layer_3;
-  Eigen::VectorXf _bias_allocation_net_layer_1;
-  Eigen::MatrixXf _weight_allocation_net_layer_1;
-  Eigen::VectorXf _bias_allocation_net_layer_2;
-  Eigen::MatrixXf _weight_allocation_net_layer_2;
-  Eigen::VectorXf _max_wrench;
-  Eigen::VectorXf _min_wrench;
-  Eigen::MatrixXf _pa_rot_mat;
-  Eigen::VectorXf _pa_center;
+  Eigen::VectorXf _bias_control_net_layer_5;
+  Eigen::MatrixXf _weight_control_net_layer_5;
+  Eigen::VectorXf _bias_control_net_layer_7;
+  Eigen::MatrixXf _weight_control_net_layer_7;
   Eigen::VectorXf _limits_u;
 
   float _min_u_training;
@@ -90,6 +88,7 @@ private:
 
   // setpoints
   Vector3f _position_setpoint{};
+  Vector3f _velocity_setpoint{};
 
   // measurments
   Quatf _attitude{};
@@ -98,9 +97,7 @@ private:
   Vector3f _angular_velocity;
 
   // Debug States
-  Eigen::VectorXf _scaled_input_allocation_net;
   Eigen::VectorXf _force_clamped;
-  Eigen::VectorXf _force_offset_comp;
   Eigen::VectorXf _input;
 
 };
