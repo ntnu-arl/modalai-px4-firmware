@@ -117,6 +117,7 @@ private:
 
 	float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
 	float _man_tilt_max;                    /**< maximum tilt allowed for manual flight [rad] */
+	matrix::Quatf _q_rot_y;
 
 	AlphaFilter<float> _man_roll_input_filter;
 	AlphaFilter<float> _man_pitch_input_filter;
@@ -139,6 +140,7 @@ private:
 
 		(ParamFloat<px4::params::MC_ROLL_P>)        _param_mc_roll_p,
 		(ParamFloat<px4::params::MC_PITCH_P>)       _param_mc_pitch_p,
+		(ParamFloat<px4::params::MC_PITCH_OFFSET>)  _param_mc_pitch_offset,
 		(ParamFloat<px4::params::MC_YAW_P>)         _param_mc_yaw_p,
 		(ParamFloat<px4::params::MC_YAW_WEIGHT>)    _param_mc_yaw_weight,
 
