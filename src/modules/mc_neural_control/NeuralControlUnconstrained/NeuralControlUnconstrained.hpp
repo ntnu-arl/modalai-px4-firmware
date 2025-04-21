@@ -51,7 +51,7 @@ public:
 
   Eigen::Quaternionf transform_orientation_ned_enu(Eigen::Quaternionf quat_ned);
 
-  int _n_motors; 
+  int _n_motors;
 
   /**
    * Run one control loop cycle calculation
@@ -59,6 +59,13 @@ public:
   matrix::Vector<float,6> updateNeural();
 
 private:
+  bool first_time_set = false;
+  long unsigned int goal_index;
+  Eigen::Vector3f starting_position_offset;
+  Eigen::Vector3f pos_state_w_starting_offset;
+  Eigen::Vector3f pos_setpoint;
+  Eigen::Vector3f pos_input;
+  Eigen::Vector3f pos_input_clamped;
 
   Eigen::VectorXf _bias_control_net_layer_0;
   Eigen::MatrixXf _weight_control_net_layer_0;
@@ -83,7 +90,7 @@ private:
   matrix::Dcmf _frame_transf;
   matrix::Dcmf _frame_transf_2;
 
-  // this are the min and max forces that the motor 
+  // this are the min and max forces that the motor
   // can generate and have to be estimated from the real system
 
   // setpoints

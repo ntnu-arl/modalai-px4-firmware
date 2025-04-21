@@ -69,6 +69,11 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
 
   try
   {
+
+    first_time_set = false;
+    starting_position_offset = Eigen::Vector3f::Constant(std::numeric_limits<float>::quiet_NaN());
+    goal_index = 0;
+
     std::string path = "/home/model_files_unconstrained/";
     PX4_INFO("loading model files");
 
@@ -112,7 +117,7 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _frame_transf_2(2, 0) = 0.0f;
     _frame_transf_2(2, 1) = 0.0f;
     _frame_transf_2(2, 2) = 1.0f;
-    
+
   }
   catch (const std::exception &e)
   {
@@ -138,6 +143,34 @@ void NeuralControlUnconstrained::fillDebugMessage(neural_control_s &message)
 
 matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 {
+
+
+  Eigen::Vector3f desired_starting_position(-0.5f, 0.0f, 0.0f);
+  std::vector<Vector3f> goals_list = {
+    Vector3f(0.0f, 0.0f, 0.0f),
+    Vector3f(0.25f, 0.0f, 0.0f),
+    Vector3f(0.5f, 0.0f, 0.0f),
+    Vector3f(0.75f, 0.0f, 0.0f),
+    Vector3f(1.0f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(1.25f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(1.5f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(1.75f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(2.0f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(2.25f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(2.5f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(2.75f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(3.0f, 0.6145519614219666f, 0.03982148319482803f),
+    Vector3f(3.25f, -0.013058841228485107f, 0.06924483180046082f),
+    Vector3f(3.5f, -0.013058841228485107f, 0.06924483180046082f),
+    Vector3f(3.75f, -0.013058841228485107f, 0.06924483180046082f),
+    Vector3f(4.0f, -0.013058841228485107f, 0.06924483180046082f),
+    Vector3f(4.25f, -0.5529854893684387f, 0.0442693829536438f),
+    Vector3f(4.5f, -0.5529854893684387f, 0.0442693829536438f),
+    Vector3f(4.75f, -0.5529854893684387f, 0.0442693829536438f),
+    Vector3f(5.0f, -0.5529854893684387f, 0.0442693829536438f),
+    Vector3f(5.25f, -0.5529854893684387f, 0.0442693829536438f)
+  };
+
 
   // transform observations in correct frame
   Vector3f position_local;
@@ -165,8 +198,33 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   Eigen::Vector3f pos_input = pos_setpoint - pos_state;
 
-  // clamp error to guarantee input lies in training envelope
-  Eigen::Vector3f pos_input_clamped = pos_input; //.cwiseMax(-1.).cwiseMin(1.);
+
+  if (!first_time_set){
+    starting_position_offset = pos_state - desired_starting_position;
+    first_time_set = true;
+  }
+
+  if (starting_position_offset.array().isNaN().any()) {
+    PX4_ERR("starting_position_offset contains NaN, crashing.");
+    std::cerr << "Error: starting_position_offset is NaN. Exiting." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  pos_state_w_starting_offset = pos_state - starting_position_offset;
+
+  if (goals_list[goal_index](0) < pos_state_w_starting_offset(0))
+  {
+    if (goal_index < goals_list.size()-1)
+    {
+      goal_index++;
+    }
+  }
+
+  pos_setpoint << goals_list[goal_index](0), goals_list[goal_index](1), goals_list[goal_index](2);
+  PX4_INFO("Updated pos_setpoint: %f %f %f", double(pos_setpoint(0)), double(pos_setpoint(1)), double(pos_setpoint(2)));
+
+  pos_input = pos_setpoint - pos_state_w_starting_offset;
+  pos_input_clamped = pos_input; //.cwiseMax(-1.).cwiseMin(1.);
 
   // convert linear velocities
   Eigen::Vector3f vel_state;
@@ -174,7 +232,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   Eigen::Vector3f vel_setpoint;
   vel_setpoint << linear_velocity_setpoint_local(0), linear_velocity_setpoint_local(1), linear_velocity_setpoint_local(2);
-  
+
   Eigen::Vector3f vel_input = vel_state; // - vel_setpoint;
 
   Eigen::VectorXf attitude_state(6);
