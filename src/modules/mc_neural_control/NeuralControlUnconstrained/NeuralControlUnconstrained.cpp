@@ -184,7 +184,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
     Vector3f(8.0f, 0.13837969303131104f, -0.0782838761806488f),
     Vector3f(8.25f, 0.13837969303131104f, -0.0782838761806488f),
     Vector3f(8.5f, 0.13837969303131104f, -0.0782838761806488f)
-  };  };
+  }; 
 
  /*
   std::vector<Vector3f> goals_list = {
