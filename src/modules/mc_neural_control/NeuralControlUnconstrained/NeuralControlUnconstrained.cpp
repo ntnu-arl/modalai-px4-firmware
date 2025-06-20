@@ -147,43 +147,44 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
 
   Eigen::Vector3f desired_starting_position(-0.5f, 0.0f, 0.0f);
+
   std::vector<Vector3f> goals_list = {
     Vector3f(0.0f, 0.0f, 0.0f),
     Vector3f(0.25f, 0.0f, 0.0f),
     Vector3f(0.5f, 0.0f, 0.0f),
     Vector3f(0.75f, 0.0f, 0.0f),
-    Vector3f(1.0f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(1.25f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(1.5f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(1.75f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(2.0f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(2.25f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(2.5f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(2.75f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(3.0f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(3.25f, -0.013058841228485107f, 0.06924483180046082f),
-    Vector3f(3.5f, -0.013058841228485107f, 0.06924483180046082f),
-    Vector3f(3.75f, -0.013058841228485107f, 0.06924483180046082f),
-    Vector3f(4.0f, -0.013058841228485107f, 0.06924483180046082f),
-    Vector3f(4.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(4.5f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(4.75f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(5.0f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(5.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(5.5f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(5.75f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(6.0f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(6.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(6.5f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(6.75f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(7.0f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(7.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(7.5f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(7.75f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(8.0f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(8.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(8.5f, -0.5529854893684387f, 0.0442693829536438f),
-  };
+    Vector3f(1.0f, 0.0f, 0.0f),
+    Vector3f(1.25f, 0.0f, 0.0f),
+    Vector3f(1.5f, 0.0f, 0.0f),
+    Vector3f(1.75f, 0.0f, 0.0f),
+    Vector3f(2.0f, 0.0f, 0.0f),
+    Vector3f(2.25f, -0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(2.5f, -0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(2.75f, -0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(3.0f, -0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(3.25f, -0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(3.5f, -0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(3.75f, -0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(4.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(4.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(4.5f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(4.75f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(5.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(5.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(5.5f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(5.75f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(6.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(6.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(6.5f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(6.75f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(7.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(7.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(7.5f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(7.75f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(8.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(8.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(8.5f, 0.13837969303131104f, -0.0782838761806488f)
+  };  };
 
  /*
   std::vector<Vector3f> goals_list = {
@@ -262,8 +263,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   }
 
   pos_state_w_starting_offset = pos_state - starting_position_offset;
-  float min_y_dist_for_new_gate = 0.30f;
-  if (goals_list[goal_index](0) < pos_state_w_starting_offset(0) && std::abs(goals_list[goal_index](1) - pos_state_w_starting_offset(1)) < min_y_dist_for_new_gate)
+  if (goals_list[goal_index](0) < pos_state_w_starting_offset(0))
   {
     if (goal_index < goals_list.size()-1)
     {
@@ -358,15 +358,15 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   //       }
   //   }
   //   Eigen::Quaternionf q(attitudeMat);
-  //   ofs << "{'timestamp': " << hrt_absolute_time() << ", 'position': [" 
-  //     << pos_state_w_starting_offset(0) << ", " << pos_state_w_starting_offset(1) << ", " << pos_state_w_starting_offset(2) 
-  //     << "], 'orientation': [" << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w() 
+  //   ofs << "{'timestamp': " << hrt_absolute_time() << ", 'position': ["
+  //     << pos_state_w_starting_offset(0) << ", " << pos_state_w_starting_offset(1) << ", " << pos_state_w_starting_offset(2)
+  //     << "], 'orientation': [" << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w()
   //     << "], 'velocity': [" << linear_velocity_local(0) << ", " << linear_velocity_local(1) << ", " << linear_velocity_local(2)
-  //     << "], 'angular_velocity': [" << angular_vel_local(0) << ", " << angular_vel_local(1) << ", " << angular_vel_local(2) 
-  //     << "], 'actions': [" << motor_commands(0) << ", " << motor_commands(1) << ", " << motor_commands(2) 
-  //     << ", " << motor_commands(3) << ", " << motor_commands(4) << ", " << motor_commands(5) 
-  //     << "], 'target': [" << pos_setpoint(0) << ", " << pos_setpoint(1) << ", " << pos_setpoint(2) 
-  //     << "], 'error': [" << (pos_setpoint(0)-pos_state(0)) << ", " << (pos_setpoint(1)-pos_state(1)) << ", " 
+  //     << "], 'angular_velocity': [" << angular_vel_local(0) << ", " << angular_vel_local(1) << ", " << angular_vel_local(2)
+  //     << "], 'actions': [" << motor_commands(0) << ", " << motor_commands(1) << ", " << motor_commands(2)
+  //     << ", " << motor_commands(3) << ", " << motor_commands(4) << ", " << motor_commands(5)
+  //     << "], 'target': [" << pos_setpoint(0) << ", " << pos_setpoint(1) << ", " << pos_setpoint(2)
+  //     << "], 'error': [" << (pos_setpoint(0)-pos_state(0)) << ", " << (pos_setpoint(1)-pos_state(1)) << ", "
   //     << (pos_setpoint(2)-pos_state(2)) << "]}" << std::endl;
   //   ofs.flush();
   // }
