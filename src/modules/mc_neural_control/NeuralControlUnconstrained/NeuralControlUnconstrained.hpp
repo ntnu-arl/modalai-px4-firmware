@@ -99,9 +99,10 @@ private:
 
   // measurments
   Quatf _attitude{};
+  matrix::Dcmf _attitude_local_mat{};
   Vector3f _position{};
   Vector3f _linear_velocity{};
-  Vector3f _angular_velocity;
+  Vector3f _angular_velocity{};
 
   // Debug States
   Eigen::VectorXf _force_clamped;

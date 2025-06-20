@@ -140,6 +140,27 @@ void NeuralControlUnconstrained::fillDebugMessage(neural_control_s &message)
   {
     message.observation[i] = _input(i);
   }
+  for (i = 0; i < 3; i++)
+  {
+    message.goal[i] = pos_setpoint(i);
+  }
+  for (i = 0; i < 3; i++)
+  {
+    message.position[i] = pos_state_w_starting_offset(i);
+  }
+
+  Eigen::Matrix3f attitudeMat;
+  for (i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+          attitudeMat(i, j) = _attitude_local_mat(i, j);
+      }
+  }
+  Eigen::Quaternionf q(attitudeMat);
+  message.orientation[0] = q.x();
+  message.orientation[1] = q.y();
+  message.orientation[2] = q.z();
+  message.orientation[3] = q.w();
+  
 }
 
 matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
@@ -152,37 +173,37 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
     Vector3f(0.25f, 0.0f, 0.0f),
     Vector3f(0.5f, 0.0f, 0.0f),
     Vector3f(0.75f, 0.0f, 0.0f),
-    Vector3f(1.0f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(1.25f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(1.5f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(1.75f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(2.0f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(2.25f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(2.5f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(2.75f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(3.0f, 0.6145519614219666f, 0.03982148319482803f),
-    Vector3f(3.25f, -0.013058841228485107f, 0.06924483180046082f),
-    Vector3f(3.5f, -0.013058841228485107f, 0.06924483180046082f),
-    Vector3f(3.75f, -0.013058841228485107f, 0.06924483180046082f),
-    Vector3f(4.0f, -0.013058841228485107f, 0.06924483180046082f),
-    Vector3f(4.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(4.5f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(4.75f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(5.0f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(5.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(5.5f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(5.75f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(6.0f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(6.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(6.5f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(6.75f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(7.0f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(7.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(7.5f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(7.75f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(8.0f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(8.25f, -0.5529854893684387f, 0.0442693829536438f),
-    Vector3f(8.5f, -0.5529854893684387f, 0.0442693829536438f),
+    Vector3f(1.0f, 0.0f, 0.0f),
+    Vector3f(1.25f, 0.0f, 0.0f),
+    Vector3f(1.5f, 0.0f, 0.0f),
+    Vector3f(1.75f, 0.0f, 0.0f),
+    Vector3f(2.0f, 0.0f, 0.0f),
+    Vector3f(2.25f, 0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(2.5f, 0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(2.75f, 0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(3.0f, 0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(3.25f, 0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(3.5f, 0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(3.75f, 0.5276188850402832f, -0.09220796078443527f),
+    Vector3f(4.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(4.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(4.5f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(4.75f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(5.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(5.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(5.5f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(5.75f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(6.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(6.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(6.5f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(6.75f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(7.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(7.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(7.5f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(7.75f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(8.0f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(8.25f, 0.13837969303131104f, -0.0782838761806488f),
+    Vector3f(8.5f, 0.13837969303131104f, -0.0782838761806488f)
   };
 
 
@@ -199,14 +220,13 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   Vector3f linear_velocity_setpoint_local;
   linear_velocity_setpoint_local = _frame_transf * _frame_transf_2 * _velocity_setpoint;
 
-  matrix::Dcmf _attitude_local_mat = _frame_transf * (_frame_transf_2 * matrix::Dcmf(_attitude)) * _frame_transf.transpose();
-  matrix::Eulerf euler_angles_local(_attitude_local_mat);
+  _attitude_local_mat = _frame_transf * (_frame_transf_2 * matrix::Dcmf(_attitude)) * _frame_transf.transpose();
+  //matrix::Eulerf euler_angles_local(_attitude_local_mat);
 
   Vector3f angular_vel_local = _frame_transf * _angular_velocity;
 
   Eigen::Vector3f pos_state;
   pos_state << position_local(0), position_local(1), position_local(2);
-
 
 
   if (!first_time_set){
@@ -221,8 +241,8 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   }
 
   pos_state_w_starting_offset = pos_state - starting_position_offset;
-  float min_y_dist_for_new_gate = 0.30f;
-  if (goals_list[goal_index](0) < pos_state_w_starting_offset(0) && std::abs(goals_list[goal_index](1) - pos_state_w_starting_offset(1)) < min_y_dist_for_new_gate)
+  // float min_y_dist_for_new_gate = 0.30f;
+  if (goals_list[goal_index](0) < pos_state_w_starting_offset(0))
   {
     if (goal_index < goals_list.size()-1)
     {
