@@ -330,6 +330,8 @@ ControlAllocator::Run()
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 
+			_offboard = vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
 			// Check if the current flight phase is HOVER or FIXED_WING
@@ -432,8 +434,10 @@ ControlAllocator::Run()
 	}
 
 	// Publish actuator setpoint and allocator status
-	publish_actuator_controls();
-	//PX4_DEBUG("ControlAllocator::Run()");
+	
+	if (!_offboard){
+		publish_actuator_controls();
+	}
 
 	// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
 	// (i.e. anti-integrator windup)

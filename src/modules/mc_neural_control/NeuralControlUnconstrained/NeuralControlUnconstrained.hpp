@@ -86,7 +86,7 @@ private:
   matrix::Dcmf _frame_transf_2;
 
   // this are the min and max forces that the motor 
-  // can generate and have to be estimated from the real system
+  // can generate and have to be estimated from the real sysneural_control_stem
 
   // setpoints
   Vector3f _position_setpoint{};
@@ -102,5 +102,6 @@ private:
   Eigen::VectorXf _force_clamped;
   Eigen::VectorXf _force_offset_comp;
   Eigen::VectorXf _input;
+  matrix::Vector<float,6> _debug;
 
 };

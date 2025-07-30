@@ -446,7 +446,6 @@ void MulticopterNeuralControl::Run()
         vehicle_torque_setpoint.timestamp = hrt_absolute_time();
         _vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 
-
       }
       else if (_param_controller.get() == NEURAL)
       {

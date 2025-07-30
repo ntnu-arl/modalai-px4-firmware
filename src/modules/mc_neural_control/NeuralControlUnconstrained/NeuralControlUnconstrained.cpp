@@ -144,6 +144,10 @@ void NeuralControlUnconstrained::fillDebugMessage(neural_control_s &message)
   {
     message.observation[i] = _input(i);
   }
+  for (i = 0; i < 6; i++)
+  {
+    message.debug[i] = _debug(i);
+  }
 }
 
 matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
@@ -261,6 +265,13 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   {
     mixer_values(i) = a * (((motor_commands(i) + 1.0f) / 2.0f + tmp1) * ((motor_commands(i) + 1.0f) / 2.0f + tmp1) - tmp2);
   }
+
+  _debug(0) = mixer_values(0);
+  _debug(1) = mixer_values(1);
+  _debug(2) = mixer_values(2);
+  _debug(3) = mixer_values(3);
+  _debug(4) = mixer_values(4);
+  _debug(5) = mixer_values(5);
 
   return mixer_values;
 }

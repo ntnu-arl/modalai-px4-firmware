@@ -5,3 +5,4 @@ uint64 timestamp_sample	    # the timestamp the data this control response is ba
 float32[6] wrench           # Forces and Torques
 float32[6] motor_thrust     # Thrust per motor
 float32[15] observation     # Everything else
+float32[6] debug
