@@ -214,12 +214,12 @@ matrix::Vector<float,6> NeuralControlConstrained::updateNeural()
   Eigen::VectorXf ao4 = _weight_allocation_net_layer_4 * aa3 + _bias_allocation_net_layer_4;
   Eigen::VectorXf output_allocation_net = ao4;
 
-  Eigen::VectorXf _alloc_model_offset_comp = Eigen::VectorXf::Zero(4);
-  _alloc_model_offset_comp << 2.7934e-03, -5.3063e-03, -8.4877e-05, -2.1152e-03;
-  _force_offset_comp = output_allocation_net - _alloc_model_offset_comp;
+  // Eigen::VectorXf _alloc_model_offset_comp = Eigen::VectorXf::Zero(4);
+  // _alloc_model_offset_comp << 2.7934e-03, -5.3063e-03, -8.4877e-05, -2.1152e-03;
+  // _force_offset_comp = output_allocation_net - _alloc_model_offset_comp;
 
   _force_clamped = Eigen::VectorXf::Zero(_n_motors);
-  _force_clamped = _force_offset_comp.cwiseMax(_min_u_training).cwiseMin(_max_u_training);
+  _force_clamped = output_allocation_net.cwiseMax(_min_u_training).cwiseMin(_max_u_training);
 
   // conversion to rpm
   static const float _thrust_coefficient = 0.00001286412;
@@ -267,13 +267,6 @@ matrix::Vector<float,6> NeuralControlConstrained::updateNeural()
   {
     mixer_values(i) = a * (((motor_commands(i) + 1.0f) / 2.0f + tmp1) * ((motor_commands(i) + 1.0f) / 2.0f + tmp1) - tmp2);
   }
-
-  // mixer_values(0) = a * (((motor_commands(0) + 1.0f) / 2.0f + tmp1) * ((motor_commands(0) + 1.0f) / 2.0f + tmp1) - tmp2);
-  // mixer_values(1) = a * (((motor_commands(1) + 1.0f) / 2.0f + tmp1) * ((motor_commands(1) + 1.0f) / 2.0f + tmp1) - tmp2);
-  // mixer_values(2) = a * (((motor_commands(2) + 1.0f) / 2.0f + tmp1) * ((motor_commands(2) + 1.0f) / 2.0f + tmp1) - tmp2);
-  // mixer_values(3) = a * (((motor_commands(3) + 1.0f) / 2.0f + tmp1) * ((motor_commands(3) + 1.0f) / 2.0f + tmp1) - tmp2);
-
-  //PX4_WARN("time total: %f",  double(std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count()));
 
   return mixer_values;
 }

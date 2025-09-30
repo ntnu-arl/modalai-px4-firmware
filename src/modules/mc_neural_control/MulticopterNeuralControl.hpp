@@ -79,7 +79,7 @@ class MulticopterNeuralControl : public ModuleBase<MulticopterNeuralControl>, pu
 public:
 	#define NONLINEAR_PD 0
 	#define NEURAL 1
-	#define CONSTRAINED false
+	#define CONSTRAINED true
 
 	MulticopterNeuralControl(bool vtol = false);
 	~MulticopterNeuralControl() override;
@@ -113,7 +113,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	using VariableType = std::conditional<CONSTRAINED, NeuralControlConstrained, NeuralControlUnconstrained>::type;
-	const int _n_motors = 6;
+	const int _n_motors = 4;
 	std::unique_ptr<VariableType> _neural_control;
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
