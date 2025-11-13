@@ -79,7 +79,7 @@ class MulticopterNeuralControl : public ModuleBase<MulticopterNeuralControl>, pu
 public:
 	#define NONLINEAR_PD 0
 	#define NEURAL 1
-	#define CONSTRAINED true
+	#define CONSTRAINED false
 
 	MulticopterNeuralControl(bool vtol = false);
 	~MulticopterNeuralControl() override;
