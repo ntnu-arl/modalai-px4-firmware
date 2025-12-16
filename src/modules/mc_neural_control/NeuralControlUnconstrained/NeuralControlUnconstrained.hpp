@@ -23,6 +23,8 @@ public:
 
 	void setPositionSetpoint(const Vector3f &position_setpoint) { _position_setpoint = position_setpoint; }
 
+  void setLinearVelocitySetpoint(const Vector3f &linear_velocity_setpoint) { _linear_velocity_setpoint = linear_velocity_setpoint; }
+
 	void setAttitude(const Quatf &quaternion) { _attitude = quaternion;	}
 
 	void setAngularVelocity(const matrix::Vector3f &angular_velocity) {_angular_velocity = angular_velocity; }
@@ -90,6 +92,7 @@ private:
 
   // setpoints
   Vector3f _position_setpoint{};
+  Vector3f _linear_velocity_setpoint{};
 
   // measurments
   Quatf _attitude{};

@@ -147,6 +147,10 @@ void NeuralControlConstrained::fillDebugMessage(neural_control_s &message)
   {
     message.observation[i] = _input(i);
   }
+  for (i = 0; i < 6; i++)
+  {
+    message.debug[i] = _debug(i);
+  }
 }
 
 matrix::Vector<float,6> NeuralControlConstrained::updateNeural()
@@ -158,6 +162,9 @@ matrix::Vector<float,6> NeuralControlConstrained::updateNeural()
 
   Vector3f position_setpoint_local;
   position_setpoint_local = _frame_transf * _frame_transf_2 * _position_setpoint;
+  
+  Vector3f linear_velocity_setpoint_local;
+  linear_velocity_setpoint_local = _frame_transf * _frame_transf_2 * _linear_velocity_setpoint;
 
   Vector3f linear_velocity_local;
   linear_velocity_local = _frame_transf * _frame_transf_2 * _linear_velocity;
@@ -180,6 +187,9 @@ matrix::Vector<float,6> NeuralControlConstrained::updateNeural()
   // convert linear velocities
   Eigen::Vector3f vel_state;
   vel_state << linear_velocity_local(0), linear_velocity_local(1), linear_velocity_local(2);
+  Eigen::Vector3f vel_setpoint;
+  vel_setpoint << linear_velocity_setpoint_local(0), linear_velocity_setpoint_local(1), linear_velocity_setpoint_local(2);
+  Eigen::Vector3f vel_input = vel_state - vel_setpoint;
 
   Eigen::VectorXf attitude_state(6);
   attitude_state << _attitude_local_mat(0, 0), _attitude_local_mat(0, 1), _attitude_local_mat(0, 2),
@@ -191,7 +201,7 @@ matrix::Vector<float,6> NeuralControlConstrained::updateNeural()
 
   // input vector for network
   _input = Eigen::VectorXf::Zero(15);
-  _input << pos_input_clamped, attitude_state, vel_state, angular_velocity_state;
+  _input << pos_input_clamped, attitude_state, vel_input, angular_velocity_state;
 
   // forward path
   Eigen::VectorXf co1 = _weight_control_net_layer_1 * _input + _bias_control_net_layer_1;
@@ -267,6 +277,13 @@ matrix::Vector<float,6> NeuralControlConstrained::updateNeural()
   {
     mixer_values(i) = a * (((motor_commands(i) + 1.0f) / 2.0f + tmp1) * ((motor_commands(i) + 1.0f) / 2.0f + tmp1) - tmp2);
   }
+
+  _debug(0) = pos_setpoint(0);
+  _debug(1) = pos_setpoint(1);
+  _debug(2) = pos_setpoint(2);
+  _debug(3) = vel_setpoint(0);
+  _debug(4) = vel_setpoint(1);
+  _debug(5) = vel_setpoint(2);
 
   return mixer_values;
 }

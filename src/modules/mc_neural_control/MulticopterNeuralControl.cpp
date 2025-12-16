@@ -242,8 +242,6 @@ void MulticopterNeuralControl::Run()
       // trajectory_setpoint_s trajectory_setpoint;
       _trajectory_setpoint_sub.copy(&_trajectory_setpoint);
       
-      PX4_WARN("setpoint_updated: %f %f %f ", double(_trajectory_setpoint.position[0]),
-                double(_trajectory_setpoint.position[1]), double(_trajectory_setpoint.position[2]));
     }
     // _trajectory_setpoint_sub.update(&_trajectory_setpoint);
     if (_vehicle_control_mode.flag_control_offboard_enabled)
@@ -329,6 +327,7 @@ void MulticopterNeuralControl::Run()
         _vehicle_local_position_setpoint_pub.publish(local_pos_sp);
 
         _neural_control->setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
+        _neural_control->setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
 
         _pd_position_control.setPositionSetpoint(Vector3f(_trajectory_setpoint.position));
         _pd_position_control.setLinearVelocitySetpoint(Vector3f(_trajectory_setpoint.velocity));
