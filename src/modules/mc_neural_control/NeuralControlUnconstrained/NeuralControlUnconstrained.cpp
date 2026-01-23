@@ -88,8 +88,7 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
 
   try
   {
-    std::string path = "/home/arl/model_files/";
-    //"/home/orestis/workspaces/torch_model_to_csv_conversion/save_model_end_to_end/build/model_files";
+    std::string path = "/home/model_files_unconstrained/";
     PX4_INFO("loading model files");
     _obs_mean = openDataUnconstrained(path + "running_mean_std_mean.csv");
     _obs_var = openDataUnconstrained(path + "running_mean_std_var.csv");
@@ -113,14 +112,6 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _norm_weight = openDataUnconstrained(path + "norm_weight.csv");
     _norm_bias = openDataUnconstrained(path + "norm_bias.csv");
 
-    // _max_wrench = openDataUnconstrained(path + "max_wrench.csv");
-    // _min_wrench = openDataUnconstrained(path + "min_wrench.csv");
-    // _pa_rot_mat = openDataUnconstrained(path + "pa_rot_matrix.csv");
-    // _pa_center = openDataUnconstrained(path + "pa_center.csv");
-    // _limits_u = openDataUnconstrained(path + "lim_u.csv");
-
-    _min_u_training = _limits_u(-1);
-    _max_u_training = _limits_u(+1);
     PX4_INFO("model files loaded!");
 
     // Debug State
@@ -129,8 +120,8 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _force_offset_comp = Eigen::VectorXf::Zero(4);
     _input = Eigen::VectorXf::Zero(61); // 15
 
-    _static_obs = Eigen::VectorXf(48);
-    _static_obs << 1.7820054293,      1.9009206295,
+    _static_obs.resize(48);
+    _static_obs << 1.7820054293f,      1.9009206295,
           0.5512463450,     -0.0218369160,     -0.0267387982,
           0.1366616040,      0.8021930456,      0.7921100259,
           0.1790838093,      0.0146056293,      0.0078212060,
@@ -150,7 +141,6 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
 
     _motor_min_thrusts = Eigen::VectorXf::Constant(_n_motors, 0.05f);
     _motor_max_thrusts = Eigen::VectorXf::Constant(_n_motors, 1.7f);
-
 
     _frame_transf(0, 0) = 1.0f;
     _frame_transf(0, 1) = 0.0f;
@@ -205,6 +195,8 @@ void NeuralControlUnconstrained::fillDebugMessage(neural_control_s &message)
 matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 {
 
+  PRINT_INFO()
+
   // transform observations in correct frame
   Vector3f position_local;
   position_local = _frame_transf * _frame_transf_2 * _position;
@@ -241,20 +233,42 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   Eigen::Vector3f pos_input_clamped = pos_input; //.cwiseMax(-1.).cwiseMin(1.);
 
   // convert linear velocities
-  Eigen::Vector3f vel_state;
-  vel_state << linear_velocity_local(0), linear_velocity_local(1), linear_velocity_local(2);
-  Eigen::Vector3f vel_setpoint;
-  vel_setpoint << linear_velocity_setpoint_local(0), linear_velocity_setpoint_local(1), linear_velocity_setpoint_local(2);
-  Eigen::Vector3f vel_input = vel_setpoint - vel_state;
-  Vector3f vel_input_b = _attitude_local_mat.transpose() * vel_input;
+  // Eigen::Vector3f vel_state;
+  // vel_state << linear_velocity_local(0), linear_velocity_local(1), linear_velocity_local(2);
+  // Eigen::Vector3f vel_setpoint;
+  // vel_setpoint << linear_velocity_setpoint_local(0), linear_velocity_setpoint_local(1), linear_velocity_setpoint_local(2);
+  // Eigen::Vector3f vel_input = vel_setpoint - vel_state;
+  // Vector3f vel_input_b = _attitude_local_mat.transpose() * vel_input;
+  // --- velocity error in BODY frame (use PX4 matrix types) ---
+  matrix::Vector3f vel_state_m{
+    linear_velocity_local(0), linear_velocity_local(1), linear_velocity_local(2)
+  };
+  matrix::Vector3f vel_sp_m{
+    linear_velocity_setpoint_local(0), linear_velocity_setpoint_local(1), linear_velocity_setpoint_local(2)
+  };
+
+  matrix::Vector3f vel_err_m = vel_sp_m - vel_state_m;
+  matrix::Vector3f vel_err_b_m = _attitude_local_mat.transpose() * vel_err_m;
+  // copy into Eigen for the NN input
+  Eigen::Vector3f vel_input_b;
+  vel_input_b << vel_err_b_m(0), vel_err_b_m(1), vel_err_b_m(2);
 
   Eigen::VectorXf quat_input(4);
   quat_input << q_local(1), q_local(2), q_local(3), q_local(0);
 
   // convert angular velocities
-  Eigen::Vector3f angular_velocity_state;
-  angular_velocity_state << angular_vel_local(0), angular_vel_local(1), angular_vel_local(2);
-  Vector3f angular_velocity_state_b = _attitude_local_mat.transpose() * angular_velocity_state;
+  // Eigen::Vector3f angular_velocity_state;
+  // angular_velocity_state << angular_vel_local(0), angular_vel_local(1), angular_vel_local(2);
+  // Vector3f angular_velocity_state_b = _attitude_local_mat.transpose() * angular_velocity_state;
+  // --- angular velocity in BODY frame (use PX4 matrix types) ---
+  matrix::Vector3f angvel_m{
+    angular_vel_local(0), angular_vel_local(1), angular_vel_local(2)
+  };
+  matrix::Vector3f angvel_b_m = _attitude_local_mat.transpose() * angvel_m;
+
+  // copy into Eigen
+  Eigen::Vector3f angular_velocity_state_b;
+  angular_velocity_state_b << angvel_b_m(0), angvel_b_m(1), angvel_b_m(2);
 
   // input vector for network
   _unnorm_input = Eigen::VectorXf::Zero(61);
@@ -274,7 +288,8 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
 
   // normalize observations
-  Eigen::VectorXf _input = _unnorm_input;
+  //Eigen::VectorXf 
+  _input = _unnorm_input;
   for (int i = 0; i < _input.size(); i++) {
       const float denom = sqrtf(_obs_var(i) + _obs_eps);
       float v = (_input(i) - _obs_mean(i)) / denom;
@@ -365,9 +380,9 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   _debug(0) = pos_setpoint(0);
   _debug(1) = pos_setpoint(1);
   _debug(2) = pos_setpoint(2);
-  _debug(3) = vel_setpoint(0);
-  _debug(4) = vel_setpoint(1);
-  _debug(5) = vel_setpoint(2);
+  _debug(3) = linear_velocity_setpoint_local(0);
+  _debug(4) = linear_velocity_setpoint_local(1);
+  _debug(5) = linear_velocity_setpoint_local(2);
 
   return mixer_values;
 }

@@ -59,6 +59,7 @@ public:
   matrix::Vector<float,6> updateNeural();
 
 private:
+  Eigen::VectorXf _unnorm_input;
   Eigen::VectorXf _norm_weight;
   Eigen::VectorXf _norm_bias;
   Eigen::VectorXf _bias_layer_1;
@@ -117,6 +118,7 @@ private:
 
   Eigen::VectorXf _obs_mean;  // (61)
   Eigen::VectorXf _obs_var;   // (61)
+  Eigen::VectorXf _static_obs;
   float _obs_eps{1e-5f};
 
 };
