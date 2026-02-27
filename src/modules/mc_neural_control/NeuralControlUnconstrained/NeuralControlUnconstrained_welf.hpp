@@ -51,8 +51,7 @@ public:
 
   Eigen::Quaternionf transform_orientation_ned_enu(Eigen::Quaternionf quat_ned);
 
-  int _n_motors;
-  matrix::Dcmf Rz_body;
+  int _n_motors; 
 
   /**
    * Run one control loop cycle calculation
@@ -60,36 +59,23 @@ public:
   matrix::Vector<float,6> updateNeural();
 
 private:
-  Eigen::VectorXf _unnorm_input;
-  // Eigen::VectorXf _norm_weight;
-  // Eigen::VectorXf _norm_bias;
-  Eigen::VectorXf _bias_layer_1;
-  Eigen::MatrixXf _weight_layer_1;
-  Eigen::VectorXf _bias_layer_2;
-  Eigen::MatrixXf _weight_layer_2;
-  // Eigen::VectorXf _bias_layer_3;
-  // Eigen::MatrixXf _weight_layer_3;
-  // Eigen::VectorXf _bias_layer_4;
-  // Eigen::MatrixXf _weight_layer_4;
-  Eigen::VectorXf _bias_allocation_layer_1;
-  Eigen::MatrixXf _weight_allocation_layer_1;
-  Eigen::VectorXf _bias_output_layer;
-  Eigen::MatrixXf _weight_output_layer;
 
-  Eigen::VectorXf _gru_b_ih;
-  Eigen::MatrixXf _gru_w_ih;
-  Eigen::VectorXf _gru_b_hh;
-  Eigen::MatrixXf _gru_w_hh;
-
-  Eigen::VectorXf _motor_min_thrusts;
-  Eigen::VectorXf _motor_max_thrusts;
+  Eigen::VectorXf _bias_control_net_layer_1;
+  Eigen::MatrixXf _weight_control_net_layer_1;
+  Eigen::VectorXf _bias_control_net_layer_2;
+  Eigen::MatrixXf _weight_control_net_layer_2;
+  Eigen::VectorXf _bias_control_net_layer_3;
+  Eigen::MatrixXf _weight_control_net_layer_3;
+  Eigen::VectorXf _bias_allocation_net_layer_1;
+  Eigen::MatrixXf _weight_allocation_net_layer_1;
+  Eigen::VectorXf _bias_allocation_net_layer_2;
+  Eigen::MatrixXf _weight_allocation_net_layer_2;
   Eigen::VectorXf _max_wrench;
   Eigen::VectorXf _min_wrench;
   Eigen::MatrixXf _pa_rot_mat;
   Eigen::VectorXf _pa_center;
   Eigen::VectorXf _limits_u;
 
-  
   float _min_u_training;
   float _max_u_training;
   int _max_rpm;
@@ -101,7 +87,7 @@ private:
   matrix::Dcmf _frame_transf;
   matrix::Dcmf _frame_transf_2;
 
-  // this are the min and max forces that the motor
+  // this are the min and max forces that the motor 
   // can generate and have to be estimated from the real sysneural_control_stem
 
   // setpoints
@@ -117,17 +103,8 @@ private:
   // Debug States
   Eigen::VectorXf _scaled_input_allocation_net;
   Eigen::VectorXf _force_clamped;
-  Eigen::VectorXf _motor_cmds;
   Eigen::VectorXf _force_offset_comp;
   Eigen::VectorXf _input;
   matrix::Vector<float,6> _debug;
-
-
-  Eigen::VectorXf _obs_mean;  // (61)
-  Eigen::VectorXf _obs_var;   // (61)
-  Eigen::VectorXf _static_obs;
-  Eigen::VectorXf hidden_state;
-
-  float _obs_eps{1e-5f};
 
 };

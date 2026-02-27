@@ -83,66 +83,6 @@ inline Eigen::VectorXf layernorm(
     return gamma.array() * x_hat.array() + beta.array();
 }
 
-inline Eigen::VectorXf sigmoid(const Eigen::VectorXf& x){
-  return 1.0f / (1.0f + (-x.array()).exp());
-}
-
-
-// Gate order in PyTorch nn.GRU is: r, z, n
-static inline Eigen::VectorXf gru_cell_step_pytorch(
-  const Eigen::VectorXf& x_t,      // [I]
-  const Eigen::VectorXf& h_prev,   // [H]
-  const Eigen::MatrixXf& W_ih,     // [3H, I]
-  const Eigen::MatrixXf& W_hh,     // [3H, H]
-  const Eigen::VectorXf& b_ih,     // [3H]
-  const Eigen::VectorXf& b_hh      // [3H]
-) {
-  const int H = static_cast<int>(h_prev.size());
-  // if (W_ih.rows() != 3 * H || W_hh.rows() != 3 * H || b_ih.size() != 3 * H || b_hh.size() != 3 * H) {
-  //   throw std::runtime_error("GRU param shapes inconsistent with hidden size H");
-  // }
-  // if (W_hh.cols() != H) {
-  //   throw std::runtime_error("W_hh must be [3H, H]");
-  // }
-  // if (W_ih.cols() != x_t.size()) {
-  //   throw std::runtime_error("W_ih must be [3H, I] where I == x_t.size()");
-  // }
-
-  // Split into r,z,n blocks (PyTorch order: r, z, n)
-  const auto W_ih_r = W_ih.block(0,    0, H, W_ih.cols());
-  const auto W_ih_z = W_ih.block(H,    0, H, W_ih.cols());
-  const auto W_ih_n = W_ih.block(2*H,  0, H, W_ih.cols());
-
-  const auto W_hh_r = W_hh.block(0,    0, H, W_hh.cols());
-  const auto W_hh_z = W_hh.block(H,    0, H, W_hh.cols());
-  const auto W_hh_n = W_hh.block(2*H,  0, H, W_hh.cols());
-
-  const auto b_ih_r = b_ih.segment(0,   H);
-  const auto b_ih_z = b_ih.segment(H,   H);
-  const auto b_ih_n = b_ih.segment(2*H, H);
-
-  const auto b_hh_r = b_hh.segment(0,   H);
-  const auto b_hh_z = b_hh.segment(H,   H);
-  const auto b_hh_n = b_hh.segment(2*H, H);
-
-  // r_t = sigmoid(W_ir x + b_ir + W_hr h + b_hr)
-  Eigen::VectorXf r = sigmoid(W_ih_r * x_t + b_ih_r + W_hh_r * h_prev + b_hh_r);
-
-  // z_t = sigmoid(W_iz x + b_iz + W_hz h + b_hz)
-  Eigen::VectorXf z = sigmoid(W_ih_z * x_t + b_ih_z + W_hh_z * h_prev + b_hh_z);
-
-  // n_t = tanh(W_in x + b_in + r ⊙ (W_hn h + b_hn))
-  Eigen::VectorXf n = (W_ih_n * x_t + b_ih_n).array()
-                  + r.array() * (W_hh_n * h_prev + b_hh_n).array();
-  n = n.array().tanh();
-
-
-  // h_t = (1 - z) ⊙ n + z ⊙ h_prev   (PyTorch convention)
-  Eigen::VectorXf h = (Eigen::VectorXf::Ones(H) - z).array() * n.array()
-                    + z.array() * h_prev.array();
-  return h;
-}
-
 NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
 {
   _n_motors = n_motors;
@@ -159,15 +99,10 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _weight_layer_1 = openDataUnconstrained(path + "weight_layer_1.csv");
     _bias_layer_2 = openDataUnconstrained(path + "bias_layer_2.csv");
     _weight_layer_2 = openDataUnconstrained(path + "weight_layer_2.csv");
-    // _bias_layer_3 = openDataUnconstrained(path + "bias_layer_3.csv");
-    // _weight_layer_3 = openDataUnconstrained(path + "weight_layer_3.csv");
-    // _bias_layer_4 = openDataUnconstrained(path + "bias_layer_4.csv");
-    // _weight_layer_4 = openDataUnconstrained(path + "weight_layer_4.csv");
-    _gru_b_ih = openDataUnconstrained(path + "gru_b_ih.csv");
-    _gru_w_ih = openDataUnconstrained(path + "gru_w_ih.csv");
-    _gru_b_hh = openDataUnconstrained(path + "gru_b_hh.csv");
-    _gru_w_hh = openDataUnconstrained(path + "gru_w_hh.csv");
-
+    _bias_layer_3 = openDataUnconstrained(path + "bias_layer_3.csv");
+    _weight_layer_3 = openDataUnconstrained(path + "weight_layer_3.csv");
+    _bias_layer_4 = openDataUnconstrained(path + "bias_layer_4.csv");
+    _weight_layer_4 = openDataUnconstrained(path + "weight_layer_4.csv");
 
     _bias_allocation_layer_1 = openDataUnconstrained(path + "bias_allocation_layer_1.csv");
     _weight_allocation_layer_1 = openDataUnconstrained(path + "weight_allocation_layer_1.csv");
@@ -175,8 +110,8 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _bias_output_layer = openDataUnconstrained(path + "bias_output_layer.csv");
     _weight_output_layer = openDataUnconstrained(path + "weight_output_layer.csv");
 
-    // _norm_weight = openDataUnconstrained(path + "norm_weight.csv");
-    // _norm_bias = openDataUnconstrained(path + "norm_bias.csv");
+    _norm_weight = openDataUnconstrained(path + "norm_weight.csv");
+    _norm_bias = openDataUnconstrained(path + "norm_bias.csv");
 
     PX4_INFO("model files loaded!");
 
@@ -184,26 +119,29 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _scaled_input_allocation_net = Eigen::VectorXf::Zero(6);
     _motor_cmds = Eigen::VectorXf::Zero(6);
     _force_offset_comp = Eigen::VectorXf::Zero(4);
-    _input = Eigen::VectorXf::Zero(49); // 15
-    hidden_state = Eigen::VectorXf::Zero(50); // 15
+    _input = Eigen::VectorXf::Zero(61); // 15
 
-    _static_obs.resize(36);
-    _static_obs << 0.0000000451, 0.0000000007, 0.1666667014,
-      0.0049677868, -0.0084413923, 0.0363183357,
-      0.0000000455, 0.0000000015, 0.1666666567,
-      0.0098782452, 0.0001784927, -0.0362381488,
-      0.0000000451, -0.0000000037, 0.1666666865,
-      0.0049395883, 0.0080355629, 0.0361707062,
-      0.0000000445, -0.0000000007, 0.1666666269,
-      0.0049677873, 0.0084413933, -0.0363183580,
-      0.0000000441, -0.0000000015, 0.1666666865,
-      0.0098782489, -0.0001784926, 0.0362381674,
-      0.0000000445, 0.0000000037, 0.1666666865,
-      -0.0049395869, -0.0080355629, -0.0361707099;
+    _static_obs.resize(48);
+    _static_obs << 1.7820054293,      1.9009206295,
+          0.5512463450,     -0.0218369160,     -0.0267387982,
+          0.1366616040,      0.8021930456,      0.7921100259,
+          0.1790838093,      0.0146056293,      0.0078212060,
+          -0.0686258152,     -3.1968226433,     -1.4655148983,
+          -0.1597105563,      0.0127784461,      0.0024540315,
+          0.0222310014,      3.4531297684,      0.3609554470,
+          0.6219188571,     -0.0135005787,      0.0072640372,
+          0.0100276815,     -0.5797182918,      4.3422651291,
+          0.1995685995,     -0.0213653855,     -0.0125859659,
+          0.1271253228,     -2.3787565231,     -5.7737803459,
+          -0.3825006187,      0.0288977493,      0.0215753485,
+          -0.2248043418,      0.047,      0.047,
+          0.047,      0.047,      0.047,
+          0.047,      0.0000128641,      0.0000128641,
+          0.0000128641,      0.0000128641,      0.0000128641,
+          0.0000128641;
 
     _motor_min_thrusts = Eigen::VectorXf::Constant(_n_motors, 0.05f);
     _motor_max_thrusts = Eigen::VectorXf::Constant(_n_motors, 1.7f);
-
 
 
     _frame_transf(0, 0) = 1.0f;
@@ -273,7 +211,8 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   Vector3f linear_velocity_local;
   linear_velocity_local = _frame_transf * _frame_transf_2 * _linear_velocity;
- 
+
+
   matrix::Dcmf _attitude_local_mat = _frame_transf * (_frame_transf_2 * matrix::Dcmf(_attitude)) * _frame_transf.transpose();
   matrix::Eulerf euler_angles_local(_attitude_local_mat);
   matrix::Quatf q_local(_attitude_local_mat); // [w,x,y,z]
@@ -297,6 +236,13 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   // clamp error to guarantee input lies in training envelope
   Eigen::Vector3f pos_input_clamped = pos_input; //.cwiseMax(-1.).cwiseMin(1.);
 
+  // convert linear velocities
+  // Eigen::Vector3f vel_state;
+  // vel_state << linear_velocity_local(0), linear_velocity_local(1), linear_velocity_local(2);
+  // Eigen::Vector3f vel_setpoint;
+  // vel_setpoint << linear_velocity_setpoint_local(0), linear_velocity_setpoint_local(1), linear_velocity_setpoint_local(2);
+  // Eigen::Vector3f vel_input = vel_setpoint - vel_state;
+  // Vector3f vel_input_b = _attitude_local_mat.transpose() * vel_input;
   // --- velocity error in BODY frame (use PX4 matrix types) ---
   matrix::Vector3f vel_state_m{
     linear_velocity_local(0), linear_velocity_local(1), linear_velocity_local(2)
@@ -305,7 +251,6 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
     linear_velocity_setpoint_local(0), linear_velocity_setpoint_local(1), linear_velocity_setpoint_local(2)
   };
 
-  //vel_sp_m *= 0;
   matrix::Vector3f vel_err_m = vel_sp_m - vel_state_m;
   matrix::Vector3f vel_err_b_m = _attitude_local_mat.transpose() * vel_err_m;
   // copy into Eigen for the NN input
@@ -323,13 +268,14 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   matrix::Vector3f angvel_m{
     angular_vel_local(0), angular_vel_local(1), angular_vel_local(2)
   };
+  
 
   // copy into Eigen
   Eigen::Vector3f angular_velocity_state_b;
   angular_velocity_state_b << angvel_m(0), angvel_m(1), angvel_m(2);
 
   // input vector for network
-  _unnorm_input = Eigen::VectorXf::Zero(49);
+  _unnorm_input = Eigen::VectorXf::Zero(61);
   // 0..2  position error (world)
   _unnorm_input.segment<3>(0) = pos_input_clamped;
 
@@ -341,7 +287,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   // 10..12 angular velocity error (body)
   _unnorm_input.segment<3>(10) = angular_velocity_state_b;
-  _unnorm_input.segment<36>(13) = _static_obs;
+  _unnorm_input.segment<48>(13) = _static_obs;
 
   // normalize observations
   //Eigen::VectorXf 
@@ -350,8 +296,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   //_input.segment<13>(0) << -0.046624f, -0.028190f, 0.042185f, 0.027167f, 0.011528f, 0.055297f, 0.998034f, 
   //             -0.069047f, -0.029921f, 0.042351f, -0.084985f, 0.031911f, -0.02201f;
 
-  // 
-  PX4_INFO("input %f %f %f ",double(_input(10)), double(_input(11)), double(_input(12)));
+  // PX4_INFO("input size %f %f %f %f %f %f %f ",double(_input(0)), double(_input(1)), double(_input(2)), double(_input(3)), double(_input(4)), double(_input(5)), double(_input(6)));
   // PX4_INFO("input size %f %f %f %f %f %f %f ",double(_input(7)), double(_input(8)), double(_input(9)), double(_input(10)), double(_input(11)), double(_input(12)), double(_input(13)));
 
   for (int i = 0; i < _input.size(); i++) {
@@ -364,9 +309,8 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
       _input(i) = v;
   }
-  PX4_INFO("input norm %f %f %f ",double(_input(10)), double(_input(11)), double(_input(12)));
   Eigen::VectorXf main = _input.head(13);          // (13)
-  Eigen::VectorXf side = _input.segment(13, 36);   // (36)
+  Eigen::VectorXf side = _input.segment(13, 48);   // (48)
   // forward path
   Eigen::VectorXf co1 = _weight_layer_1 * main + _bias_layer_1;
   Eigen::VectorXf ca1 = elu(co1);
@@ -378,18 +322,14 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   Eigen::VectorXf cat(100); //cat(128);
   cat << ca2, ca1_;
+  // LAYERNORM HERE
+  cat = layernorm(cat, _norm_weight, _norm_bias);
 
-  Eigen::VectorXf gru_output = gru_cell_step_pytorch(cat, hidden_state, _gru_w_ih, _gru_w_hh, _gru_b_ih, _gru_b_hh);
-  Eigen::VectorXf output = _weight_output_layer * gru_output + _bias_output_layer;
-  // IMPORTANT: update hidden for next tick
-  hidden_state = gru_output;
-
-
-  // Eigen::VectorXf co3 = _weight_layer_3 * cat + _bias_layer_3;
-  // Eigen::VectorXf ca3 = elu(co3);
-  // Eigen::VectorXf co4 = _weight_layer_4 * ca3 + _bias_layer_4;
-  // Eigen::VectorXf ca4 = elu(co4);
-  // Eigen::VectorXf output = _weight_output_layer * ca4 + _bias_output_layer;
+  Eigen::VectorXf co3 = _weight_layer_3 * cat + _bias_layer_3;
+  Eigen::VectorXf ca3 = elu(co3);
+  Eigen::VectorXf co4 = _weight_layer_4 * ca3 + _bias_layer_4;
+  Eigen::VectorXf ca4 = elu(co4);
+  Eigen::VectorXf output = _weight_output_layer * ca4 + _bias_output_layer;
 
   //Eigen::VectorXf output = Eigen::VectorXf::Zero(_n_motors);
   Eigen::VectorXf actions = output.cwiseMax(-1.f).cwiseMin(1.f);
@@ -401,7 +341,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   // PX4_INFO("thrusts: %f %f %f %f %f %f", double(_force_clamped(0)), double(_force_clamped(1)), double(_force_clamped(2)), double(_force_clamped(3)), double(_force_clamped(4)), double(_force_clamped(5)));
   // conversion to rpm
-  static const float _thrust_coefficient = 0.00002308; //0.00001286412;
+  static const float _thrust_coefficient = 0.00001286412;
 
   Eigen::VectorXf rps = Eigen::VectorXf::Zero(_n_motors);
   rps = _force_clamped / _thrust_coefficient;

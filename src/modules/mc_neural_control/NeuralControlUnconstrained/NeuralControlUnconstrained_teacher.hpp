@@ -52,7 +52,6 @@ public:
   Eigen::Quaternionf transform_orientation_ned_enu(Eigen::Quaternionf quat_ned);
 
   int _n_motors;
-  matrix::Dcmf Rz_body;
 
   /**
    * Run one control loop cycle calculation
@@ -61,25 +60,20 @@ public:
 
 private:
   Eigen::VectorXf _unnorm_input;
-  // Eigen::VectorXf _norm_weight;
-  // Eigen::VectorXf _norm_bias;
+  Eigen::VectorXf _norm_weight;
+  Eigen::VectorXf _norm_bias;
   Eigen::VectorXf _bias_layer_1;
   Eigen::MatrixXf _weight_layer_1;
   Eigen::VectorXf _bias_layer_2;
   Eigen::MatrixXf _weight_layer_2;
-  // Eigen::VectorXf _bias_layer_3;
-  // Eigen::MatrixXf _weight_layer_3;
-  // Eigen::VectorXf _bias_layer_4;
-  // Eigen::MatrixXf _weight_layer_4;
+  Eigen::VectorXf _bias_layer_3;
+  Eigen::MatrixXf _weight_layer_3;
+  Eigen::VectorXf _bias_layer_4;
+  Eigen::MatrixXf _weight_layer_4;
   Eigen::VectorXf _bias_allocation_layer_1;
   Eigen::MatrixXf _weight_allocation_layer_1;
   Eigen::VectorXf _bias_output_layer;
   Eigen::MatrixXf _weight_output_layer;
-
-  Eigen::VectorXf _gru_b_ih;
-  Eigen::MatrixXf _gru_w_ih;
-  Eigen::VectorXf _gru_b_hh;
-  Eigen::MatrixXf _gru_w_hh;
 
   Eigen::VectorXf _motor_min_thrusts;
   Eigen::VectorXf _motor_max_thrusts;
@@ -89,7 +83,6 @@ private:
   Eigen::VectorXf _pa_center;
   Eigen::VectorXf _limits_u;
 
-  
   float _min_u_training;
   float _max_u_training;
   int _max_rpm;
@@ -126,8 +119,6 @@ private:
   Eigen::VectorXf _obs_mean;  // (61)
   Eigen::VectorXf _obs_var;   // (61)
   Eigen::VectorXf _static_obs;
-  Eigen::VectorXf hidden_state;
-
   float _obs_eps{1e-5f};
 
 };

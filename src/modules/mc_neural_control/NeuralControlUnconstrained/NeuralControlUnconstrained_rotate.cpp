@@ -188,22 +188,26 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     hidden_state = Eigen::VectorXf::Zero(50); // 15
 
     _static_obs.resize(36);
-    _static_obs << 0.0000000451, 0.0000000007, 0.1666667014,
-      0.0049677868, -0.0084413923, 0.0363183357,
-      0.0000000455, 0.0000000015, 0.1666666567,
-      0.0098782452, 0.0001784927, -0.0362381488,
-      0.0000000451, -0.0000000037, 0.1666666865,
-      0.0049395883, 0.0080355629, 0.0361707062,
-      0.0000000445, -0.0000000007, 0.1666666269,
-      0.0049677873, 0.0084413933, -0.0363183580,
-      0.0000000441, -0.0000000015, 0.1666666865,
-      0.0098782489, -0.0001784926, 0.0362381674,
-      0.0000000445, 0.0000000037, 0.1666666865,
-      -0.0049395869, -0.0080355629, -0.0361707099;
+    _static_obs << -0.0000000116, 0.0000000002, 0.1666666567,
+                    .0014827710, -0.0059679542, 0.0711167902,
+                    -0.0000000119, 0.0000000019, 0.1666667610,
+                    0.0054448424, -0.0016208383, -0.0747171715,
+                    -0.0000000118, -0.0000000026, 0.1666666418,
+                    0.0039620697, 0.0043471125, 0.0711188838,
+                    -0.0000000115, -0.0000000002, 0.1666667163,
+                    -0.0014827723, 0.0059679528, -0.0711167976,
+                    -0.0000000112, -0.0000000019, 0.1666667014,
+                    -0.0054448415, 0.0016208341, 0.0747171566,
+                    -0.0000000113, 0.0000000026, 0.1666667014,
+                    -0.0039620697, -0.0043471167, -0.0711188689;
 
     _motor_min_thrusts = Eigen::VectorXf::Constant(_n_motors, 0.05f);
     _motor_max_thrusts = Eigen::VectorXf::Constant(_n_motors, 1.7f);
 
+    float deg = 15.0f; 
+    float theta = math::radians(deg); 
+
+    Rz_body = matrix::Dcmf(matrix::Eulerf(0.f, 0.f, theta));
 
 
     _frame_transf(0, 0) = 1.0f;
@@ -273,8 +277,12 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   Vector3f linear_velocity_local;
   linear_velocity_local = _frame_transf * _frame_transf_2 * _linear_velocity;
- 
-  matrix::Dcmf _attitude_local_mat = _frame_transf * (_frame_transf_2 * matrix::Dcmf(_attitude)) * _frame_transf.transpose();
+
+  matrix::Dcmf attitude_mat(_attitude);
+  matrix::Dcmf rotated_attitude = attitude_mat * Rz_body;
+  
+  matrix::Dcmf _attitude_local_mat = _frame_transf * (_frame_transf_2 * rotated_attitude) * _frame_transf.transpose();
+  //matrix::Dcmf _attitude_local_mat = _frame_transf * (_frame_transf_2 * matrix::Dcmf(_attitude)) * _frame_transf.transpose();
   matrix::Eulerf euler_angles_local(_attitude_local_mat);
   matrix::Quatf q_local(_attitude_local_mat); // [w,x,y,z]
 
@@ -324,9 +332,12 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
     angular_vel_local(0), angular_vel_local(1), angular_vel_local(2)
   };
 
+  // re-express in rotated body frame (consistent with attitude_mat * Rz_body)
+  matrix::Vector3f angvel_bprime_m = Rz_body.transpose() * angvel_m;
+
   // copy into Eigen
   Eigen::Vector3f angular_velocity_state_b;
-  angular_velocity_state_b << angvel_m(0), angvel_m(1), angvel_m(2);
+  angular_velocity_state_b << angvel_bprime_m(0), angvel_bprime_m(1), angvel_bprime_m(2);
 
   // input vector for network
   _unnorm_input = Eigen::VectorXf::Zero(49);
@@ -350,8 +361,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   //_input.segment<13>(0) << -0.046624f, -0.028190f, 0.042185f, 0.027167f, 0.011528f, 0.055297f, 0.998034f, 
   //             -0.069047f, -0.029921f, 0.042351f, -0.084985f, 0.031911f, -0.02201f;
 
-  // 
-  PX4_INFO("input %f %f %f ",double(_input(10)), double(_input(11)), double(_input(12)));
+  // PX4_INFO("input size %f %f %f %f %f %f %f ",double(_input(0)), double(_input(1)), double(_input(2)), double(_input(3)), double(_input(4)), double(_input(5)), double(_input(6)));
   // PX4_INFO("input size %f %f %f %f %f %f %f ",double(_input(7)), double(_input(8)), double(_input(9)), double(_input(10)), double(_input(11)), double(_input(12)), double(_input(13)));
 
   for (int i = 0; i < _input.size(); i++) {
@@ -364,7 +374,6 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
       _input(i) = v;
   }
-  PX4_INFO("input norm %f %f %f ",double(_input(10)), double(_input(11)), double(_input(12)));
   Eigen::VectorXf main = _input.head(13);          // (13)
   Eigen::VectorXf side = _input.segment(13, 36);   // (36)
   // forward path
@@ -401,7 +410,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   // PX4_INFO("thrusts: %f %f %f %f %f %f", double(_force_clamped(0)), double(_force_clamped(1)), double(_force_clamped(2)), double(_force_clamped(3)), double(_force_clamped(4)), double(_force_clamped(5)));
   // conversion to rpm
-  static const float _thrust_coefficient = 0.00002308; //0.00001286412;
+  static const float _thrust_coefficient = 0.00001286412;
 
   Eigen::VectorXf rps = Eigen::VectorXf::Zero(_n_motors);
   rps = _force_clamped / _thrust_coefficient;
