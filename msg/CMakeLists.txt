@@ -236,6 +236,13 @@ set(msg_files
 	Wind.msg
 	YawEstimatorStatus.msg
 )
+
+list(REMOVE_ITEM msg_files
+	OrbTest.msg
+	OrbTestMedium.msg
+	OrbTestLarge.msg
+)
+
 list(SORT msg_files)
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})

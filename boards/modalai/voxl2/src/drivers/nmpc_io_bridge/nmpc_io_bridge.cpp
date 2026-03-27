@@ -59,26 +59,8 @@
 #define PIPE_SIZE    (64*1024)
 #define READ_BUF_LEN (sizeof(control_packet_t) * 4)
 
-// Provide _mkdir_recursive required by sink.c (avoids linking misc.c which needs modal_json.h)
-extern "C" {
-int _mkdir_recursive(const char* dir)
-{
-    char tmp[PATH_MAX];
-    char* p = NULL;
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    for (p = tmp + 1; *p != 0; p++) {
-        if (*p == '/') {
-            *p = 0;
-            if (mkdir(tmp, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) && errno != EEXIST) {
-                PX4_ERR("mkdir failed: %s", tmp);
-                return -1;
-            }
-            *p = '/';
-        }
-    }
-    return 0;
-}
-}
+// _mkdir_recursive is provided by modal_io_bridge for this board build.
+extern "C" int _mkdir_recursive(const char *dir);
 
 extern "C" { __EXPORT int nmpc_io_bridge_main(int argc, char *argv[]); }
 
