@@ -258,21 +258,21 @@ void MulticopterNmpcControl::Run()
 		ocm.timestamp = hrt_absolute_time();
 		_offboard_control_mode_pub.publish(ocm);
 
-		if (_vehicle_control_mode.flag_control_offboard_enabled &&
-		    (_trajectory_setpoint.timestamp >= _time_offboard_enabled)) {
+		if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
-			if ((_trajectory_setpoint.timestamp < _time_offboard_enabled) &&
-			    (vehicle_angular_velocity.timestamp_sample > _time_offboard_enabled)) {
-				_trajectory_setpoint.position[0] = 0.0f;
-				_trajectory_setpoint.position[1] = 0.0f;
-				_trajectory_setpoint.position[2] = -1.0f;
+			// No external setpoint yet: hold current position (IMU attitude + EKF2/baro position).
+			// Setpoint target is 1m above current position so NMPC produces nonzero thrust.
+			if (_trajectory_setpoint.timestamp < _time_offboard_enabled) {
+				_trajectory_setpoint.position[0] = _position(0);
+				_trajectory_setpoint.position[1] = _position(1);
+				_trajectory_setpoint.position[2] = _position(2) - 1.0f;
 				_trajectory_setpoint.velocity[0] = 0.0f;
 				_trajectory_setpoint.velocity[1] = 0.0f;
 				_trajectory_setpoint.velocity[2] = 0.0f;
 				_trajectory_setpoint.acceleration[0] = 0.0f;
 				_trajectory_setpoint.acceleration[1] = 0.0f;
 				_trajectory_setpoint.acceleration[2] = 0.0f;
-				_trajectory_setpoint.yaw = 0.0f;
+				_trajectory_setpoint.yaw = matrix::Eulerf(_attitude).psi();
 				_trajectory_setpoint.yawspeed = 0.0f;
 				_trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
 			}
