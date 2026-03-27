@@ -131,6 +131,8 @@ set(msg_files
 	ModeCompleted.msg
 	NavigatorMissionItem.msg
 	NeuralControl.msg
+	NmpcControlData.msg
+	NmpcStateData.msg
 	NormalizedUnsignedSetpoint.msg
 	NpfgStatus.msg
 	ObstacleDistance.msg

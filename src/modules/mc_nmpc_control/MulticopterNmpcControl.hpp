@@ -20,6 +20,8 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/nmpc_state_data.h>
+#include <uORB/topics/nmpc_control_data.h>
 
 #include "protocol.h"
 
@@ -57,6 +59,8 @@ private:
 
 	uORB::Publication<offboard_control_mode_s> _offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<nmpc_state_data_s> _nmpc_state_pub{ORB_ID(nmpc_state_data)};
+	uORB::Subscription _nmpc_control_sub{ORB_ID(nmpc_control_data)};
 
 	vehicle_control_mode_s _vehicle_control_mode{};
 	trajectory_setpoint_s _trajectory_setpoint{};
@@ -76,8 +80,6 @@ private:
 	uint32_t _seq{0};
 	bool _has_new_control{false};
 	control_packet_t _latest_control{};
-
-	// TODO: pipe handles will be added in Step 3
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_NMPC_MASS>)  _param_mass,

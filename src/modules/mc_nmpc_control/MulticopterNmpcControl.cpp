@@ -253,15 +253,28 @@ void MulticopterNmpcControl::Run()
 				_trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
 			}
 
-			// Pack state and send to solver via pipe
 			state_packet_t pkt_state;
 			pack_state(&pkt_state);
 
-			// TODO Step 3: pipe_server_write or uORB bridge write here
-			// pipe_server_write(PIPE_STATE, (char*)&pkt_state, sizeof(pkt_state));
+			nmpc_state_data_s state_msg{};
+			state_msg.timestamp = hrt_absolute_time();
+			state_msg.seq = pkt_state.seq;
+			state_msg.flags = pkt_state.flags;
+			memcpy(state_msg.x0, pkt_state.x0, sizeof(pkt_state.x0));
+			memcpy(state_msg.p, pkt_state.p, sizeof(pkt_state.p));
+			state_msg.hover_force = pkt_state.hover_force;
+			_nmpc_state_pub.publish(state_msg);
 
-			// Read latest control from solver
-			// TODO Step 3: pipe_client_read or uORB bridge read here
+			nmpc_control_data_s ctrl_msg;
+			if (_nmpc_control_sub.update(&ctrl_msg)) {
+				_latest_control.seq = ctrl_msg.seq;
+				_latest_control.status = ctrl_msg.status;
+				memcpy(_latest_control.u, ctrl_msg.u, sizeof(ctrl_msg.u));
+				_latest_control.solve_time_us = ctrl_msg.solve_time_us;
+				memcpy(_latest_control.quat_next, ctrl_msg.quat_next, sizeof(ctrl_msg.quat_next));
+				_has_new_control = true;
+			}
+
 			if (_has_new_control) {
 				publish_actuator_motors(&_latest_control);
 				_has_new_control = false;
