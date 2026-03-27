@@ -3,6 +3,7 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
+#include <stdio.h>
 
 using namespace matrix;
 
@@ -19,8 +20,33 @@ MulticopterNmpcControl::~MulticopterNmpcControl()
 	perf_free(_loop_perf);
 }
 
+bool MulticopterNmpcControl::load_allocation_matrix()
+{
+	FILE *f = fopen("/home/model_files/alloc_matrix.csv", "r");
+	if (!f) {
+		PX4_ERR("alloc_matrix.csv not found at /home/model_files/alloc_matrix.csv");
+		return false;
+	}
+	for (int i = 0; i < 24; i++) {
+		if (fscanf(f, " %lf", &_alloc_matrix[i]) != 1) {
+			PX4_ERR("alloc_matrix.csv: failed to read entry %d", i);
+			fclose(f);
+			return false;
+		}
+		int c = fgetc(f);
+		if (c != ',') { ungetc(c, f); }
+	}
+	fclose(f);
+	PX4_INFO("alloc_matrix loaded");
+	return true;
+}
+
 bool MulticopterNmpcControl::init()
 {
+	if (!load_allocation_matrix()) {
+		return false;
+	}
+
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -111,10 +137,8 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[18] = (double)q_sp(2);
 	pkt->p[19] = (double)q_sp(3);
 
-	// p[20:44] = allocation matrix (24 values, loaded from file -- zeroed for now, Step 2/7)
-	for (int i = 0; i < 24; i++) {
-		pkt->p[20 + i] = 0.0;
-	}
+	// p[20:44] = allocation matrix (24 values loaded from /home/model_files/alloc_matrix.csv)
+	memcpy(&pkt->p[20], _alloc_matrix, 24 * sizeof(double));
 
 	// p[44:48] = thrust coefficients
 	pkt->p[44] = (double)_param_kf1.get();

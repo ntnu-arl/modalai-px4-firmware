@@ -48,6 +48,7 @@ private:
 	void generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
 					 const matrix::Vector3f &position,
 					 const matrix::Quatf &attitude);
+	bool load_allocation_matrix();
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -71,6 +72,7 @@ private:
 	matrix::Vector3f _angular_velocity;
 
 	float _motor_rps[4]{0.f, 0.f, 0.f, 0.f};
+	double _alloc_matrix[24]{};
 
 	perf_counter_t _loop_perf;
 
