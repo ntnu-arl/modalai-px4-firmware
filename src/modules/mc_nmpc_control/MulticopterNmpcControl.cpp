@@ -77,7 +77,7 @@ void MulticopterNmpcControl::generateFailsafeTrajectory(trajectory_setpoint_s &t
 void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 {
 	pkt->seq = _seq++;
-	pkt->flags = 0;
+	pkt->flags = _need_reinit ? FLAG_REINIT : 0;
 	pkt->pad[0] = pkt->pad[1] = pkt->pad[2] = 0;
 
 	// x0[0:3] = position
@@ -160,7 +160,7 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[54] = (double)_param_com_z.get();
 
 	// hover force: mass * gravity
-	pkt->hover_force = (double)_param_mass.get() * 9.81;
+	pkt->hover_force = (double)_param_mass.get() * 9.81 / 4.0;
 }
 
 void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt)
@@ -239,8 +239,10 @@ void MulticopterNmpcControl::Run()
 			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
 				if (!previous_offboard_enabled && _vehicle_control_mode.flag_control_offboard_enabled) {
 					_time_offboard_enabled = _vehicle_control_mode.timestamp;
+					_need_reinit = true;
 				} else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled) {
 					generateFailsafeTrajectory(_trajectory_setpoint, _position, _attitude);
+					_need_reinit = true;
 				}
 			}
 		}
@@ -290,6 +292,7 @@ void MulticopterNmpcControl::Run()
 			memcpy(state_msg.p, pkt_state.p, sizeof(pkt_state.p));
 			state_msg.hover_force = pkt_state.hover_force;
 			_nmpc_state_pub.publish(state_msg);
+			_need_reinit = false;
 
 			nmpc_control_data_s ctrl_msg;
 			if (_nmpc_control_sub.update(&ctrl_msg)) {

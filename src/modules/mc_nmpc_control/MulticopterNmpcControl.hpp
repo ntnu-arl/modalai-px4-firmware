@@ -80,6 +80,7 @@ private:
 	hrt_abstime _time_offboard_enabled{0};
 
 	uint32_t _seq{0};
+	bool _need_reinit{true};
 	bool _has_new_control{false};
 	control_packet_t _latest_control{};
 
