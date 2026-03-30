@@ -59,6 +59,7 @@
 #define PIPE_SIZE    (64*1024)
 #define READ_BUF_LEN (sizeof(control_packet_t) * 4)
 #define CONTROL_SINK_CH 1
+#define CONTROL_PACKET_LEN ((int)sizeof(control_packet_t))
 
 // _mkdir_recursive is provided by modal_io_bridge for this board build.
 extern "C" int _mkdir_recursive(const char *dir);
@@ -78,18 +79,45 @@ static px4_task_t _task_handle = -1;
 static control_packet_t _ctrl_buf;
 static px4_sem_t _ctrl_sem;
 static bool _ctrl_valid = false;
+static uint8_t _ctrl_rx_buf[READ_BUF_LEN + sizeof(control_packet_t)];
+static int _ctrl_rx_buf_len = 0;
 
 uORB::Subscription _nmpc_state_sub{ORB_ID(nmpc_state_data)};
 uORB::Publication<nmpc_control_data_s> _nmpc_control_pub{ORB_ID(nmpc_control_data)};
 
 static void control_sink_cb(int ch, char* data, int bytes, __attribute__((unused)) void* context)
 {
-    if (bytes != (int)sizeof(control_packet_t)) {
-        if (_debug) PX4_WARN("control_sink_cb: unexpected size %d (expected %zu)", bytes, sizeof(control_packet_t));
+    if (bytes <= 0) {
+        if (_debug) PX4_WARN("control_sink_cb: read returned %d", bytes);
         return;
     }
-    memcpy(&_ctrl_buf, data, sizeof(control_packet_t));
+
+    if (_ctrl_rx_buf_len + bytes > (int)sizeof(_ctrl_rx_buf)) {
+        PX4_ERR("control_sink_cb overflow: %d buffered + %d new > %zu", _ctrl_rx_buf_len, bytes, sizeof(_ctrl_rx_buf));
+        _ctrl_rx_buf_len = 0;
+        return;
+    }
+
+    memcpy(&_ctrl_rx_buf[_ctrl_rx_buf_len], data, bytes);
+    _ctrl_rx_buf_len += bytes;
+
+    const int packet_count = _ctrl_rx_buf_len / CONTROL_PACKET_LEN;
+
+    if (packet_count <= 0) {
+        return;
+    }
+
+    memcpy(&_ctrl_buf, &_ctrl_rx_buf[(packet_count - 1) * CONTROL_PACKET_LEN], CONTROL_PACKET_LEN);
     _ctrl_valid = true;
+
+    const int consumed = packet_count * CONTROL_PACKET_LEN;
+    const int remaining = _ctrl_rx_buf_len - consumed;
+
+    if (remaining > 0) {
+        memmove(_ctrl_rx_buf, &_ctrl_rx_buf[consumed], remaining);
+    }
+
+    _ctrl_rx_buf_len = remaining;
     px4_sem_post(&_ctrl_sem);
 }
 
@@ -146,7 +174,13 @@ void nmpc_io_bridge_task()
         }
 
         // Forward control from sink -> uORB (non-blocking check)
-        if (px4_sem_trywait(&_ctrl_sem) == 0 && _ctrl_valid) {
+        bool have_control = false;
+
+        while (px4_sem_trywait(&_ctrl_sem) == 0) {
+            have_control = true;
+        }
+
+        if (have_control && _ctrl_valid) {
             nmpc_control_data_s ctrl_msg{};
             ctrl_msg.timestamp    = hrt_absolute_time();
             ctrl_msg.seq          = _ctrl_buf.seq;
