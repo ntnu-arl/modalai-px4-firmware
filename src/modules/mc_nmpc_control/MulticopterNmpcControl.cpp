@@ -52,6 +52,8 @@ bool MulticopterNmpcControl::init()
 		return false;
 	}
 
+	// _vehicle_angular_velocity_sub.set_interval_us(10_ms);
+
 	return true;
 }
 

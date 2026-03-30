@@ -58,6 +58,7 @@
 
 #define PIPE_SIZE    (64*1024)
 #define READ_BUF_LEN (sizeof(control_packet_t) * 4)
+#define CONTROL_SINK_CH 1
 
 // _mkdir_recursive is provided by modal_io_bridge for this board build.
 extern "C" int _mkdir_recursive(const char *dir);
@@ -98,11 +99,11 @@ int initialize()
 
     px4_sem_init(&_ctrl_sem, 0, 0);
 
-    if (pipe_sink_create(0, CONTROL_SINK_PATH, SINK_FLAG_EN_SIMPLE_HELPER, PIPE_SIZE, READ_BUF_LEN)) {
+    if (pipe_sink_create(CONTROL_SINK_CH, CONTROL_SINK_PATH, SINK_FLAG_EN_SIMPLE_HELPER, PIPE_SIZE, READ_BUF_LEN)) {
         PX4_ERR("failed to create control sink at %s", CONTROL_SINK_PATH);
         return -1;
     }
-    pipe_sink_set_simple_cb(0, &control_sink_cb, NULL);
+    pipe_sink_set_simple_cb(CONTROL_SINK_CH, &control_sink_cb, NULL);
 
     _initialized = true;
     return 0;
