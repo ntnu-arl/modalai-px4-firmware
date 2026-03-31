@@ -7,6 +7,11 @@
 
 using namespace matrix;
 
+namespace
+{
+static constexpr int PX4_TO_NMPC_MOTOR_MAP[4] = {0, 2, 3, 1};
+}
+
 MulticopterNmpcControl::MulticopterNmpcControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -196,15 +201,13 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 	const float min_rpm = (float)_param_min_rpm.get();
 	const float rpm_range = max_rpm - min_rpm;
 
-	static constexpr int motor_map[4] = {0, 2, 3, 1};
-
 	static constexpr float a = 0.8f;
 	static constexpr float b = 1.0f - a;
 	static constexpr float tmp1 = b / (2.0f * a);
 	static constexpr float tmp2 = b * b / (4.0f * a * a);
 
 	for (int i = 0; i < 4; i++) {
-		const float desired_rpm = math::max((float)pkt->u[motor_map[i]], 0.0f) * 60.0f;
+		const float desired_rpm = math::max((float)pkt->u[PX4_TO_NMPC_MOTOR_MAP[i]], 0.0f) * 60.0f;
 		const float cmd = (desired_rpm * 2.0f - max_rpm - min_rpm) / rpm_range;
 		const float x = (cmd + 1.0f) / 2.0f;
 		const float control = a * ((x + tmp1) * (x + tmp1) - tmp2);
@@ -229,8 +232,9 @@ void MulticopterNmpcControl::update_motor_feedback(const esc_status_s &esc_statu
 		}
 
 		if ((motor_index >= 0) && (motor_index < 4) && (esc.timestamp > 0)) {
-			_motor_rps[motor_index] = math::max(esc.esc_rpm / 60.f, 0.f);
-			_motor_rps_timestamp[motor_index] = esc.timestamp;
+			const int nmpc_motor_index = PX4_TO_NMPC_MOTOR_MAP[motor_index];
+			_motor_rps[nmpc_motor_index] = math::max(esc.esc_rpm / 60.f, 0.f);
+			_motor_rps_timestamp[nmpc_motor_index] = esc.timestamp;
 		}
 	}
 
