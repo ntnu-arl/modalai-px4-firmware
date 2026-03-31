@@ -8,7 +8,6 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -91,13 +90,6 @@ private:
 	bool _need_reinit{true};
 	bool _has_new_control{false};
 	control_packet_t _latest_control{};
-	param_t _voxl_esc_rpm_min_handle{PARAM_INVALID};
-	param_t _voxl_esc_rpm_max_handle{PARAM_INVALID};
-	int32_t _output_min_rpm{0};
-	int32_t _output_max_rpm{0};
-	bool _has_output_rpm_limits{false};
-	bool _warned_output_rpm_mismatch{false};
-	bool _warned_hover_rpm_limit{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_NMPC_MASS>)  _param_mass,

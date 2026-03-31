@@ -1,6 +1,5 @@
 #include "MulticopterNmpcControl.hpp"
 
-#include <float.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
@@ -13,8 +12,6 @@ MulticopterNmpcControl::MulticopterNmpcControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-	_voxl_esc_rpm_min_handle = param_find("VOXL_ESC_RPM_MIN");
-	_voxl_esc_rpm_max_handle = param_find("VOXL_ESC_RPM_MAX");
 	parameters_updated();
 }
 
@@ -72,42 +69,9 @@ bool MulticopterNmpcControl::init()
 
 void MulticopterNmpcControl::parameters_updated()
 {
-	int32_t output_min_rpm = 0;
-	int32_t output_max_rpm = 0;
-	const bool have_output_min = (_voxl_esc_rpm_min_handle != PARAM_INVALID)
-				     && (param_get(_voxl_esc_rpm_min_handle, &output_min_rpm) == PX4_OK);
-	const bool have_output_max = (_voxl_esc_rpm_max_handle != PARAM_INVALID)
-				     && (param_get(_voxl_esc_rpm_max_handle, &output_max_rpm) == PX4_OK);
-
-	_has_output_rpm_limits = have_output_min && have_output_max && (output_max_rpm > output_min_rpm);
-
-	if (_has_output_rpm_limits) {
-		_output_min_rpm = output_min_rpm;
-		_output_max_rpm = output_max_rpm;
-
-		if (!_warned_output_rpm_mismatch
-		    && ((_output_min_rpm != _param_min_rpm.get()) || (_output_max_rpm != _param_max_rpm.get()))) {
-			PX4_WARN("NMPC RPM limits [%d, %d] differ from VOXL_ESC [%d, %d]",
-				 _param_min_rpm.get(), _param_max_rpm.get(), _output_min_rpm, _output_max_rpm);
-			_warned_output_rpm_mismatch = true;
-		}
-
-		if (!_warned_hover_rpm_limit) {
-			const float hover_force = _param_mass.get() * 9.81f / 4.0f;
-			float hover_rpm_required = 0.0f;
-			const float kf[4] {_param_kf1.get(), _param_kf2.get(), _param_kf3.get(), _param_kf4.get()};
-
-			for (int i = 0; i < 4; i++) {
-				if (kf[i] > FLT_EPSILON) {
-					hover_rpm_required = math::max(hover_rpm_required, sqrtf(hover_force / kf[i]) * 60.0f);
-				}
-			}
-
-			if (hover_rpm_required > (float)_output_max_rpm) {
-				PX4_WARN("hover needs %.0f RPM but VOXL_ESC_RPM_MAX is %d", (double)hover_rpm_required, _output_max_rpm);
-				_warned_hover_rpm_limit = true;
-			}
-		}
+	if (_param_min_rpm.get() <= 0 || _param_max_rpm.get() <= 0 || _param_max_rpm.get() <= _param_min_rpm.get()) {
+		PX4_ERR("MC_NMPC_MINRPM=%d MC_NMPC_MAXRPM=%d are not available or invalid, cannot proceed",
+			_param_min_rpm.get(), _param_max_rpm.get());
 	}
 }
 
@@ -223,27 +187,23 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 		actuator_motors.control[i] = NAN;
 	}
 
-	const float max_rpm = _has_output_rpm_limits ? (float)_output_max_rpm : (float)_param_max_rpm.get();
-	const float min_rpm = _has_output_rpm_limits ? (float)_output_min_rpm : (float)_param_min_rpm.get();
+	const float max_rpm = (float)_param_max_rpm.get();
+	const float min_rpm = (float)_param_min_rpm.get();
 	const float rpm_range = max_rpm - min_rpm;
 
+	static constexpr int motor_map[4] = {0, 2, 3, 1};
+
+	static constexpr float a = 0.8f;
+	static constexpr float b = 1.0f - a;
+	static constexpr float tmp1 = b / (2.0f * a);
+	static constexpr float tmp2 = b * b / (4.0f * a * a);
+
 	for (int i = 0; i < 4; i++) {
-		const float force = math::max((float)pkt->u[i], 0.0f);
-		float kf = 0.f;
-		switch (i) {
-			case 0: kf = _param_kf1.get(); break;
-			case 1: kf = _param_kf2.get(); break;
-			case 2: kf = _param_kf3.get(); break;
-			case 3: kf = _param_kf4.get(); break;
-		}
-
-		float normalized = NAN;
-		if ((kf > FLT_EPSILON) && (rpm_range > FLT_EPSILON)) {
-			const float desired_rpm = sqrtf(force / kf) * 60.0f;
-			normalized = (desired_rpm - min_rpm) / rpm_range;
-		}
-
-		actuator_motors.control[i] = PX4_ISFINITE(normalized) ? math::constrain(normalized, 0.0f, 1.0f) : NAN;
+		const float desired_rpm = math::max((float)pkt->u[motor_map[i]], 0.0f) * 60.0f;
+		const float cmd = (desired_rpm * 2.0f - max_rpm - min_rpm) / rpm_range;
+		const float x = (cmd + 1.0f) / 2.0f;
+		const float control = a * ((x + tmp1) * (x + tmp1) - tmp2);
+		actuator_motors.control[i] = PX4_ISFINITE(control) ? math::constrain(control, 0.0f, 1.0f) : NAN;
 	}
 
 	_actuator_motors_pub.publish(actuator_motors);
