@@ -1,5 +1,6 @@
 #include "MulticopterNmpcControl.hpp"
 
+#include <float.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
@@ -12,6 +13,8 @@ MulticopterNmpcControl::MulticopterNmpcControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_voxl_esc_rpm_min_handle = param_find("VOXL_ESC_RPM_MIN");
+	_voxl_esc_rpm_max_handle = param_find("VOXL_ESC_RPM_MAX");
 	parameters_updated();
 }
 
@@ -37,7 +40,17 @@ bool MulticopterNmpcControl::load_allocation_matrix()
 		if (c != ',') { ungetc(c, f); }
 	}
 	fclose(f);
-	PX4_INFO("alloc_matrix loaded");
+
+	// Convert allocation matrix from FLU body frame (simulation) to FRD body frame (PX4).
+	// Negate rows 1,2,4,5 (Fy, Fz, Ty, Tz) of the 6xN column-major matrix.
+	for (int col = 0; col < 4; col++) {
+		_alloc_matrix[6 * col + 1] = -_alloc_matrix[6 * col + 1];
+		_alloc_matrix[6 * col + 2] = -_alloc_matrix[6 * col + 2];
+		_alloc_matrix[6 * col + 4] = -_alloc_matrix[6 * col + 4];
+		_alloc_matrix[6 * col + 5] = -_alloc_matrix[6 * col + 5];
+	}
+
+	PX4_INFO("alloc_matrix loaded (converted FLU->FRD)");
 	return true;
 }
 
@@ -59,6 +72,43 @@ bool MulticopterNmpcControl::init()
 
 void MulticopterNmpcControl::parameters_updated()
 {
+	int32_t output_min_rpm = 0;
+	int32_t output_max_rpm = 0;
+	const bool have_output_min = (_voxl_esc_rpm_min_handle != PARAM_INVALID)
+				     && (param_get(_voxl_esc_rpm_min_handle, &output_min_rpm) == PX4_OK);
+	const bool have_output_max = (_voxl_esc_rpm_max_handle != PARAM_INVALID)
+				     && (param_get(_voxl_esc_rpm_max_handle, &output_max_rpm) == PX4_OK);
+
+	_has_output_rpm_limits = have_output_min && have_output_max && (output_max_rpm > output_min_rpm);
+
+	if (_has_output_rpm_limits) {
+		_output_min_rpm = output_min_rpm;
+		_output_max_rpm = output_max_rpm;
+
+		if (!_warned_output_rpm_mismatch
+		    && ((_output_min_rpm != _param_min_rpm.get()) || (_output_max_rpm != _param_max_rpm.get()))) {
+			PX4_WARN("NMPC RPM limits [%d, %d] differ from VOXL_ESC [%d, %d]",
+				 _param_min_rpm.get(), _param_max_rpm.get(), _output_min_rpm, _output_max_rpm);
+			_warned_output_rpm_mismatch = true;
+		}
+
+		if (!_warned_hover_rpm_limit) {
+			const float hover_force = _param_mass.get() * 9.81f / 4.0f;
+			float hover_rpm_required = 0.0f;
+			const float kf[4] {_param_kf1.get(), _param_kf2.get(), _param_kf3.get(), _param_kf4.get()};
+
+			for (int i = 0; i < 4; i++) {
+				if (kf[i] > FLT_EPSILON) {
+					hover_rpm_required = math::max(hover_rpm_required, sqrtf(hover_force / kf[i]) * 60.0f);
+				}
+			}
+
+			if (hover_rpm_required > (float)_output_max_rpm) {
+				PX4_WARN("hover needs %.0f RPM but VOXL_ESC_RPM_MAX is %d", (double)hover_rpm_required, _output_max_rpm);
+				_warned_hover_rpm_limit = true;
+			}
+		}
+	}
 }
 
 void MulticopterNmpcControl::generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
@@ -120,7 +170,7 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	// p[7:10] = gravity vector
 	pkt->p[7] = 0.0;
 	pkt->p[8] = 0.0;
-	pkt->p[9] = -9.81;
+	pkt->p[9] = 9.81;
 
 	// p[10:13] = setpoint position
 	pkt->p[10] = (double)_trajectory_setpoint.position[0];
@@ -167,15 +217,18 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 {
 	actuator_motors_s actuator_motors{};
 	actuator_motors.timestamp = hrt_absolute_time();
+	actuator_motors.timestamp_sample = _last_run;
 
-	float max_rpm = (float)_param_max_rpm.get();
-	float min_rpm = (float)_param_min_rpm.get();
-	float rpm_range = max_rpm - min_rpm;
+	for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+		actuator_motors.control[i] = NAN;
+	}
+
+	const float max_rpm = _has_output_rpm_limits ? (float)_output_max_rpm : (float)_param_max_rpm.get();
+	const float min_rpm = _has_output_rpm_limits ? (float)_output_min_rpm : (float)_param_min_rpm.get();
+	const float rpm_range = max_rpm - min_rpm;
 
 	for (int i = 0; i < 4; i++) {
-		// u[i] is force in Newtons from NMPC
-		// Convert force -> RPM -> normalized [0,1]
-		float force = (float)pkt->u[i];
+		const float force = math::max((float)pkt->u[i], 0.0f);
 		float kf = 0.f;
 		switch (i) {
 			case 0: kf = _param_kf1.get(); break;
@@ -184,18 +237,45 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 			case 3: kf = _param_kf4.get(); break;
 		}
 
-		// force = kf * rpm^2  =>  rpm = sqrt(force / kf)
-		float rpm = 0.f;
-		if (force > 0.f && kf > 0.f) {
-			rpm = sqrtf(force / kf);
+		float normalized = NAN;
+		if ((kf > FLT_EPSILON) && (rpm_range > FLT_EPSILON)) {
+			const float desired_rpm = sqrtf(force / kf) * 60.0f;
+			normalized = (desired_rpm - min_rpm) / rpm_range;
 		}
-		float normalized = (rpm - min_rpm) / rpm_range;
-		normalized = math::constrain(normalized, 0.0f, 1.0f);
 
-		actuator_motors.control[i] = PX4_ISFINITE(normalized) ? normalized : NAN;
+		actuator_motors.control[i] = PX4_ISFINITE(normalized) ? math::constrain(normalized, 0.0f, 1.0f) : NAN;
 	}
 
 	_actuator_motors_pub.publish(actuator_motors);
+}
+
+void MulticopterNmpcControl::update_motor_feedback(const esc_status_s &esc_status)
+{
+	for (int i = 0; i < math::min((int)esc_status.esc_count, (int)esc_status_s::CONNECTED_ESC_MAX); i++) {
+		const esc_report_s &esc = esc_status.esc[i];
+		int motor_index = -1;
+
+		if ((esc.actuator_function >= actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1)
+		    && (esc.actuator_function < actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 4)) {
+			motor_index = esc.actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
+
+		} else if ((esc.actuator_function == 0) && (esc.esc_address >= 1) && (esc.esc_address <= 4)) {
+			motor_index = esc.esc_address - 1;
+		}
+
+		if ((motor_index >= 0) && (motor_index < 4) && (esc.timestamp > 0)) {
+			_motor_rps[motor_index] = math::max(esc.esc_rpm / 60.f, 0.f);
+			_motor_rps_timestamp[motor_index] = esc.timestamp;
+		}
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	for (int i = 0; i < 4; i++) {
+		if ((_motor_rps_timestamp[i] == 0) || ((now - _motor_rps_timestamp[i]) > MOTOR_FEEDBACK_TIMEOUT)) {
+			_motor_rps[i] = 0.f;
+		}
+	}
 }
 
 void MulticopterNmpcControl::Run()
@@ -233,6 +313,13 @@ void MulticopterNmpcControl::Run()
 			_velocity = Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		}
 
+		if (_esc_status_sub.updated()) {
+			esc_status_s esc_status;
+			if (_esc_status_sub.copy(&esc_status)) {
+				update_motor_feedback(esc_status);
+			}
+		}
+
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_offboard_enabled = _vehicle_control_mode.flag_control_offboard_enabled;
 
@@ -264,12 +351,11 @@ void MulticopterNmpcControl::Run()
 
 		if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
-			// No external setpoint yet: hold current position (IMU attitude + EKF2/baro position).
-			// Setpoint target is 1m above current position so NMPC produces nonzero thrust.
-			if (_trajectory_setpoint.timestamp < _time_offboard_enabled) {
+			if ((_trajectory_setpoint.timestamp < _time_offboard_enabled)
+			    || (hrt_elapsed_time(&_trajectory_setpoint.timestamp) > TRAJECTORY_SETPOINT_TIMEOUT)) {
 				_trajectory_setpoint.position[0] = _position(0);
 				_trajectory_setpoint.position[1] = _position(1);
-				_trajectory_setpoint.position[2] = _position(2) - 1.0f;
+				_trajectory_setpoint.position[2] = _position(2);
 				_trajectory_setpoint.velocity[0] = 0.0f;
 				_trajectory_setpoint.velocity[1] = 0.0f;
 				_trajectory_setpoint.velocity[2] = 0.0f;
@@ -278,7 +364,7 @@ void MulticopterNmpcControl::Run()
 				_trajectory_setpoint.acceleration[2] = 0.0f;
 				_trajectory_setpoint.yaw = matrix::Eulerf(_attitude).psi();
 				_trajectory_setpoint.yawspeed = 0.0f;
-				_trajectory_setpoint.timestamp = vehicle_angular_velocity.timestamp_sample;
+				_trajectory_setpoint.timestamp = _last_run;
 			}
 
 			state_packet_t pkt_state;
@@ -301,6 +387,9 @@ void MulticopterNmpcControl::Run()
 				memcpy(_latest_control.u, ctrl_msg.u, sizeof(ctrl_msg.u));
 				_latest_control.solve_time_us = ctrl_msg.solve_time_us;
 				memcpy(_latest_control.quat_next, ctrl_msg.quat_next, sizeof(ctrl_msg.quat_next));
+				if (ctrl_msg.status != 0) {
+					_need_reinit = true;
+				}
 				_has_new_control = true;
 			}
 

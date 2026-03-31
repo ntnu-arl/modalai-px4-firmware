@@ -64,18 +64,17 @@ VoxlEsc2::VoxlEsc2() :
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 
 	for (unsigned i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
-		const unsigned j = i + VOXL_ESC_OUTPUT_CHANNELS;  // offset for second ESC
-		_esc_status.esc[j].timestamp       = 0;
-		_esc_status.esc[j].esc_address     = 0;
-		_esc_status.esc[j].esc_rpm         = 0;
-		_esc_status.esc[j].esc_state       = 0;
-		_esc_status.esc[j].esc_cmdcount    = 0;
-		_esc_status.esc[j].esc_voltage     = 0;
-		_esc_status.esc[j].esc_current     = 0;
-		_esc_status.esc[j].esc_temperature = 0;
-		_esc_status.esc[j].esc_errorcount  = 0;
-		_esc_status.esc[j].failures        = 0;
-		_esc_status.esc[j].esc_power       = 0;
+		_esc_status.esc[i].timestamp       = 0;
+		_esc_status.esc[i].esc_address     = 0;
+		_esc_status.esc[i].esc_rpm         = 0;
+		_esc_status.esc[i].esc_state       = 0;
+		_esc_status.esc[i].esc_cmdcount    = 0;
+		_esc_status.esc[i].esc_voltage     = 0;
+		_esc_status.esc[i].esc_current     = 0;
+		_esc_status.esc[i].esc_temperature = 0;
+		_esc_status.esc[i].esc_errorcount  = 0;
+		_esc_status.esc[i].failures        = 0;
+		_esc_status.esc[i].esc_power       = 0;
 	}
 
 	qc_esc_packet_init(&_fb_packet);
@@ -363,17 +362,17 @@ int VoxlEsc2::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					_esc_chans[id].temperature   = fb.temperature * 0.01f;
 					_esc_chans[id].feedback_time = tnow;
 
-					const uint32_t j = id + VOXL_ESC_OUTPUT_CHANNELS;
 					// also update our internal report for logging
-					_esc_status.esc[j].esc_address  = motor_idx + 1; //remapped motor ID
-					_esc_status.esc[j].timestamp    = tnow;
-					_esc_status.esc[j].esc_rpm      = fb.rpm;
-					_esc_status.esc[j].esc_power    = fb.power;
-					_esc_status.esc[j].esc_state    = fb.id_state & 0x0F;
-					_esc_status.esc[j].esc_cmdcount = fb.cmd_counter;
-					_esc_status.esc[j].esc_voltage  = _esc_chans[id].voltage;
-					_esc_status.esc[j].esc_current  = _esc_chans[id].current;
-					_esc_status.esc[j].failures     = 0; //not implemented
+					_esc_status.esc[id].esc_address  = motor_idx + 1; //remapped motor ID
+					_esc_status.esc[id].actuator_function = (uint8_t)_parameters.function_map[id];
+					_esc_status.esc[id].timestamp    = tnow;
+					_esc_status.esc[id].esc_rpm      = fb.rpm;
+					_esc_status.esc[id].esc_power    = fb.power;
+					_esc_status.esc[id].esc_state    = fb.id_state & 0x0F;
+					_esc_status.esc[id].esc_cmdcount = fb.cmd_counter;
+					_esc_status.esc[id].esc_voltage  = _esc_chans[id].voltage;
+					_esc_status.esc[id].esc_current  = _esc_chans[id].current;
+					_esc_status.esc[id].failures     = 0; //not implemented
 
 					// this is hacky, but we need to set all 4 to online/armed otherwise commander times out on arming
 					_esc_status.esc_online_flags = (1 << _esc_status.esc_count) - 1;
@@ -387,21 +386,21 @@ int VoxlEsc2::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 					if (t > +127) { t = +127; }
 
-					_esc_status.esc[j].esc_temperature = t;
+					_esc_status.esc[id].esc_temperature = t;
 
-					_esc_status.timestamp = _esc_status.esc[j].timestamp;
+					_esc_status.timestamp = _esc_status.esc[id].timestamp;
 					_esc_status.counter++;
 					
 					
-					if ((_parameters.esc_over_temp_threshold > 0) && (_esc_status.esc[j].esc_temperature > _parameters.esc_over_temp_threshold))
+					if ((_parameters.esc_over_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_over_temp_threshold))
 					{
-					  _esc_status.esc[j].failures |= 1<<(esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
+					  _esc_status.esc[id].failures |= 1<<(esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
 					}
 					
 					//TODO: do we also issue a warning if over-temperature threshold is exceeded?
-					if ((_parameters.esc_warn_temp_threshold > 0) && (_esc_status.esc[j].esc_temperature > _parameters.esc_warn_temp_threshold))
+					if ((_parameters.esc_warn_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_warn_temp_threshold))
 					{
-					  _esc_status.esc[j].failures |= 1<<(esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
+					  _esc_status.esc[id].failures |= 1<<(esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
 					}
 					
 

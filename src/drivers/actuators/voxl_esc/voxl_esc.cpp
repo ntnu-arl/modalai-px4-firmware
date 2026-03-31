@@ -361,6 +361,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 					// also update our internal report for logging
 					_esc_status.esc[id].esc_address  = motor_idx + 1; //remapped motor ID
+					_esc_status.esc[id].actuator_function = (uint8_t)_parameters.function_map[id];
 					_esc_status.esc[id].timestamp    = tnow;
 					_esc_status.esc[id].esc_rpm      = fb.rpm;
 					_esc_status.esc[id].esc_power    = fb.power;
