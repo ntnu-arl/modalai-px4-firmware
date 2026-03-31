@@ -38,16 +38,7 @@ bool MulticopterNmpcControl::load_allocation_matrix()
 	}
 	fclose(f);
 
-	// Convert allocation matrix from FLU body frame (simulation) to FRD body frame (PX4).
-	// Negate rows 1,2,4,5 (Fy, Fz, Ty, Tz) of the 6xN column-major matrix.
-	for (int col = 0; col < 4; col++) {
-		_alloc_matrix[6 * col + 1] = -_alloc_matrix[6 * col + 1];
-		_alloc_matrix[6 * col + 2] = -_alloc_matrix[6 * col + 2];
-		_alloc_matrix[6 * col + 4] = -_alloc_matrix[6 * col + 4];
-		_alloc_matrix[6 * col + 5] = -_alloc_matrix[6 * col + 5];
-	}
-
-	PX4_INFO("alloc_matrix loaded (converted FLU->FRD)");
+	PX4_INFO("alloc_matrix loaded (FLU, simulation frame)");
 	return true;
 }
 
@@ -94,26 +85,39 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->flags = _need_reinit ? FLAG_REINIT : 0;
 	pkt->pad[0] = pkt->pad[1] = pkt->pad[2] = 0;
 
-	// x0[0:3] = position
-	pkt->x0[0] = (double)_position(0);
-	pkt->x0[1] = (double)_position(1);
-	pkt->x0[2] = (double)_position(2);
+	// Frame transforms matching mc_neural_control (PX4 -> simulation):
+	// frame_transf = diag(1,-1,-1)                  (FRD -> FLU body frame)
+	// frame_transf_2 = [[0,1,0],[-1,0,0],[0,0,1]]   (-90 deg about Z)
+	// Position/velocity: frame_transf * frame_transf_2 => (x,y,z) -> (y, x, -z)  (NED -> ENU)
+	// Angular velocity:  frame_transf => (x,y,z) -> (x, -y, -z)                  (FRD -> FLU)
+	// Attitude: frame_transf * (frame_transf_2 * R) * frame_transf^T
+	//   equivalent quaternion: q_local = (q_ft * q_ft2) * q_body * conj(q_ft)
 
-	// x0[3:6] = linear velocity
-	pkt->x0[3] = (double)_velocity(0);
-	pkt->x0[4] = (double)_velocity(1);
-	pkt->x0[5] = (double)_velocity(2);
+	// x0[0:3] = position (NED -> ENU)
+	pkt->x0[0] = (double)_position(1);
+	pkt->x0[1] = (double)_position(0);
+	pkt->x0[2] = (double)(-_position(2));
 
-	// x0[6:10] = quaternion (w, x, y, z)
-	pkt->x0[6] = (double)_attitude(0);
-	pkt->x0[7] = (double)_attitude(1);
-	pkt->x0[8] = (double)_attitude(2);
-	pkt->x0[9] = (double)_attitude(3);
+	// x0[3:6] = linear velocity (NED -> ENU)
+	pkt->x0[3] = (double)_velocity(1);
+	pkt->x0[4] = (double)_velocity(0);
+	pkt->x0[5] = (double)(-_velocity(2));
 
-	// x0[10:13] = body angular velocity
+	// x0[6:10] = quaternion (FRD -> FLU)
+	static const Quatf q_ft(0.0f, 1.0f, 0.0f, 0.0f);
+	static const Quatf q_ft2(0.7071068f, 0.0f, 0.0f, -0.7071068f);
+	static const Quatf q_ft_conj(0.0f, -1.0f, 0.0f, 0.0f);
+	static const Quatf q_combined = q_ft * q_ft2;
+	Quatf q_local = q_combined * _attitude * q_ft_conj;
+	pkt->x0[6] = (double)q_local(0);
+	pkt->x0[7] = (double)q_local(1);
+	pkt->x0[8] = (double)q_local(2);
+	pkt->x0[9] = (double)q_local(3);
+
+	// x0[10:13] = body angular velocity (FRD -> FLU)
 	pkt->x0[10] = (double)_angular_velocity(0);
-	pkt->x0[11] = (double)_angular_velocity(1);
-	pkt->x0[12] = (double)_angular_velocity(2);
+	pkt->x0[11] = (double)(-_angular_velocity(1));
+	pkt->x0[12] = (double)(-_angular_velocity(2));
 
 	// x0[13:17] = motor RPS states
 	for (int i = 0; i < 4; i++) {
@@ -131,27 +135,28 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[5] = (double)_param_iyz.get();
 	pkt->p[6] = (double)_param_izz.get();
 
-	// p[7:10] = gravity vector
+	// p[7:10] = gravity vector (NED -> ENU)
 	pkt->p[7] = 0.0;
 	pkt->p[8] = 0.0;
-	pkt->p[9] = 9.81;
+	pkt->p[9] = -9.81;
 
-	// p[10:13] = setpoint position
-	pkt->p[10] = (double)_trajectory_setpoint.position[0];
-	pkt->p[11] = (double)_trajectory_setpoint.position[1];
-	pkt->p[12] = (double)_trajectory_setpoint.position[2];
+	// p[10:13] = setpoint position (NED -> ENU)
+	pkt->p[10] = (double)_trajectory_setpoint.position[1];
+	pkt->p[11] = (double)_trajectory_setpoint.position[0];
+	pkt->p[12] = (double)(-_trajectory_setpoint.position[2]);
 
-	// p[13:16] = setpoint velocity
-	pkt->p[13] = (double)_trajectory_setpoint.velocity[0];
-	pkt->p[14] = (double)_trajectory_setpoint.velocity[1];
-	pkt->p[15] = (double)_trajectory_setpoint.velocity[2];
+	// p[13:16] = setpoint velocity (NED -> ENU)
+	pkt->p[13] = (double)_trajectory_setpoint.velocity[1];
+	pkt->p[14] = (double)_trajectory_setpoint.velocity[0];
+	pkt->p[15] = (double)(-_trajectory_setpoint.velocity[2]);
 
-	// p[16:20] = setpoint quaternion (derived from yaw setpoint)
+	// p[16:20] = setpoint quaternion (FRD -> FLU)
 	Quatf q_sp(Eulerf(0.0f, 0.0f, _trajectory_setpoint.yaw));
-	pkt->p[16] = (double)q_sp(0);
-	pkt->p[17] = (double)q_sp(1);
-	pkt->p[18] = (double)q_sp(2);
-	pkt->p[19] = (double)q_sp(3);
+	Quatf q_sp_local = q_combined * q_sp * q_ft_conj;
+	pkt->p[16] = (double)q_sp_local(0);
+	pkt->p[17] = (double)q_sp_local(1);
+	pkt->p[18] = (double)q_sp_local(2);
+	pkt->p[19] = (double)q_sp_local(3);
 
 	// p[20:44] = allocation matrix (24 values loaded from /home/model_files/alloc_matrix.csv)
 	memcpy(&pkt->p[20], _alloc_matrix, 24 * sizeof(double));
