@@ -89,7 +89,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_IZZ, 0.0008339f);
  * @increment 0.00000001
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_FLOAT(MC_NMPC_KF1, 0.000014247f);
+PARAM_DEFINE_FLOAT(MC_NMPC_KF1, 0.00001286412f);
 
 /**
  * Thrust coefficient motor 2
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_KF1, 0.000014247f);
  * @increment 0.00000001
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_FLOAT(MC_NMPC_KF2, 0.000014247f);
+PARAM_DEFINE_FLOAT(MC_NMPC_KF2, 0.00001286412f);
 
 /**
  * Thrust coefficient motor 3
@@ -111,7 +111,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_KF2, 0.000014247f);
  * @increment 0.00000001
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_FLOAT(MC_NMPC_KF3, 0.000014247f);
+PARAM_DEFINE_FLOAT(MC_NMPC_KF3, 0.00001286412f);
 
 /**
  * Thrust coefficient motor 4
@@ -122,7 +122,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_KF3, 0.000014247f);
  * @increment 0.00000001
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_FLOAT(MC_NMPC_KF4, 0.000014247f);
+PARAM_DEFINE_FLOAT(MC_NMPC_KF4, 0.00001286412f);
 
 /**
  * Motor time constant 1
@@ -133,7 +133,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_KF4, 0.000014247f);
  * @increment 0.001
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_FLOAT(MC_NMPC_TC1, 0.05f);
+PARAM_DEFINE_FLOAT(MC_NMPC_TC1, 0.047f);
 
 /**
  * Motor time constant 2
@@ -144,7 +144,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_TC1, 0.05f);
  * @increment 0.001
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_FLOAT(MC_NMPC_TC2, 0.05f);
+PARAM_DEFINE_FLOAT(MC_NMPC_TC2, 0.047f);
 
 /**
  * Motor time constant 3
@@ -155,7 +155,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_TC2, 0.05f);
  * @increment 0.001
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_FLOAT(MC_NMPC_TC3, 0.05f);
+PARAM_DEFINE_FLOAT(MC_NMPC_TC3, 0.047f);
 
 /**
  * Motor time constant 4
@@ -166,7 +166,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_TC3, 0.05f);
  * @increment 0.001
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_FLOAT(MC_NMPC_TC4, 0.05f);
+PARAM_DEFINE_FLOAT(MC_NMPC_TC4, 0.047f);
 
 /**
  * COM offset X
@@ -208,7 +208,7 @@ PARAM_DEFINE_FLOAT(MC_NMPC_COMZ, 0.0f);
  * @max 10000
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_INT32(MC_NMPC_MINRPM, 1000);
+PARAM_DEFINE_INT32(MC_NMPC_MINRPM, 4980);
 
 /**
  * Max motor RPM
@@ -217,7 +217,7 @@ PARAM_DEFINE_INT32(MC_NMPC_MINRPM, 1000);
  * @max 50000
  * @group Multicopter NMPC Control
  */
-PARAM_DEFINE_INT32(MC_NMPC_MAXRPM, 22000);
+PARAM_DEFINE_INT32(MC_NMPC_MAXRPM, 24000);
 
 /**
  * Verbose logging
