@@ -10,6 +10,18 @@ using namespace matrix;
 namespace
 {
 static constexpr int PX4_TO_NMPC_MOTOR_MAP[4] = {0, 2, 3, 1};
+
+// Allocation matrix B (6x4) in column-major order for CasADi.
+// Maps motor forces to body wrench [Fx, Fy, Fz, Tx, Ty, Tz].
+// Motor positions (FLU): M0=[0.16,-0.16,0], M1=[-0.16,-0.16,0], M2=[-0.16,0.16,0], M3=[0.16,0.16,0]
+// Thrust dirs: all [0,0,1]. Motor dirs: [1,-1,1,-1]. cq=0.01.
+// Column k = [0, 0, 1, cross(pos_k,[0,0,1]) + dir_k*0.01*[0,0,1]]
+static constexpr double ALLOC_MATRIX_COLMAJOR[24] = {
+	0.0,  0.0,  1.0, -0.16, -0.16,  0.01,   // motor 0
+	0.0,  0.0,  1.0, -0.16,  0.16, -0.01,   // motor 1
+	0.0,  0.0,  1.0,  0.16,  0.16,  0.01,   // motor 2
+	0.0,  0.0,  1.0,  0.16, -0.16, -0.01,   // motor 3
+};
 }
 
 MulticopterNmpcControl::MulticopterNmpcControl() :
@@ -25,34 +37,8 @@ MulticopterNmpcControl::~MulticopterNmpcControl()
 	perf_free(_loop_perf);
 }
 
-bool MulticopterNmpcControl::load_allocation_matrix()
-{
-	FILE *f = fopen("/home/model_files/alloc_matrix.csv", "r");
-	if (!f) {
-		PX4_ERR("alloc_matrix.csv not found at /home/model_files/alloc_matrix.csv");
-		return false;
-	}
-	for (int i = 0; i < 24; i++) {
-		if (fscanf(f, " %lf", &_alloc_matrix[i]) != 1) {
-			PX4_ERR("alloc_matrix.csv: failed to read entry %d", i);
-			fclose(f);
-			return false;
-		}
-		int c = fgetc(f);
-		if (c != ',') { ungetc(c, f); }
-	}
-	fclose(f);
-
-	PX4_INFO("alloc_matrix loaded (FLU, simulation frame)");
-	return true;
-}
-
 bool MulticopterNmpcControl::init()
 {
-	if (!load_allocation_matrix()) {
-		return false;
-	}
-
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -163,8 +149,8 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[18] = (double)q_sp_local(2);
 	pkt->p[19] = (double)q_sp_local(3);
 
-	// p[20:44] = allocation matrix (24 values loaded from /home/model_files/alloc_matrix.csv)
-	memcpy(&pkt->p[20], _alloc_matrix, 24 * sizeof(double));
+	// p[20:44] = allocation matrix (6x4, column-major for CasADi reshape)
+	memcpy(&pkt->p[20], ALLOC_MATRIX_COLMAJOR, 24 * sizeof(double));
 
 	// p[44:48] = thrust coefficients
 	pkt->p[44] = (double)_param_kf1.get();
