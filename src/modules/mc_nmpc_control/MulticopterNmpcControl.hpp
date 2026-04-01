@@ -21,6 +21,7 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/nmpc_state_data.h>
 #include <uORB/topics/nmpc_control_data.h>
 
@@ -48,6 +49,7 @@ private:
 	void parameters_updated();
 	void pack_state(state_packet_t *pkt);
 	void publish_actuator_motors(const control_packet_t *pkt);
+	void publish_vehicle_thrust_setpoint(const control_packet_t *pkt);
 	void update_motor_feedback(const esc_status_s &esc_status);
 	bool advance_motor_state_estimate(hrt_abstime now);
 	void store_commanded_motor_rps(const control_packet_t *pkt);
@@ -67,6 +69,7 @@ private:
 
 	uORB::Publication<offboard_control_mode_s> _offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<vehicle_thrust_setpoint_s> _vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<nmpc_state_data_s> _nmpc_state_pub{ORB_ID(nmpc_state_data)};
 	uORB::Subscription _nmpc_control_sub{ORB_ID(nmpc_control_data)};
 
