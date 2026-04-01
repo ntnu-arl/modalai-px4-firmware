@@ -218,37 +218,6 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 	_actuator_motors_pub.publish(actuator_motors);
 }
 
-void MulticopterNmpcControl::publish_vehicle_thrust_setpoint(const control_packet_t *pkt)
-{
-	vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-	vehicle_thrust_setpoint.timestamp_sample = _last_run;
-	vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
-	vehicle_thrust_setpoint.xyz[0] = 0.0f;
-	vehicle_thrust_setpoint.xyz[1] = 0.0f;
-
-	const float max_rps = (float)_param_max_rpm.get() / 60.0f;
-	const float max_rps_sq = max_rps * max_rps;
-	const float max_total_force =
-		(float)_param_kf1.get() * max_rps_sq +
-		(float)_param_kf2.get() * max_rps_sq +
-		(float)_param_kf3.get() * max_rps_sq +
-		(float)_param_kf4.get() * max_rps_sq;
-
-	if (max_total_force <= 0.0f) {
-		PX4_ERR("invalid max total force %.6f while publishing thrust setpoint", (double)max_total_force);
-		return;
-	}
-
-	const float total_force =
-		(float)_param_kf1.get() * math::sq(math::max((float)pkt->u[0], 0.0f)) +
-		(float)_param_kf2.get() * math::sq(math::max((float)pkt->u[1], 0.0f)) +
-		(float)_param_kf3.get() * math::sq(math::max((float)pkt->u[2], 0.0f)) +
-		(float)_param_kf4.get() * math::sq(math::max((float)pkt->u[3], 0.0f));
-
-	vehicle_thrust_setpoint.xyz[2] = -math::constrain(total_force / max_total_force, 0.0f, 1.0f);
-	_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
-}
-
 void MulticopterNmpcControl::update_motor_feedback(const esc_status_s &esc_status)
 {
 	for (int i = 0; i < math::min((int)esc_status.esc_count, (int)esc_status_s::CONNECTED_ESC_MAX); i++) {
@@ -454,7 +423,6 @@ void MulticopterNmpcControl::Run()
 
 			if (_has_new_control) {
 				publish_actuator_motors(&_latest_control);
-				publish_vehicle_thrust_setpoint(&_latest_control);
 				_has_new_control = false;
 			}
 		}
