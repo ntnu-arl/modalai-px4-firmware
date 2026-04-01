@@ -43,13 +43,15 @@ public:
 
 private:
 	static constexpr hrt_abstime TRAJECTORY_SETPOINT_TIMEOUT{500_ms};
-	static constexpr hrt_abstime MOTOR_FEEDBACK_TIMEOUT{200_ms};
 
 	void Run() override;
 	void parameters_updated();
 	void pack_state(state_packet_t *pkt);
 	void publish_actuator_motors(const control_packet_t *pkt);
 	void update_motor_feedback(const esc_status_s &esc_status);
+	bool advance_motor_state_estimate(hrt_abstime now);
+	void store_commanded_motor_rps(const control_packet_t *pkt);
+	void reset_motor_state_estimate();
 	void generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
 					 const matrix::Vector3f &position,
 					 const matrix::Quatf &attitude);
@@ -76,8 +78,11 @@ private:
 	matrix::Vector3f _velocity;
 	matrix::Vector3f _angular_velocity;
 
-	float _motor_rps[4]{0.f, 0.f, 0.f, 0.f};
-	hrt_abstime _motor_rps_timestamp[4]{0, 0, 0, 0};
+	float _estimated_motor_rps[4]{0.f, 0.f, 0.f, 0.f};
+	float _commanded_motor_rps[4]{0.f, 0.f, 0.f, 0.f};
+	float _measured_motor_rps[4]{0.f, 0.f, 0.f, 0.f};
+	hrt_abstime _measured_motor_rps_timestamp[4]{0, 0, 0, 0};
+	hrt_abstime _last_motor_model_update{0};
 
 	perf_counter_t _loop_perf;
 

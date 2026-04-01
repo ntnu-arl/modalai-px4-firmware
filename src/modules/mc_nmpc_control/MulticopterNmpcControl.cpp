@@ -55,6 +55,11 @@ void MulticopterNmpcControl::parameters_updated()
 		PX4_ERR("MC_NMPC_MINRPM=%d MC_NMPC_MAXRPM=%d are not available or invalid, cannot proceed",
 			_param_min_rpm.get(), _param_max_rpm.get());
 	}
+
+	if (_param_tc1.get() <= 0.f || _param_tc2.get() <= 0.f || _param_tc3.get() <= 0.f || _param_tc4.get() <= 0.f) {
+		PX4_ERR("MC_NMPC_TC1..4 must all be > 0, got [%.6f %.6f %.6f %.6f]",
+			(double)_param_tc1.get(), (double)_param_tc2.get(), (double)_param_tc3.get(), (double)_param_tc4.get());
+	}
 }
 
 void MulticopterNmpcControl::generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
@@ -73,7 +78,12 @@ void MulticopterNmpcControl::generateFailsafeTrajectory(trajectory_setpoint_s &t
 void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 {
 	pkt->seq = _seq++;
-	pkt->flags = _need_reinit ? FLAG_REINIT : 0;
+	pkt->flags = 0;
+
+	if (_need_reinit) {
+		pkt->flags |= FLAG_REINIT;
+	}
+
 	pkt->pad[0] = pkt->pad[1] = pkt->pad[2] = 0;
 
 	// Frame transforms matching mc_neural_control (PX4 -> simulation):
@@ -112,7 +122,7 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 
 	// x0[13:17] = motor RPS states
 	for (int i = 0; i < 4; i++) {
-		pkt->x0[13 + i] = (double)_motor_rps[i];
+		pkt->x0[13 + i] = (double)_estimated_motor_rps[i];
 	}
 
 	// p[0] = mass
@@ -224,18 +234,63 @@ void MulticopterNmpcControl::update_motor_feedback(const esc_status_s &esc_statu
 
 		if ((motor_index >= 0) && (motor_index < 4) && (esc.timestamp > 0)) {
 			const int nmpc_motor_index = PX4_TO_NMPC_MOTOR_MAP[motor_index];
-			_motor_rps[nmpc_motor_index] = math::max(esc.esc_rpm / 60.f, 0.f);
-			_motor_rps_timestamp[nmpc_motor_index] = esc.timestamp;
+			_measured_motor_rps[nmpc_motor_index] = math::max(esc.esc_rpm / 60.f, 0.f);
+			_measured_motor_rps_timestamp[nmpc_motor_index] = esc.timestamp;
 		}
 	}
+}
 
-	const hrt_abstime now = hrt_absolute_time();
+bool MulticopterNmpcControl::advance_motor_state_estimate(hrt_abstime now)
+{
+	if (_last_motor_model_update == 0) {
+		_last_motor_model_update = now;
+		return true;
+	}
+
+	if (now < _last_motor_model_update) {
+		PX4_ERR("motor estimator time moved backwards: now=%llu last=%llu",
+			(unsigned long long)now, (unsigned long long)_last_motor_model_update);
+		return false;
+	}
+
+	const float tau[4] {
+		_param_tc1.get(),
+		_param_tc2.get(),
+		_param_tc3.get(),
+		_param_tc4.get()
+	};
+	const double dt = (double)(now - _last_motor_model_update) * 1e-6;
 
 	for (int i = 0; i < 4; i++) {
-		if ((_motor_rps_timestamp[i] == 0) || ((now - _motor_rps_timestamp[i]) > MOTOR_FEEDBACK_TIMEOUT)) {
-			_motor_rps[i] = 0.f;
+		if (tau[i] <= 0.f) {
+			PX4_ERR("MC_NMPC_TC%d must be > 0, got %.6f", i + 1, (double)tau[i]);
+			return false;
 		}
+
+		const double desired_rps = (double)_commanded_motor_rps[i];
+		const double current_rps = (double)_estimated_motor_rps[i];
+		const double decay = exp(-dt / (double)tau[i]);
+		_estimated_motor_rps[i] = (float)(desired_rps + (current_rps - desired_rps) * decay);
 	}
+
+	_last_motor_model_update = now;
+	return true;
+}
+
+void MulticopterNmpcControl::store_commanded_motor_rps(const control_packet_t *pkt)
+{
+	for (int i = 0; i < 4; i++) {
+		_commanded_motor_rps[i] = math::max((float)pkt->u[i], 0.f);
+	}
+}
+
+void MulticopterNmpcControl::reset_motor_state_estimate()
+{
+	for (int i = 0; i < 4; i++) {
+		_estimated_motor_rps[i] = _commanded_motor_rps[i];
+	}
+
+	_last_motor_model_update = _last_run;
 }
 
 void MulticopterNmpcControl::Run()
@@ -310,6 +365,9 @@ void MulticopterNmpcControl::Run()
 		_offboard_control_mode_pub.publish(ocm);
 
 		if (_vehicle_control_mode.flag_control_offboard_enabled) {
+			if (_need_reinit) {
+				reset_motor_state_estimate();
+			}
 
 			if ((_trajectory_setpoint.timestamp < _time_offboard_enabled)
 			    || (hrt_elapsed_time(&_trajectory_setpoint.timestamp) > TRAJECTORY_SETPOINT_TIMEOUT)) {
@@ -325,6 +383,13 @@ void MulticopterNmpcControl::Run()
 				_trajectory_setpoint.yaw = matrix::Eulerf(_attitude).psi();
 				_trajectory_setpoint.yawspeed = 0.0f;
 				_trajectory_setpoint.timestamp = _last_run;
+			}
+
+			if (!advance_motor_state_estimate(_last_run)) {
+				perf_end(_loop_perf);
+				_vehicle_angular_velocity_sub.unregisterCallback();
+				exit_and_cleanup();
+				return;
 			}
 
 			state_packet_t pkt_state;
@@ -349,8 +414,11 @@ void MulticopterNmpcControl::Run()
 				memcpy(_latest_control.quat_next, ctrl_msg.quat_next, sizeof(ctrl_msg.quat_next));
 				if (ctrl_msg.status != 0) {
 					_need_reinit = true;
+					_has_new_control = false;
+				} else {
+					store_commanded_motor_rps(&_latest_control);
+					_has_new_control = true;
 				}
-				_has_new_control = true;
 			}
 
 			if (_has_new_control) {
