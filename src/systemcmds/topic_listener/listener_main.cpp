@@ -67,17 +67,17 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 		}
 
 		if (instances == 1) {
-			PX4_INFO_RAW("\nTOPIC: %s\n", id->o_name);
+			// PX4_INFO_RAW("\nTOPIC: %s\n", id->o_name);
 			int sub = orb_subscribe(id);
 			listener_print_topic(id, sub);
 			orb_unsubscribe(sub);
 
 		} else if (instances > 1) {
-			PX4_INFO_RAW("\nTOPIC: %s %d instances\n", id->o_name, instances);
+			// PX4_INFO_RAW("\nTOPIC: %s %d instances\n", id->o_name, instances);
 
 			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 				if (orb_exists(id, i) == PX4_OK) {
-					PX4_INFO_RAW("\nInstance %d:\n", i);
+					// PX4_INFO_RAW("\nInstance %d:\n", i);
 					int sub = orb_subscribe_multi(id, i);
 					listener_print_topic(id, sub);
 					orb_unsubscribe(sub);

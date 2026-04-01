@@ -110,6 +110,7 @@ private:
 		(ParamFloat<px4::params::MC_NMPC_COMZ>)  _param_com_z,
 		(ParamInt<px4::params::MC_NMPC_MINRPM>)  _param_min_rpm,
 		(ParamInt<px4::params::MC_NMPC_MAXRPM>)  _param_max_rpm,
+		(ParamFloat<px4::params::THR_MDL_FAC>)   _param_thr_mdl_fac,
 		(ParamBool<px4::params::MC_NMPC_VERBOSE>) _param_verbose
 	)
 };
