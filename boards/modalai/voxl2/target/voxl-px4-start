@@ -111,9 +111,8 @@ param touch SDLOG_MODE
 
 # ESC driver
 if [ "$ESC" == "VOXL_ESC" ]; then
-    /bin/echo "Starting both VOXL ESC driver"
+    /bin/echo "Starting VOXL ESC driver"
 	qshell voxl_esc start
-	qshell voxl_esc2 start
 elif [ "$ESC" == "VOXL2_IO_PWM_ESC" ]; then
 	if [ "$RC" == "M0065_SBUS" ]; then
 		/bin/echo "Starting VOXL IO for PWM ESC with SBUS RC"

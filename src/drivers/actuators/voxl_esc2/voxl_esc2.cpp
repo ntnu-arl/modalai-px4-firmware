@@ -784,6 +784,8 @@ int VoxlEsc2::update_params()
 		_mixing_output.setAllMaxValues(_parameters.rpm_max);
 
 		_rpm_fullscale = _parameters.rpm_max - _parameters.rpm_min;
+		_extended_rpm = false;
+		_need_version_info = _parameters.rpm_max > VOXL_ESC_RPM_MAX;
 	}
 
 	return ret;
