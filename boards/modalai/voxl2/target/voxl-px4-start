@@ -106,6 +106,7 @@ qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 
 # We do not change the following parameters but QGC will complain if they aren't
 # being reported as "used" by px4. "Touching" them accomplishes that.
+param touch SYS_AUTOSTART
 param touch SYS_AUTOCONFIG
 param touch SDLOG_MODE
 
