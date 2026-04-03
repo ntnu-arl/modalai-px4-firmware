@@ -74,7 +74,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/failure_detector_status.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
@@ -134,6 +136,7 @@ private:
 
 	void publish_control_allocator_status(int matrix_index);
 
+	void update_actuator_motors_handover();
 	void publish_actuator_controls();
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
@@ -170,9 +173,11 @@ private:
 	// Inputs
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};  /**< vehicle torque setpoint subscription */
 	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_sub{this, ORB_ID(vehicle_thrust_setpoint)};	 /**< vehicle thrust setpoint subscription */
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
 	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
+	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 
 	// Outputs
 	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub[2] {ORB_ID(control_allocator_status), ORB_ID(control_allocator_status)};
@@ -185,6 +190,8 @@ private:
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
+	vehicle_control_mode_s _vehicle_control_mode{};
+	offboard_control_mode_s _offboard_control_mode{};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;
@@ -196,6 +203,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
 	bool _armed{false};
+	bool _actuator_motors_handover_active{false};
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};

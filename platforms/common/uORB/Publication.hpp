@@ -72,7 +72,19 @@ public:
 
 	bool advertised() const { return _handle != nullptr; }
 
-	bool unadvertise() { return (Manager::orb_unadvertise(_handle) == PX4_OK); }
+	bool unadvertise()
+	{
+		if (_handle == nullptr) {
+			return true;
+		}
+
+		if (Manager::orb_unadvertise(_handle) == PX4_OK) {
+			_handle = nullptr;
+			return true;
+		}
+
+		return false;
+	}
 
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
 

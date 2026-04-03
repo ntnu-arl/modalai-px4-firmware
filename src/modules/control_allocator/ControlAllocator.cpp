@@ -323,6 +323,8 @@ ControlAllocator::Run()
 		return;
 	}
 
+	update_actuator_motors_handover();
+
 	{
 		vehicle_status_s vehicle_status;
 
@@ -451,6 +453,36 @@ ControlAllocator::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void
+ControlAllocator::update_actuator_motors_handover()
+{
+	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
+	_offboard_control_mode_sub.update(&_offboard_control_mode);
+
+	const bool should_handover = _vehicle_control_mode.flag_control_offboard_enabled && _offboard_control_mode.actuator;
+
+	if (should_handover == _actuator_motors_handover_active) {
+		return;
+	}
+
+	if (should_handover) {
+		if (!_actuator_motors_pub.unadvertise()) {
+			PX4_ERR("failed to release actuator_motors");
+			return;
+		}
+
+		_actuator_motors_handover_active = true;
+
+	} else {
+		if (!_actuator_motors_pub.advertise()) {
+			PX4_ERR("failed to reacquire actuator_motors");
+			return;
+		}
+
+		_actuator_motors_handover_active = false;
+	}
 }
 
 void
@@ -679,7 +711,9 @@ ControlAllocator::publish_actuator_controls()
 	//PX4_WARN("control: %f %f %f %f", double(actuator_motors.control[0]),double(actuator_motors.control[1]),
 	//								  double(actuator_motors.control[2]),double(actuator_motors.control[3]));
 
-	_actuator_motors_pub.publish(actuator_motors);
+	if (!_actuator_motors_handover_active) {
+		_actuator_motors_pub.publish(actuator_motors);
+	}
 
 	// servos
 	if (_num_actuators[1] > 0) {
