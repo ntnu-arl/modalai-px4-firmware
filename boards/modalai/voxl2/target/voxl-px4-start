@@ -94,6 +94,10 @@ param select /data/px4/param/parameters
 # Load in all of the parameters that have been saved in the file
 param load
 
+# Keep bench-test auto-disarm disabled on every PX4 startup.
+param set COM_DISARM_PRFLT -1
+param set COM_DISARM_LAND -1
+
 # Start logging and use timestamps for log files when possible.
 # Add the "-e" option to start logging immediately. Default is
 # to log only when armed. Caution must be used with the "-e" option
