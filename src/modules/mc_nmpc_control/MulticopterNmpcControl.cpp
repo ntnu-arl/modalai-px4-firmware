@@ -9,8 +9,6 @@ using namespace matrix;
 
 namespace
 {
-static constexpr int PX4_TO_NMPC_MOTOR_MAP[4] = {0, 2, 3, 1};
-
 // Allocation matrix B (6x4) in column-major order for CasADi.
 // Maps motor forces to body wrench [Fx, Fy, Fz, Tx, Ty, Tz].
 // Motor positions (FLU): M0=[0.16,-0.16,0], M1=[-0.16,-0.16,0], M2=[-0.16,0.16,0], M3=[0.16,0.16,0]
@@ -199,7 +197,7 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 	const float thrust_factor = _param_thr_mdl_fac.get();
 
 	for (int i = 0; i < 4; i++) {
-		const float desired_rpm = math::max((float)pkt->u[PX4_TO_NMPC_MOTOR_MAP[i]], 0.0f) * 60.0f;
+		const float desired_rpm = math::max((float)pkt->u[i], 0.0f) * 60.0f;
 		const float cmd = (desired_rpm * 2.0f - max_rpm - min_rpm) / rpm_range;
 		const float x = (cmd + 1.0f) / 2.0f;
 		float control = x;
@@ -233,9 +231,8 @@ void MulticopterNmpcControl::update_motor_feedback(const esc_status_s &esc_statu
 		}
 
 		if ((motor_index >= 0) && (motor_index < 4) && (esc.timestamp > 0)) {
-			const int nmpc_motor_index = PX4_TO_NMPC_MOTOR_MAP[motor_index];
-			_measured_motor_rps[nmpc_motor_index] = math::max(esc.esc_rpm / 60.f, 0.f);
-			_measured_motor_rps_timestamp[nmpc_motor_index] = esc.timestamp;
+			_measured_motor_rps[motor_index] = math::max(esc.esc_rpm / 60.f, 0.f);
+			_measured_motor_rps_timestamp[motor_index] = esc.timestamp;
 		}
 	}
 }
