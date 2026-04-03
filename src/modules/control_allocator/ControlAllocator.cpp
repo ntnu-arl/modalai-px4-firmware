@@ -300,6 +300,16 @@ ControlAllocator::Run()
 
 	perf_begin(_loop_perf);
 
+	// Check handover state before anything else
+	update_actuator_motors_handover();
+
+	if (_actuator_motors_handover_active) {
+		// Fully suspended: only poll for mode change at low rate
+		ScheduleDelayed(50_ms);
+		perf_end(_loop_perf);
+		return;
+	}
+
 #ifndef ENABLE_LOCKSTEP_SCHEDULER // Backup schedule would interfere with lockstep
 	// Push backup schedule
 	ScheduleDelayed(50_ms);
@@ -322,8 +332,6 @@ ControlAllocator::Run()
 	if (_num_control_allocation == 0 || _actuator_effectiveness == nullptr) {
 		return;
 	}
-
-	update_actuator_motors_handover();
 
 	{
 		vehicle_status_s vehicle_status;
@@ -468,20 +476,20 @@ ControlAllocator::update_actuator_motors_handover()
 	}
 
 	if (should_handover) {
-		if (!_actuator_motors_pub.unadvertise()) {
-			PX4_ERR("failed to release actuator_motors");
-			return;
-		}
-
+		// Suspend: unregister high-rate callbacks so we stop running at 400Hz.
+		// Keep actuator_motors advertised — unadvertising breaks the topic node
+		// for the ESC driver's FunctionMotors subscriber.
+		_vehicle_torque_setpoint_sub.unregisterCallback();
+		_vehicle_thrust_setpoint_sub.unregisterCallback();
 		_actuator_motors_handover_active = true;
+		PX4_INFO("NMPC handover: control_allocator suspended");
 
 	} else {
-		if (!_actuator_motors_pub.advertise()) {
-			PX4_ERR("failed to reacquire actuator_motors");
-			return;
-		}
-
+		// Resume: re-register callbacks for normal operation
+		_vehicle_torque_setpoint_sub.registerCallback();
+		_vehicle_thrust_setpoint_sub.registerCallback();
 		_actuator_motors_handover_active = false;
+		PX4_INFO("NMPC handover: control_allocator resumed");
 	}
 }
 
