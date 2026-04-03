@@ -17,6 +17,38 @@ do
 done
 echo -e "*************************\n"
 
+NMPC_SOLVER_BIN=/usr/local/bin/nmpc_pipe_solver
+NMPC_SOLVER_UNIT=nmpc-pipe-solver
+NMPC_SOLVER_STDOUT_LOG=/tmp/nmpc_solver.log
+NMPC_SOLVER_STDERR_LOG=/tmp/nmpc_solver.err.log
+NMPC_SOLVER_CPU_CORE=${NMPC_SOLVER_CPU_CORE:-7}
+NMPC_SOLVER_RT_PRIO=${NMPC_SOLVER_RT_PRIO:-50}
+
+start_nmpc_solver()
+{
+	if pidof "$(basename "$NMPC_SOLVER_BIN")" >/dev/null 2>/dev/null; then
+		/bin/echo "NMPC solver already running"
+		return 0
+	fi
+
+	/bin/rm -f "$NMPC_SOLVER_STDOUT_LOG" "$NMPC_SOLVER_STDERR_LOG"
+	/bin/echo "Starting onboard NMPC solver: $NMPC_SOLVER_BIN"
+
+	if command -v systemd-run >/dev/null 2>/dev/null; then
+		systemd-run --unit="$NMPC_SOLVER_UNIT" --collect \
+			--property=StandardOutput=file:"$NMPC_SOLVER_STDOUT_LOG" \
+			--property=StandardError=file:"$NMPC_SOLVER_STDERR_LOG" \
+			taskset -c "$NMPC_SOLVER_CPU_CORE" chrt -f "$NMPC_SOLVER_RT_PRIO" "$NMPC_SOLVER_BIN" || return 1
+
+	else
+		taskset -c "$NMPC_SOLVER_CPU_CORE" chrt -f "$NMPC_SOLVER_RT_PRIO" "$NMPC_SOLVER_BIN" \
+			>"$NMPC_SOLVER_STDOUT_LOG" 2>"$NMPC_SOLVER_STDERR_LOG" &
+	fi
+
+	/bin/sleep 2
+	pidof "$(basename "$NMPC_SOLVER_BIN")" >/dev/null 2>/dev/null
+}
+
 # In order to just exit after starting the uorb / muorb modules define
 # the environment variable MINIMAL_PX4. (e.g. export MINIMAL_PX4=1)
 # This is useful for testing / debug where you may want to start drivers
@@ -217,6 +249,9 @@ load_mon start
 
 # This bridge allows raw data packets to be sent over UART to the ESC
 modal_io_bridge start
+
+# Start the onboard NMPC solver on the apps processor.
+start_nmpc_solver || exit 1
 
 # Bridge between NMPC uORB topics (SLPI) and libmodal_pipe (apps processor)
 nmpc_io_bridge start
