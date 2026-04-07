@@ -338,6 +338,7 @@ void MulticopterNmpcControl::Run()
 			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
 				if (!previous_offboard_enabled && _vehicle_control_mode.flag_control_offboard_enabled) {
 					_time_offboard_enabled = _vehicle_control_mode.timestamp;
+					_initial_position = _position;
 					_need_reinit = true;
 				} else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled) {
 					generateFailsafeTrajectory(_trajectory_setpoint, _position, _attitude);
@@ -368,16 +369,16 @@ void MulticopterNmpcControl::Run()
 
 			if ((_trajectory_setpoint.timestamp < _time_offboard_enabled)
 			    || (hrt_elapsed_time(&_trajectory_setpoint.timestamp) > TRAJECTORY_SETPOINT_TIMEOUT)) {
-				_trajectory_setpoint.position[0] = _position(0);
-				_trajectory_setpoint.position[1] = _position(1);
-				_trajectory_setpoint.position[2] = _position(2);
+				_trajectory_setpoint.position[0] = _initial_position(0);
+				_trajectory_setpoint.position[1] = _initial_position(1);
+				_trajectory_setpoint.position[2] = _initial_position(2);
 				_trajectory_setpoint.velocity[0] = 0.0f;
 				_trajectory_setpoint.velocity[1] = 0.0f;
 				_trajectory_setpoint.velocity[2] = 0.0f;
 				_trajectory_setpoint.acceleration[0] = 0.0f;
 				_trajectory_setpoint.acceleration[1] = 0.0f;
 				_trajectory_setpoint.acceleration[2] = 0.0f;
-				_trajectory_setpoint.yaw = matrix::Eulerf(_attitude).psi();
+				_trajectory_setpoint.yaw = 0.0f;
 				_trajectory_setpoint.yawspeed = 0.0f;
 				_trajectory_setpoint.timestamp = _last_run;
 			}

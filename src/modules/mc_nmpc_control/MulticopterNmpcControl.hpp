@@ -77,6 +77,7 @@ private:
 	matrix::Vector3f _position;
 	matrix::Vector3f _velocity;
 	matrix::Vector3f _angular_velocity;
+	matrix::Vector3f _initial_position{0.f, 0.f, 0.f};
 
 	float _estimated_motor_rps[4]{0.f, 0.f, 0.f, 0.f};
 	float _commanded_motor_rps[4]{0.f, 0.f, 0.f, 0.f};
