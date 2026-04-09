@@ -20,14 +20,35 @@ static constexpr double ALLOC_MATRIX_COLMAJOR[24] = {
 	0.0,  0.0,  1.0,  0.16,  0.16,  0.01,   // motor 2
 	0.0,  0.0,  1.0,  0.16, -0.16, -0.01,   // motor 3
 };
+
+// Hardcoded NMPC physical parameters — change here and reflash.
+static constexpr float NMPC_MASS        = 0.317f;          // [kg] total vehicle mass
+static constexpr float NMPC_IXX         = 0.0004933f;      // [kg·m²] inertia
+static constexpr float NMPC_IXY         = 0.0f;            // [kg·m²] inertia cross term
+static constexpr float NMPC_IXZ         = 0.0f;            // [kg·m²] inertia cross term
+static constexpr float NMPC_IYY         = 0.0005977f;      // [kg·m²] inertia
+static constexpr float NMPC_IYZ         = 0.0f;            // [kg·m²] inertia cross term
+static constexpr float NMPC_IZZ         = 0.0008339f;      // [kg·m²] inertia
+static constexpr float NMPC_KF1         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 1
+static constexpr float NMPC_KF2         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 2
+static constexpr float NMPC_KF3         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 3
+static constexpr float NMPC_KF4         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 4
+static constexpr float NMPC_TC1         = 1e-6f;           // [s] motor time constant 1
+static constexpr float NMPC_TC2         = 1e-6f;           // [s] motor time constant 2
+static constexpr float NMPC_TC3         = 1e-6f;           // [s] motor time constant 3
+static constexpr float NMPC_TC4         = 1e-6f;           // [s] motor time constant 4
+static constexpr float NMPC_COM_X       = 0.0f;            // [m] COM offset from base link, body frame x
+static constexpr float NMPC_COM_Y       = 0.0f;            // [m] COM offset from base link, body frame y
+static constexpr float NMPC_COM_Z       = 0.0f;            // [m] COM offset from base link, body frame z
+static constexpr int   NMPC_MIN_RPM     = 4980;            // [RPM] minimum motor speed for actuator scaling
+static constexpr int   NMPC_MAX_RPM     = 24000;           // [RPM] maximum motor speed for actuator scaling
+static constexpr float NMPC_THR_MDL_FAC = 0.0f;            // [-] thrust model factor (0 = linear mapping)
 }
 
 MulticopterNmpcControl::MulticopterNmpcControl() :
-	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-	parameters_updated();
 }
 
 MulticopterNmpcControl::~MulticopterNmpcControl()
@@ -47,18 +68,87 @@ bool MulticopterNmpcControl::init()
 	return true;
 }
 
-void MulticopterNmpcControl::parameters_updated()
+// ----------------------------------------------------------------------------
+// Trajectory generators — ENU (NMPC) frame throughout.
+// ----------------------------------------------------------------------------
+
+NmpcSetpoint MulticopterNmpcControl::get_setpoint_initial_position(const Vector3f &initial_pos_enu)
 {
-	if (_param_min_rpm.get() <= 0 || _param_max_rpm.get() <= 0 || _param_max_rpm.get() <= _param_min_rpm.get()) {
-		PX4_ERR("MC_NMPC_MINRPM=%d MC_NMPC_MAXRPM=%d are not available or invalid, cannot proceed",
-			_param_min_rpm.get(), _param_max_rpm.get());
+	NmpcSetpoint sp{};
+	sp.pos[0] = initial_pos_enu(0); // East
+	sp.pos[1] = initial_pos_enu(1); // North
+	sp.pos[2] = initial_pos_enu(2); // Up
+	sp.vel[0] = 0.f;
+	sp.vel[1] = 0.f;
+	sp.vel[2] = 0.f;
+	return sp;
+}
+
+NmpcSetpoint MulticopterNmpcControl::get_setpoint_circle(const Vector3f &initial_pos_enu,
+							  hrt_abstime t_start, hrt_abstime t_now)
+{
+	// ---- tuneable parameters ----
+	static constexpr float circle_diameter = 0.2f; // [m] full diameter of the circle
+	static constexpr float cycle_time      = 4.0f; // [s] duration of one full revolution
+	static constexpr float settle_time     = 4.0f; // [s] hold before starting motion
+	static constexpr int   n_cycles        = 3;    // stop tracking after this many loops
+	// -----------------------------
+
+	const float r     = circle_diameter * 0.5f;
+	const float omega = 2.f * M_PI_F / cycle_time; // [rad/s]
+
+	// Elapsed time since offboard was enabled [s]
+	const float t = (t_now > t_start) ? (float)(t_now - t_start) * 1e-6f : 0.f;
+
+	// Circle center is offset so that theta=0 lands exactly on initial_pos_enu,
+	// giving a continuous position at the settle->fly transition.
+	//   pos(theta) = [cx + r*cos(theta),  cy + r*sin(theta),  cz]
+	//   pos(0)     = [cx + r, cy, cz]  =>  cx = initial(0) - r
+	const float cx = initial_pos_enu(0) - r; // East  component of center
+	const float cy = initial_pos_enu(1);      // North component of center
+	const float cz = initial_pos_enu(2);      // Up    component of center (constant altitude)
+
+	NmpcSetpoint sp{};
+	sp.pos[2] = cz;
+	sp.vel[2] = 0.f;
+
+	if (t < settle_time) {
+		// Hold at initial position (= circle start, theta=0) — no motion.
+		sp.pos[0] = cx + r; // == initial_pos_enu(0)
+		sp.pos[1] = cy;     // == initial_pos_enu(1)
+		sp.vel[0] = 0.f;
+		sp.vel[1] = 0.f;
+
+	} else {
+		const float t_fly           = t - settle_time;
+		const float total_fly_time  = (float)n_cycles * cycle_time;
+
+		if (t_fly >= total_fly_time) {
+			// After n_cycles the drone holds at the end position.
+			// n_cycles full revolutions bring theta back to 0, i.e. initial_pos_enu.
+			sp.pos[0] = cx + r;
+			sp.pos[1] = cy;
+			sp.vel[0] = 0.f;
+			sp.vel[1] = 0.f;
+
+		} else {
+			// Active circle tracking.
+			// theta increases CCW in the ENU x-y (East-North) plane.
+			const float theta = omega * t_fly;
+			const float c = cosf(theta);
+			const float s = sinf(theta);
+			sp.pos[0] = cx + r * c;
+			sp.pos[1] = cy + r * s;
+			// Tangential velocity (d/dt of position, CCW):
+			sp.vel[0] = -r * omega * s;
+			sp.vel[1] =  r * omega * c;
+		}
 	}
 
-	if (_param_tc1.get() <= 0.f || _param_tc2.get() <= 0.f || _param_tc3.get() <= 0.f || _param_tc4.get() <= 0.f) {
-		PX4_ERR("MC_NMPC_TC1..4 must all be > 0, got [%.6f %.6f %.6f %.6f]",
-			(double)_param_tc1.get(), (double)_param_tc2.get(), (double)_param_tc3.get(), (double)_param_tc4.get());
-	}
+	return sp;
 }
+
+// ----------------------------------------------------------------------------
 
 void MulticopterNmpcControl::generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
 							 const Vector3f &position,
@@ -124,15 +214,15 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	}
 
 	// p[0] = mass
-	pkt->p[0] = (double)_param_mass.get();
+	pkt->p[0] = (double)NMPC_MASS;
 
 	// p[1:7] = inertia elements (Ixx, Ixy, Ixz, Iyy, Iyz, Izz)
-	pkt->p[1] = (double)_param_ixx.get();
-	pkt->p[2] = (double)_param_ixy.get();
-	pkt->p[3] = (double)_param_ixz.get();
-	pkt->p[4] = (double)_param_iyy.get();
-	pkt->p[5] = (double)_param_iyz.get();
-	pkt->p[6] = (double)_param_izz.get();
+	pkt->p[1] = (double)NMPC_IXX;
+	pkt->p[2] = (double)NMPC_IXY;
+	pkt->p[3] = (double)NMPC_IXZ;
+	pkt->p[4] = (double)NMPC_IYY;
+	pkt->p[5] = (double)NMPC_IYZ;
+	pkt->p[6] = (double)NMPC_IZZ;
 
 	// p[7:10] = gravity vector (NED -> ENU)
 	pkt->p[7] = 0.0;
@@ -161,24 +251,24 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	memcpy(&pkt->p[20], ALLOC_MATRIX_COLMAJOR, 24 * sizeof(double));
 
 	// p[44:48] = thrust coefficients
-	pkt->p[44] = (double)_param_kf1.get();
-	pkt->p[45] = (double)_param_kf2.get();
-	pkt->p[46] = (double)_param_kf3.get();
-	pkt->p[47] = (double)_param_kf4.get();
+	pkt->p[44] = (double)NMPC_KF1;
+	pkt->p[45] = (double)NMPC_KF2;
+	pkt->p[46] = (double)NMPC_KF3;
+	pkt->p[47] = (double)NMPC_KF4;
 
 	// p[48:52] = motor time constants
-	pkt->p[48] = (double)_param_tc1.get();
-	pkt->p[49] = (double)_param_tc2.get();
-	pkt->p[50] = (double)_param_tc3.get();
-	pkt->p[51] = (double)_param_tc4.get();
+	pkt->p[48] = (double)NMPC_TC1;
+	pkt->p[49] = (double)NMPC_TC2;
+	pkt->p[50] = (double)NMPC_TC3;
+	pkt->p[51] = (double)NMPC_TC4;
 
 	// p[52:55] = COM offset
-	pkt->p[52] = (double)_param_com_x.get();
-	pkt->p[53] = (double)_param_com_y.get();
-	pkt->p[54] = (double)_param_com_z.get();
+	pkt->p[52] = (double)NMPC_COM_X;
+	pkt->p[53] = (double)NMPC_COM_Y;
+	pkt->p[54] = (double)NMPC_COM_Z;
 
 	// hover force: mass * gravity
-	pkt->hover_force = (double)_param_mass.get() * 9.81 / 4.0;
+	pkt->hover_force = (double)NMPC_MASS * 9.81 / 4.0;
 }
 
 void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt)
@@ -191,10 +281,10 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 		actuator_motors.control[i] = NAN;
 	}
 
-	const float max_rpm = (float)_param_max_rpm.get();
-	const float min_rpm = (float)_param_min_rpm.get();
+	const float max_rpm = (float)NMPC_MAX_RPM;
+	const float min_rpm = (float)NMPC_MIN_RPM;
 	const float rpm_range = max_rpm - min_rpm;
-	const float thrust_factor = _param_thr_mdl_fac.get();
+	const float thrust_factor = NMPC_THR_MDL_FAC;
 
 	for (int i = 0; i < 4; i++) {
 		const float desired_rpm = math::max((float)pkt->u[i], 0.0f) * 60.0f;
@@ -250,12 +340,7 @@ bool MulticopterNmpcControl::advance_motor_state_estimate(hrt_abstime now)
 		return false;
 	}
 
-	const float tau[4] {
-		_param_tc1.get(),
-		_param_tc2.get(),
-		_param_tc3.get(),
-		_param_tc4.get()
-	};
+	const float tau[4] { NMPC_TC1, NMPC_TC2, NMPC_TC3, NMPC_TC4 };
 	const double dt = (double)(now - _last_motor_model_update) * 1e-6;
 
 	for (int i = 0; i < 4; i++) {
@@ -300,13 +385,6 @@ void MulticopterNmpcControl::Run()
 
 	perf_begin(_loop_perf);
 
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-		updateParams();
-		parameters_updated();
-	}
-
 	vehicle_angular_velocity_s vehicle_angular_velocity;
 	if (_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity)) {
 		_last_run = vehicle_angular_velocity.timestamp_sample;
@@ -347,10 +425,6 @@ void MulticopterNmpcControl::Run()
 			}
 		}
 
-		if (_trajectory_setpoint_sub.updated()) {
-			_trajectory_setpoint_sub.copy(&_trajectory_setpoint);
-		}
-
 		// Publish offboard control mode (actuator direct)
 		offboard_control_mode_s ocm{};
 		ocm.position = false;
@@ -367,21 +441,31 @@ void MulticopterNmpcControl::Run()
 				reset_motor_state_estimate();
 			}
 
-			if ((_trajectory_setpoint.timestamp < _time_offboard_enabled)
-			    || (hrt_elapsed_time(&_trajectory_setpoint.timestamp) > TRAJECTORY_SETPOINT_TIMEOUT)) {
-				_trajectory_setpoint.position[0] = _initial_position(0);
-				_trajectory_setpoint.position[1] = _initial_position(1);
-				_trajectory_setpoint.position[2] = _initial_position(2);
-				_trajectory_setpoint.velocity[0] = 0.0f;
-				_trajectory_setpoint.velocity[1] = 0.0f;
-				_trajectory_setpoint.velocity[2] = 0.0f;
-				_trajectory_setpoint.acceleration[0] = 0.0f;
-				_trajectory_setpoint.acceleration[1] = 0.0f;
-				_trajectory_setpoint.acceleration[2] = 0.0f;
-				_trajectory_setpoint.yaw = 0.0f;
-				_trajectory_setpoint.yawspeed = 0.0f;
-				_trajectory_setpoint.timestamp = _last_run;
-			}
+			// NED->ENU: ENU_x=NED_y (East), ENU_y=NED_x (North), ENU_z=-NED_z (Up)
+			const Vector3f initial_pos_enu(
+				_initial_position(1),   // East  = NED_y
+				_initial_position(0),   // North = NED_x
+				-_initial_position(2)   // Up    = -NED_z
+			);
+
+			// NOTE: swap get_setpoint_circle <-> get_setpoint_initial_position to change mode.
+			// const NmpcSetpoint sp = get_setpoint_circle(initial_pos_enu, _time_offboard_enabled, _last_run);
+			const NmpcSetpoint sp = get_setpoint_initial_position(initial_pos_enu);
+
+			// Convert ENU setpoint back to NED for _trajectory_setpoint.
+			// ENU->NED: NED_x=ENU_y (North), NED_y=ENU_x (East), NED_z=-ENU_z (Down)
+			_trajectory_setpoint.position[0] = sp.pos[1];   // North = ENU_y
+			_trajectory_setpoint.position[1] = sp.pos[0];   // East  = ENU_x
+			_trajectory_setpoint.position[2] = -sp.pos[2];  // Down  = -ENU_z
+			_trajectory_setpoint.velocity[0] = sp.vel[1];   // North = ENU_y
+			_trajectory_setpoint.velocity[1] = sp.vel[0];   // East  = ENU_x
+			_trajectory_setpoint.velocity[2] = -sp.vel[2];  // Down  = -ENU_z
+			_trajectory_setpoint.acceleration[0] = 0.0f;
+			_trajectory_setpoint.acceleration[1] = 0.0f;
+			_trajectory_setpoint.acceleration[2] = 0.0f;
+			_trajectory_setpoint.yaw = 0.0f;
+			_trajectory_setpoint.yawspeed = 0.0f;
+			_trajectory_setpoint.timestamp = _last_run;
 
 			if (!advance_motor_state_estimate(_last_run)) {
 				perf_end(_loop_perf);

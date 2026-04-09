@@ -1,17 +1,23 @@
 #pragma once
 
+// Setpoint in the NMPC/ENU frame: x=East, y=North, z=Up.
+// Use get_setpoint_circle() or get_setpoint_initial_position() to generate
+// trajectory setpoints without touching PX4 NED internals.
+struct NmpcSetpoint {
+	float pos[3]; // ENU: [East, North, Up]  (m)
+	float vel[3]; // ENU: [East, North, Up]  (m/s)
+};
+
 #include <matrix/matrix/math.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -28,8 +34,7 @@
 
 using namespace time_literals;
 
-class MulticopterNmpcControl : public ModuleBase<MulticopterNmpcControl>, public ModuleParams,
-	public px4::WorkItem
+class MulticopterNmpcControl : public ModuleBase<MulticopterNmpcControl>, public px4::WorkItem
 {
 public:
 	MulticopterNmpcControl();
@@ -42,10 +47,7 @@ public:
 	bool init();
 
 private:
-	static constexpr hrt_abstime TRAJECTORY_SETPOINT_TIMEOUT{500_ms};
-
 	void Run() override;
-	void parameters_updated();
 	void pack_state(state_packet_t *pkt);
 	void publish_actuator_motors(const control_packet_t *pkt);
 	void update_motor_feedback(const esc_status_s &esc_status);
@@ -56,9 +58,16 @@ private:
 					 const matrix::Vector3f &position,
 					 const matrix::Quatf &attitude);
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	// Trajectory generators — all inputs/outputs in NMPC/ENU frame.
+	// initial_pos_enu: drone position at offboard-enable time, in ENU (m).
+	// t_start / t_now: hrt timestamps; t_now - t_start drives the schedule.
+	//
+	// To switch trajectory, change the call in Run() between these two.
+	static NmpcSetpoint get_setpoint_initial_position(const matrix::Vector3f &initial_pos_enu);
+	static NmpcSetpoint get_setpoint_circle(const matrix::Vector3f &initial_pos_enu,
+						hrt_abstime t_start, hrt_abstime t_now);
+
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -95,28 +104,4 @@ private:
 	bool _has_new_control{false};
 	control_packet_t _latest_control{};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MC_NMPC_MASS>)  _param_mass,
-		(ParamFloat<px4::params::MC_NMPC_IXX>)   _param_ixx,
-		(ParamFloat<px4::params::MC_NMPC_IXY>)   _param_ixy,
-		(ParamFloat<px4::params::MC_NMPC_IXZ>)   _param_ixz,
-		(ParamFloat<px4::params::MC_NMPC_IYY>)   _param_iyy,
-		(ParamFloat<px4::params::MC_NMPC_IYZ>)   _param_iyz,
-		(ParamFloat<px4::params::MC_NMPC_IZZ>)   _param_izz,
-		(ParamFloat<px4::params::MC_NMPC_KF1>)   _param_kf1,
-		(ParamFloat<px4::params::MC_NMPC_KF2>)   _param_kf2,
-		(ParamFloat<px4::params::MC_NMPC_KF3>)   _param_kf3,
-		(ParamFloat<px4::params::MC_NMPC_KF4>)   _param_kf4,
-		(ParamFloat<px4::params::MC_NMPC_TC1>)   _param_tc1,
-		(ParamFloat<px4::params::MC_NMPC_TC2>)   _param_tc2,
-		(ParamFloat<px4::params::MC_NMPC_TC3>)   _param_tc3,
-		(ParamFloat<px4::params::MC_NMPC_TC4>)   _param_tc4,
-		(ParamFloat<px4::params::MC_NMPC_COMX>)  _param_com_x,
-		(ParamFloat<px4::params::MC_NMPC_COMY>)  _param_com_y,
-		(ParamFloat<px4::params::MC_NMPC_COMZ>)  _param_com_z,
-		(ParamInt<px4::params::MC_NMPC_MINRPM>)  _param_min_rpm,
-		(ParamInt<px4::params::MC_NMPC_MAXRPM>)  _param_max_rpm,
-		(ParamFloat<px4::params::THR_MDL_FAC>)   _param_thr_mdl_fac,
-		(ParamBool<px4::params::MC_NMPC_VERBOSE>) _param_verbose
-	)
 };
