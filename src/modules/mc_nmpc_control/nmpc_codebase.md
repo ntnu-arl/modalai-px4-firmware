@@ -116,9 +116,9 @@ It defines:
 
 - `seq`
 - `flags`
-- `x0[17]`
+- `sample_timestamp_us`
+- `rigid_body_state[13]`
 - `p[55]`
-- `hover_force`
 
 ### `control_packet_t`
 
@@ -133,17 +133,21 @@ The corresponding uORB topics are:
 - `msg/NmpcStateData.msg`
 - `msg/NmpcControlData.msg`
 
-## Meaning of `x0` and `p`
+## Meaning of `rigid_body_state`, `x0`, and `p`
 
 `MulticopterNmpcControl::pack_state()` packs the solver inputs.
 
-### State `x0[17]`
+### Measured state `rigid_body_state[13]`
 
-- `x0[0:3]`: position, PX4 NED converted to solver ENU
-- `x0[3:6]`: linear velocity, PX4 NED converted to solver ENU
-- `x0[6:10]`: quaternion, PX4 FRD converted to solver FLU convention
-- `x0[10:13]`: body angular velocity, PX4 FRD converted to solver FLU
-- `x0[13:17]`: estimated motor states in RPS
+- `rigid_body_state[0:3]`: position, PX4 NED converted to solver ENU
+- `rigid_body_state[3:6]`: linear velocity, PX4 NED converted to solver ENU
+- `rigid_body_state[6:10]`: quaternion, PX4 FRD converted to solver FLU convention
+- `rigid_body_state[10:13]`: body angular velocity, PX4 FRD converted to solver FLU
+
+### Solver state `x0[17]`
+
+- `x0[0:13]`: copied from `rigid_body_state`
+- `x0[13:17]`: internal motor-state estimate owned by the solver runtime
 
 ### Parameters `p[55]`
 
@@ -158,8 +162,6 @@ The corresponding uORB topics are:
 - `p[48:52]`: motor time constants `tau`
 - `p[52:55]`: COM offset
 
-`hover_force` is packed separately as `mass * 9.81 / 4`.
-
 ## Actual data flow
 
 ### 1. PX4 collects vehicle state
@@ -171,22 +173,21 @@ The corresponding uORB topics are:
 - `vehicle_angular_velocity`
 - `trajectory_setpoint`
 - `vehicle_control_mode`
-- `esc_status`
 
-It also maintains an internal first-order estimate of motor RPS.
+PX4 does not estimate solver motor RPS.
 
 ### 2. PX4 packs solver input
 
 `MulticopterNmpcControl::pack_state()` builds a `state_packet_t` from:
 
 - vehicle state
+- sample timestamp
 - setpoint
 - parameters
 - allocation matrix
 - thrust coefficients
 - motor time constants
 - COM offset
-- estimated motor RPS
 
 If offboard just started, or the solver needs resetting, it sets `FLAG_REINIT`.
 
@@ -210,10 +211,12 @@ If offboard just started, or the solver needs resetting, it sets `FLAG_REINIT`.
 
 For each received packet it:
 
-1. optionally warm-starts on `FLAG_REINIT`
-2. fixes the stage-0 state with `lbx = ubx = x0`
-3. updates parameter vector `p` for all shooting stages `0..N`
-4. calls `quadrotor_nmpc_acados_solve()`
+1. resets or propagates its internal motor-state estimate from the packet timestamp and previous commanded RPS
+2. assembles full solver state `x0[17]` locally
+3. optionally warm-starts on `FLAG_REINIT`
+4. fixes the stage-0 state with `lbx = ubx = x0`
+5. updates parameter vector `p` for all shooting stages `0..N`
+6. calls `quadrotor_nmpc_acados_solve()`
 
 ### 6. acados runs the generated solver
 
