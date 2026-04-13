@@ -41,9 +41,6 @@ static constexpr float NMPC_TC4         = 0.047f;          // [s] motor time con
 static constexpr float NMPC_COM_X       = 0.0f;            // [m] COM offset from base link, body frame x
 static constexpr float NMPC_COM_Y       = 0.0f;            // [m] COM offset from base link, body frame y
 static constexpr float NMPC_COM_Z       = 0.0f;            // [m] COM offset from base link, body frame z
-static constexpr int   NMPC_MIN_RPM     = 4980;            // [RPM] minimum motor speed for actuator scaling
-static constexpr int   NMPC_MAX_RPM     = 24000;           // [RPM] maximum motor speed for actuator scaling
-static constexpr float NMPC_THR_MDL_FAC = 0.0f;            // [-] thrust model factor (0 = linear mapping)
 }
 
 MulticopterNmpcControl::MulticopterNmpcControl() :
@@ -59,12 +56,60 @@ MulticopterNmpcControl::~MulticopterNmpcControl()
 
 bool MulticopterNmpcControl::init()
 {
+	_param_thr_mdl_fac = param_find("THR_MDL_FAC");
+	_param_voxl_esc_rpm_min = param_find("VOXL_ESC_RPM_MIN");
+	_param_voxl_esc_rpm_max = param_find("VOXL_ESC_RPM_MAX");
+
+	if (_param_thr_mdl_fac == PARAM_INVALID || _param_voxl_esc_rpm_min == PARAM_INVALID
+	    || _param_voxl_esc_rpm_max == PARAM_INVALID) {
+		PX4_ERR("required actuator mapping params missing");
+		return false;
+	}
+
+	if (!loadActuatorMappingParams()) {
+		return false;
+	}
+
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
 	// _vehicle_angular_velocity_sub.set_interval_us(10_ms);
+
+	return true;
+}
+
+bool MulticopterNmpcControl::loadActuatorMappingParams()
+{
+	int32_t rpm_min_i = 0;
+	int32_t rpm_max_i = 0;
+
+	if (param_get(_param_thr_mdl_fac, &_actuator_thr_mdl_fac) != PX4_OK
+	    || param_get(_param_voxl_esc_rpm_min, &rpm_min_i) != PX4_OK
+	    || param_get(_param_voxl_esc_rpm_max, &rpm_max_i) != PX4_OK) {
+		PX4_ERR("failed to read actuator mapping params");
+		return false;
+	}
+
+	_actuator_rpm_min = (float)rpm_min_i;
+	_actuator_rpm_max = (float)rpm_max_i;
+
+	if (!PX4_ISFINITE(_actuator_thr_mdl_fac) || !PX4_ISFINITE(_actuator_rpm_min) || !PX4_ISFINITE(_actuator_rpm_max)) {
+		PX4_ERR("actuator mapping params not finite");
+		return false;
+	}
+
+	if (_actuator_thr_mdl_fac < 0.0f || _actuator_thr_mdl_fac > 1.0f) {
+		PX4_ERR("invalid THR_MDL_FAC %.3f", (double)_actuator_thr_mdl_fac);
+		return false;
+	}
+
+	if (!(_actuator_rpm_max > _actuator_rpm_min) || _actuator_rpm_min < 0.0f) {
+		PX4_ERR("invalid ESC RPM range min=%.1f max=%.1f",
+			(double)_actuator_rpm_min, (double)_actuator_rpm_max);
+		return false;
+	}
 
 	return true;
 }
@@ -275,10 +320,10 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 		actuator_motors.control[i] = NAN;
 	}
 
-	const float max_rpm = (float)NMPC_MAX_RPM;
-	const float min_rpm = (float)NMPC_MIN_RPM;
+	const float max_rpm = _actuator_rpm_max;
+	const float min_rpm = _actuator_rpm_min;
 	const float rpm_range = max_rpm - min_rpm;
-	const float thrust_factor = NMPC_THR_MDL_FAC;
+	const float thrust_factor = _actuator_thr_mdl_fac;
 
 	for (int i = 0; i < 4; i++) {
 		const float desired_rpm = math::max((float)pkt->u[i], 0.0f) * 60.0f;

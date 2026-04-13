@@ -28,6 +28,7 @@ struct NmpcSetpoint {
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/nmpc_state_data.h>
 #include <uORB/topics/nmpc_control_data.h>
+#include <parameters/param.h>
 
 #include "protocol.h"
 
@@ -49,6 +50,7 @@ private:
 	void Run() override;
 	void pack_state(state_packet_t *pkt);
 	void publish_actuator_motors(const control_packet_t *pkt);
+	bool loadActuatorMappingParams();
 	void generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
 					 const matrix::Vector3f &position,
 					 const matrix::Quatf &attitude);
@@ -86,6 +88,13 @@ private:
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _time_offboard_enabled{0};
+
+	param_t _param_thr_mdl_fac{PARAM_INVALID};
+	param_t _param_voxl_esc_rpm_min{PARAM_INVALID};
+	param_t _param_voxl_esc_rpm_max{PARAM_INVALID};
+	float _actuator_thr_mdl_fac{NAN};
+	float _actuator_rpm_min{NAN};
+	float _actuator_rpm_max{NAN};
 
 	uint32_t _seq{0};
 	bool _need_reinit{true};
