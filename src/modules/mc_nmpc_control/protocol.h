@@ -5,6 +5,7 @@
 
 #define NX 17
 #define NU 4
+#define NRIGID 13
 #define NP 55
 #define N_HORIZON 20
 
@@ -16,9 +17,9 @@ typedef struct {
     uint32_t seq;
     uint8_t  flags;
     uint8_t  pad[3];
-    double   x0[NX];
+    uint64_t sample_timestamp_us;
+    double   rigid_body_state[NRIGID];
     double   p[NP];
-    double   hover_force;
 } state_packet_t;
 
 typedef struct {

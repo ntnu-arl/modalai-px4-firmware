@@ -1,6 +1,7 @@
 #include "MulticopterNmpcControl.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <math.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 #include <stdio.h>
@@ -167,6 +168,7 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 {
 	pkt->seq = _seq++;
 	pkt->flags = 0;
+	pkt->sample_timestamp_us = _last_run;
 
 	if (_need_reinit) {
 		pkt->flags |= FLAG_REINIT;
@@ -182,36 +184,31 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	// Attitude: frame_transf * (frame_transf_2 * R) * frame_transf^T
 	//   equivalent quaternion: q_local = (q_ft * q_ft2) * q_body * conj(q_ft)
 
-	// x0[0:3] = position (NED -> ENU)
-	pkt->x0[0] = (double)_position(1);
-	pkt->x0[1] = (double)_position(0);
-	pkt->x0[2] = (double)(-_position(2));
+	// rigid_body_state[0:3] = position (NED -> ENU)
+	pkt->rigid_body_state[0] = (double)_position(1);
+	pkt->rigid_body_state[1] = (double)_position(0);
+	pkt->rigid_body_state[2] = (double)(-_position(2));
 
-	// x0[3:6] = linear velocity (NED -> ENU)
-	pkt->x0[3] = (double)_velocity(1);
-	pkt->x0[4] = (double)_velocity(0);
-	pkt->x0[5] = (double)(-_velocity(2));
+	// rigid_body_state[3:6] = linear velocity (NED -> ENU)
+	pkt->rigid_body_state[3] = (double)_velocity(1);
+	pkt->rigid_body_state[4] = (double)_velocity(0);
+	pkt->rigid_body_state[5] = (double)(-_velocity(2));
 
-	// x0[6:10] = quaternion (FRD -> FLU)
+	// rigid_body_state[6:10] = quaternion (FRD -> FLU)
 	static const Quatf q_ft(0.0f, 1.0f, 0.0f, 0.0f);
 	static const Quatf q_ft2(0.7071068f, 0.0f, 0.0f, -0.7071068f);
 	static const Quatf q_ft_conj(0.0f, -1.0f, 0.0f, 0.0f);
 	static const Quatf q_combined = q_ft * q_ft2;
 	Quatf q_local = q_combined * _attitude * q_ft_conj;
-	pkt->x0[6] = (double)q_local(0);
-	pkt->x0[7] = (double)q_local(1);
-	pkt->x0[8] = (double)q_local(2);
-	pkt->x0[9] = (double)q_local(3);
+	pkt->rigid_body_state[6] = (double)q_local(0);
+	pkt->rigid_body_state[7] = (double)q_local(1);
+	pkt->rigid_body_state[8] = (double)q_local(2);
+	pkt->rigid_body_state[9] = (double)q_local(3);
 
-	// x0[10:13] = body angular velocity (FRD -> FLU)
-	pkt->x0[10] = (double)_angular_velocity(0);
-	pkt->x0[11] = (double)(-_angular_velocity(1));
-	pkt->x0[12] = (double)(-_angular_velocity(2));
-
-	// x0[13:17] = motor RPS states
-	for (int i = 0; i < 4; i++) {
-		pkt->x0[13 + i] = (double)_estimated_motor_rps[i];
-	}
+	// rigid_body_state[10:13] = body angular velocity (FRD -> FLU)
+	pkt->rigid_body_state[10] = (double)_angular_velocity(0);
+	pkt->rigid_body_state[11] = (double)(-_angular_velocity(1));
+	pkt->rigid_body_state[12] = (double)(-_angular_velocity(2));
 
 	// p[0] = mass
 	pkt->p[0] = (double)NMPC_MASS;
@@ -266,9 +263,6 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[52] = (double)NMPC_COM_X;
 	pkt->p[53] = (double)NMPC_COM_Y;
 	pkt->p[54] = (double)NMPC_COM_Z;
-
-	// hover force: mass * gravity
-	pkt->hover_force = (double)NMPC_MASS * 9.81 / 4.0;
 }
 
 void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt)
@@ -306,75 +300,6 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 	_actuator_motors_pub.publish(actuator_motors);
 }
 
-void MulticopterNmpcControl::update_motor_feedback(const esc_status_s &esc_status)
-{
-	for (int i = 0; i < math::min((int)esc_status.esc_count, (int)esc_status_s::CONNECTED_ESC_MAX); i++) {
-		const esc_report_s &esc = esc_status.esc[i];
-		int motor_index = -1;
-
-		if ((esc.actuator_function >= actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1)
-		    && (esc.actuator_function < actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 4)) {
-			motor_index = esc.actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
-
-		} else if ((esc.actuator_function == 0) && (esc.esc_address >= 1) && (esc.esc_address <= 4)) {
-			motor_index = esc.esc_address - 1;
-		}
-
-		if ((motor_index >= 0) && (motor_index < 4) && (esc.timestamp > 0)) {
-			_measured_motor_rps[motor_index] = math::max(esc.esc_rpm / 60.f, 0.f);
-			_measured_motor_rps_timestamp[motor_index] = esc.timestamp;
-		}
-	}
-}
-
-bool MulticopterNmpcControl::advance_motor_state_estimate(hrt_abstime now)
-{
-	if (_last_motor_model_update == 0) {
-		_last_motor_model_update = now;
-		return true;
-	}
-
-	if (now < _last_motor_model_update) {
-		PX4_ERR("motor estimator time moved backwards: now=%llu last=%llu",
-			(unsigned long long)now, (unsigned long long)_last_motor_model_update);
-		return false;
-	}
-
-	const float tau[4] { NMPC_TC1, NMPC_TC2, NMPC_TC3, NMPC_TC4 };
-	const double dt = (double)(now - _last_motor_model_update) * 1e-6;
-
-	for (int i = 0; i < 4; i++) {
-		if (tau[i] <= 0.f) {
-			PX4_ERR("MC_NMPC_TC%d must be > 0, got %.6f", i + 1, (double)tau[i]);
-			return false;
-		}
-
-		const double desired_rps = (double)_commanded_motor_rps[i];
-		const double current_rps = (double)_estimated_motor_rps[i];
-		const double decay = exp(-dt / (double)tau[i]);
-		_estimated_motor_rps[i] = (float)(desired_rps + (current_rps - desired_rps) * decay);
-	}
-
-	_last_motor_model_update = now;
-	return true;
-}
-
-void MulticopterNmpcControl::store_commanded_motor_rps(const control_packet_t *pkt)
-{
-	for (int i = 0; i < 4; i++) {
-		_commanded_motor_rps[i] = math::max((float)pkt->u[i], 0.f);
-	}
-}
-
-void MulticopterNmpcControl::reset_motor_state_estimate()
-{
-	for (int i = 0; i < 4; i++) {
-		_estimated_motor_rps[i] = _commanded_motor_rps[i];
-	}
-
-	_last_motor_model_update = _last_run;
-}
-
 void MulticopterNmpcControl::Run()
 {
 	if (should_exit()) {
@@ -401,13 +326,6 @@ void MulticopterNmpcControl::Run()
 		if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
 			_position = Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z);
 			_velocity = Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-		}
-
-		if (_esc_status_sub.updated()) {
-			esc_status_s esc_status;
-			if (_esc_status_sub.copy(&esc_status)) {
-				update_motor_feedback(esc_status);
-			}
 		}
 
 		if (_vehicle_control_mode_sub.updated()) {
@@ -437,10 +355,6 @@ void MulticopterNmpcControl::Run()
 		_offboard_control_mode_pub.publish(ocm);
 
 		if (_vehicle_control_mode.flag_control_offboard_enabled) {
-			if (_need_reinit) {
-				reset_motor_state_estimate();
-			}
-
 			// NED->ENU: ENU_x=NED_y (East), ENU_y=NED_x (North), ENU_z=-NED_z (Up)
 			const Vector3f initial_pos_enu(
 				_initial_position(1),   // East  = NED_y
@@ -467,13 +381,6 @@ void MulticopterNmpcControl::Run()
 			_trajectory_setpoint.yawspeed = 0.0f;
 			_trajectory_setpoint.timestamp = _last_run;
 
-			if (!advance_motor_state_estimate(_last_run)) {
-				perf_end(_loop_perf);
-				_vehicle_angular_velocity_sub.unregisterCallback();
-				exit_and_cleanup();
-				return;
-			}
-
 			state_packet_t pkt_state;
 			pack_state(&pkt_state);
 
@@ -481,9 +388,9 @@ void MulticopterNmpcControl::Run()
 			state_msg.timestamp = hrt_absolute_time();
 			state_msg.seq = pkt_state.seq;
 			state_msg.flags = pkt_state.flags;
-			memcpy(state_msg.x0, pkt_state.x0, sizeof(pkt_state.x0));
+			state_msg.sample_timestamp_us = pkt_state.sample_timestamp_us;
+			memcpy(state_msg.rigid_body_state, pkt_state.rigid_body_state, sizeof(pkt_state.rigid_body_state));
 			memcpy(state_msg.p, pkt_state.p, sizeof(pkt_state.p));
-			state_msg.hover_force = pkt_state.hover_force;
 			_nmpc_state_pub.publish(state_msg);
 			_need_reinit = false;
 
@@ -498,7 +405,6 @@ void MulticopterNmpcControl::Run()
 					_need_reinit = true;
 					_has_new_control = false;
 				} else {
-					store_commanded_motor_rps(&_latest_control);
 					_has_new_control = true;
 				}
 			}

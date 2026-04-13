@@ -23,7 +23,6 @@ struct NmpcSetpoint {
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -50,10 +49,6 @@ private:
 	void Run() override;
 	void pack_state(state_packet_t *pkt);
 	void publish_actuator_motors(const control_packet_t *pkt);
-	void update_motor_feedback(const esc_status_s &esc_status);
-	bool advance_motor_state_estimate(hrt_abstime now);
-	void store_commanded_motor_rps(const control_packet_t *pkt);
-	void reset_motor_state_estimate();
 	void generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
 					 const matrix::Vector3f &position,
 					 const matrix::Quatf &attitude);
@@ -72,7 +67,6 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 
 	uORB::Publication<offboard_control_mode_s> _offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
@@ -87,12 +81,6 @@ private:
 	matrix::Vector3f _velocity;
 	matrix::Vector3f _angular_velocity;
 	matrix::Vector3f _initial_position{0.f, 0.f, 0.f};
-
-	float _estimated_motor_rps[4]{0.f, 0.f, 0.f, 0.f};
-	float _commanded_motor_rps[4]{0.f, 0.f, 0.f, 0.f};
-	float _measured_motor_rps[4]{0.f, 0.f, 0.f, 0.f};
-	hrt_abstime _measured_motor_rps_timestamp[4]{0, 0, 0, 0};
-	hrt_abstime _last_motor_model_update{0};
 
 	perf_counter_t _loop_perf;
 

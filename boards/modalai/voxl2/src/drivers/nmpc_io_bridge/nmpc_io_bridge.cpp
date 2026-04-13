@@ -161,9 +161,9 @@ void nmpc_io_bridge_task()
                 pkt.seq    = state_msg.seq;
                 pkt.flags  = state_msg.flags;
                 pkt.pad[0] = pkt.pad[1] = pkt.pad[2] = 0;
-                memcpy(pkt.x0, state_msg.x0, sizeof(pkt.x0));
+                pkt.sample_timestamp_us = state_msg.sample_timestamp_us;
+                memcpy(pkt.rigid_body_state, state_msg.rigid_body_state, sizeof(pkt.rigid_body_state));
                 memcpy(pkt.p,  state_msg.p,  sizeof(pkt.p));
-                pkt.hover_force = state_msg.hover_force;
                 int ret = write(state_fd, &pkt, sizeof(pkt));
                 if (ret < 0) {
                     if (_debug) PX4_WARN("state FIFO write failed, will retry");

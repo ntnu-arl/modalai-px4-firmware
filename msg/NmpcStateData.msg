@@ -1,6 +1,6 @@
 uint64 timestamp
 uint32 seq
 uint8 flags
-float64[17] x0
+uint64 sample_timestamp_us
+float64[13] rigid_body_state
 float64[55] p
-float64 hover_force
