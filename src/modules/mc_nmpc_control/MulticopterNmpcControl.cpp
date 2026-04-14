@@ -281,13 +281,14 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[14] = (double)_trajectory_setpoint.velocity[0];
 	pkt->p[15] = (double)(-_trajectory_setpoint.velocity[2]);
 
-	// p[16:20] = setpoint quaternion (FRD -> FLU)
-	Quatf q_sp(Eulerf(0.0f, 0.0f, _trajectory_setpoint.yaw));
-	Quatf q_sp_local = q_combined * q_sp * q_ft_conj;
-	pkt->p[16] = (double)q_sp_local(0);
-	pkt->p[17] = (double)q_sp_local(1);
-	pkt->p[18] = (double)q_sp_local(2);
-	pkt->p[19] = (double)q_sp_local(3);
+	// p[16:20] = setpoint quaternion, built directly in ENU frame.
+	// _trajectory_setpoint.yaw is ENU yaw: 0 = face East (+x), pi/2 = face North (+y).
+	// Matches Python NMPC: q_ref = [cos(yaw/2), 0, 0, sin(yaw/2)].
+	const float half_yaw = _trajectory_setpoint.yaw * 0.5f;
+	pkt->p[16] = (double)cosf(half_yaw);
+	pkt->p[17] = 0.0;
+	pkt->p[18] = 0.0;
+	pkt->p[19] = (double)sinf(half_yaw);
 
 	// p[20:44] = allocation matrix (6x4, column-major for CasADi reshape)
 	memcpy(&pkt->p[20], ALLOC_MATRIX_COLMAJOR, 24 * sizeof(double));
