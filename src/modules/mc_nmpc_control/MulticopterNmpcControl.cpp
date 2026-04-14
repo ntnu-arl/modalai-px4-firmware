@@ -23,7 +23,7 @@ static constexpr double ALLOC_MATRIX_COLMAJOR[24] = {
 };
 
 // Hardcoded NMPC physical parameters — change here and reflash.
-static constexpr float NMPC_MASS        = 0.317f;          // [kg] total vehicle mass
+static constexpr float NMPC_MASS        = 0.363f;          // [kg] total vehicle mass
 static constexpr float NMPC_IXX         = 0.0004933f;      // [kg·m²] inertia
 static constexpr float NMPC_IXY         = 0.0f;            // [kg·m²] inertia cross term
 static constexpr float NMPC_IXZ         = 0.0f;            // [kg·m²] inertia cross term
