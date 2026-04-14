@@ -381,10 +381,14 @@ void MulticopterNmpcControl::Run()
 				if (!previous_offboard_enabled && _vehicle_control_mode.flag_control_offboard_enabled) {
 					_time_offboard_enabled = _vehicle_control_mode.timestamp;
 					_initial_position = _position;
+					_min_valid_control_seq = _seq;
 					_need_reinit = true;
+					_has_valid_control = false;
 				} else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled) {
 					generateFailsafeTrajectory(_trajectory_setpoint, _position, _attitude);
+					_min_valid_control_seq = _seq;
 					_need_reinit = true;
+					_has_valid_control = false;
 				}
 			}
 		}
@@ -427,6 +431,31 @@ void MulticopterNmpcControl::Run()
 			_trajectory_setpoint.yawspeed = 0.0f;
 			_trajectory_setpoint.timestamp = _last_run;
 
+			nmpc_control_data_s ctrl_msg{};
+			bool have_control_update = false;
+
+			while (_nmpc_control_sub.update(&ctrl_msg)) {
+				have_control_update = true;
+			}
+
+			if (have_control_update && ctrl_msg.seq >= _min_valid_control_seq) {
+				_latest_control.seq = ctrl_msg.seq;
+				_latest_control.status = ctrl_msg.status;
+				memcpy(_latest_control.u, ctrl_msg.u, sizeof(ctrl_msg.u));
+				_latest_control.solve_time_us = ctrl_msg.solve_time_us;
+				memcpy(_latest_control.quat_next, ctrl_msg.quat_next, sizeof(ctrl_msg.quat_next));
+				if (ctrl_msg.status != 0) {
+					_need_reinit = true;
+					_has_valid_control = false;
+				} else {
+					_has_valid_control = true;
+				}
+			}
+
+			if (_has_valid_control) {
+				publish_actuator_motors(&_latest_control);
+			}
+
 			state_packet_t pkt_state;
 			pack_state(&pkt_state);
 
@@ -439,26 +468,6 @@ void MulticopterNmpcControl::Run()
 			memcpy(state_msg.p, pkt_state.p, sizeof(pkt_state.p));
 			_nmpc_state_pub.publish(state_msg);
 			_need_reinit = false;
-
-			nmpc_control_data_s ctrl_msg;
-			if (_nmpc_control_sub.update(&ctrl_msg)) {
-				_latest_control.seq = ctrl_msg.seq;
-				_latest_control.status = ctrl_msg.status;
-				memcpy(_latest_control.u, ctrl_msg.u, sizeof(ctrl_msg.u));
-				_latest_control.solve_time_us = ctrl_msg.solve_time_us;
-				memcpy(_latest_control.quat_next, ctrl_msg.quat_next, sizeof(ctrl_msg.quat_next));
-				if (ctrl_msg.status != 0) {
-					_need_reinit = true;
-					_has_new_control = false;
-				} else {
-					_has_new_control = true;
-				}
-			}
-
-			if (_has_new_control) {
-				publish_actuator_motors(&_latest_control);
-				_has_new_control = false;
-			}
 		}
 	}
 

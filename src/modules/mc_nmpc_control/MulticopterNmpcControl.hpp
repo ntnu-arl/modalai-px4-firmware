@@ -97,8 +97,9 @@ private:
 	float _actuator_rpm_max{NAN};
 
 	uint32_t _seq{0};
+	uint32_t _min_valid_control_seq{0};
 	bool _need_reinit{true};
-	bool _has_new_control{false};
+	bool _has_valid_control{false};
 	control_packet_t _latest_control{};
 
 };
