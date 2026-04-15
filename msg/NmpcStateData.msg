@@ -2,5 +2,8 @@ uint64 timestamp
 uint32 seq
 uint8 flags
 uint64 sample_timestamp_us
+uint64 position_velocity_timestamp_us
+uint64 attitude_timestamp_us
+uint64 angular_velocity_timestamp_us
 float64[13] rigid_body_state
 float64[61] p

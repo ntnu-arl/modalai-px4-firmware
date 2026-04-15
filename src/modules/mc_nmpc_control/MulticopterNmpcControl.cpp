@@ -219,11 +219,51 @@ void MulticopterNmpcControl::generateFailsafeTrajectory(trajectory_setpoint_s &t
 	traj_sp.yawspeed = 0.0f;
 }
 
-void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
+bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 {
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (_position_velocity_timestamp_us == 0 || _attitude_timestamp_us == 0 || _angular_velocity_timestamp_us == 0) {
+		if (_last_state_error_report_us == 0 || now - _last_state_error_report_us > 1_s) {
+			PX4_ERR("state snapshot incomplete pos=%llu att=%llu ang=%llu",
+				(unsigned long long)_position_velocity_timestamp_us,
+				(unsigned long long)_attitude_timestamp_us,
+				(unsigned long long)_angular_velocity_timestamp_us);
+			_last_state_error_report_us = now;
+		}
+
+		return false;
+	}
+
+	if (_angular_velocity_timestamp_us != _last_run) {
+		if (_last_state_error_report_us == 0 || now - _last_state_error_report_us > 1_s) {
+			PX4_ERR("angular velocity timestamp mismatch run=%llu ang=%llu",
+				(unsigned long long)_last_run,
+				(unsigned long long)_angular_velocity_timestamp_us);
+			_last_state_error_report_us = now;
+		}
+
+		return false;
+	}
+
+	if (_position_velocity_timestamp_us > _last_run || _attitude_timestamp_us > _last_run) {
+		if (_last_state_error_report_us == 0 || now - _last_state_error_report_us > 1_s) {
+			PX4_ERR("state timestamp ahead of packet pos=%llu att=%llu pkt=%llu",
+				(unsigned long long)_position_velocity_timestamp_us,
+				(unsigned long long)_attitude_timestamp_us,
+				(unsigned long long)_last_run);
+			_last_state_error_report_us = now;
+		}
+
+		return false;
+	}
+
 	pkt->seq = _seq++;
 	pkt->flags = 0;
 	pkt->sample_timestamp_us = _last_run;
+	pkt->position_velocity_timestamp_us = _position_velocity_timestamp_us;
+	pkt->attitude_timestamp_us = _attitude_timestamp_us;
+	pkt->angular_velocity_timestamp_us = _angular_velocity_timestamp_us;
 
 	if (_need_reinit) {
 		pkt->flags |= FLAG_REINIT;
@@ -335,6 +375,8 @@ void MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[59] = 0.0;
 	pkt->p[60] = 0.0;
 #endif
+
+	return true;
 }
 
 void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt)
@@ -385,12 +427,14 @@ void MulticopterNmpcControl::Run()
 	vehicle_angular_velocity_s vehicle_angular_velocity;
 	if (_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity)) {
 		_last_run = vehicle_angular_velocity.timestamp_sample;
+		_angular_velocity_timestamp_us = vehicle_angular_velocity.timestamp_sample;
 		_angular_velocity = Vector3f(vehicle_angular_velocity.xyz);
 
 		if (_vehicle_attitude_sub.updated()) {
 			vehicle_attitude_s vehicle_attitude;
 			if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
 				_attitude = Quatf(vehicle_attitude.q);
+				_attitude_timestamp_us = vehicle_attitude.timestamp_sample;
 			}
 		}
 
@@ -398,6 +442,7 @@ void MulticopterNmpcControl::Run()
 		if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
 			_position = Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z);
 			_velocity = Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
+			_position_velocity_timestamp_us = vehicle_local_position.timestamp_sample;
 		}
 
 		if (_vehicle_control_mode_sub.updated()) {
@@ -478,18 +523,26 @@ void MulticopterNmpcControl::Run()
 				}
 			}
 
+			state_packet_t pkt_state{};
+			if (!pack_state(&pkt_state)) {
+				_need_reinit = true;
+				_has_valid_control = false;
+				perf_end(_loop_perf);
+				return;
+			}
+
 			if (_has_valid_control) {
 				publish_actuator_motors(&_latest_control);
 			}
-
-			state_packet_t pkt_state;
-			pack_state(&pkt_state);
 
 			nmpc_state_data_s state_msg{};
 			state_msg.timestamp = hrt_absolute_time();
 			state_msg.seq = pkt_state.seq;
 			state_msg.flags = pkt_state.flags;
 			state_msg.sample_timestamp_us = pkt_state.sample_timestamp_us;
+			state_msg.position_velocity_timestamp_us = pkt_state.position_velocity_timestamp_us;
+			state_msg.attitude_timestamp_us = pkt_state.attitude_timestamp_us;
+			state_msg.angular_velocity_timestamp_us = pkt_state.angular_velocity_timestamp_us;
 			memcpy(state_msg.rigid_body_state, pkt_state.rigid_body_state, sizeof(pkt_state.rigid_body_state));
 			memcpy(state_msg.p, pkt_state.p, sizeof(pkt_state.p));
 			_nmpc_state_pub.publish(state_msg);

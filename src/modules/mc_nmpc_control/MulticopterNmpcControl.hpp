@@ -48,7 +48,7 @@ public:
 
 private:
 	void Run() override;
-	void pack_state(state_packet_t *pkt);
+	bool pack_state(state_packet_t *pkt);
 	void publish_actuator_motors(const control_packet_t *pkt);
 	bool loadActuatorMappingParams();
 	void generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
@@ -88,6 +88,10 @@ private:
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _time_offboard_enabled{0};
+	hrt_abstime _position_velocity_timestamp_us{0};
+	hrt_abstime _attitude_timestamp_us{0};
+	hrt_abstime _angular_velocity_timestamp_us{0};
+	hrt_abstime _last_state_error_report_us{0};
 
 	param_t _param_thr_mdl_fac{PARAM_INVALID};
 	param_t _param_voxl_esc_rpm_min{PARAM_INVALID};

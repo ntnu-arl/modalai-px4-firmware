@@ -18,6 +18,9 @@ typedef struct {
     uint8_t  flags;
     uint8_t  pad[3];
     uint64_t sample_timestamp_us;
+    uint64_t position_velocity_timestamp_us;
+    uint64_t attitude_timestamp_us;
+    uint64_t angular_velocity_timestamp_us;
     double   rigid_body_state[NRIGID];
     double   p[NP];
 } state_packet_t;

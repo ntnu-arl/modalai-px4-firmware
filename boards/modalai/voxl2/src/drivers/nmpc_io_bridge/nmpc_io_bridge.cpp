@@ -162,6 +162,9 @@ void nmpc_io_bridge_task()
                 pkt.flags  = state_msg.flags;
                 pkt.pad[0] = pkt.pad[1] = pkt.pad[2] = 0;
                 pkt.sample_timestamp_us = state_msg.sample_timestamp_us;
+                pkt.position_velocity_timestamp_us = state_msg.position_velocity_timestamp_us;
+                pkt.attitude_timestamp_us = state_msg.attitude_timestamp_us;
+                pkt.angular_velocity_timestamp_us = state_msg.angular_velocity_timestamp_us;
                 memcpy(pkt.rigid_body_state, state_msg.rigid_body_state, sizeof(pkt.rigid_body_state));
                 memcpy(pkt.p,  state_msg.p,  sizeof(pkt.p));
                 int ret = write(state_fd, &pkt, sizeof(pkt));
