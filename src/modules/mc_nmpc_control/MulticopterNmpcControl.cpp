@@ -41,16 +41,12 @@ static constexpr float NMPC_TC4         = 0.047f;          // [s] motor time con
 static constexpr float NMPC_COM_X       = 0.0f;            // [m] COM offset from base link, body frame x
 static constexpr float NMPC_COM_Y       = 0.0f;            // [m] COM offset from base link, body frame y
 static constexpr float NMPC_COM_Z       = 0.0f;            // [m] COM offset from base link, body frame z
-
-#define NMPC_USE_CALIBRATED_DISTURBANCE
-#ifdef NMPC_USE_CALIBRATED_DISTURBANCE
-static constexpr double NMPC_DIST_FORCE_BX  = -0.088633000;
-static constexpr double NMPC_DIST_FORCE_BY  = 0.101264000;
-static constexpr double NMPC_DIST_FORCE_BZ  = 0.062792000;
-static constexpr double NMPC_DIST_TORQUE_BX = -0.000712000;
-static constexpr double NMPC_DIST_TORQUE_BY = -0.008205000;
-static constexpr double NMPC_DIST_TORQUE_BZ = 0.002793000;
-#endif
+static constexpr double NMPC_DIST_FORCE_BX  = -0.092776032;
+static constexpr double NMPC_DIST_FORCE_BY  = 0.138479824;
+static constexpr double NMPC_DIST_FORCE_BZ  = 0.043341496;
+static constexpr double NMPC_DIST_TORQUE_BX = -0.004452389;
+static constexpr double NMPC_DIST_TORQUE_BY = -0.014429219;
+static constexpr double NMPC_DIST_TORQUE_BZ = -0.001179067;
 }
 
 MulticopterNmpcControl::MulticopterNmpcControl() :
@@ -360,21 +356,12 @@ bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[53] = (double)NMPC_COM_Y;
 	pkt->p[54] = (double)NMPC_COM_Z;
 
-#ifdef NMPC_USE_CALIBRATED_DISTURBANCE
 	pkt->p[55] = NMPC_DIST_FORCE_BX;
 	pkt->p[56] = NMPC_DIST_FORCE_BY;
 	pkt->p[57] = NMPC_DIST_FORCE_BZ;
 	pkt->p[58] = NMPC_DIST_TORQUE_BX;
 	pkt->p[59] = NMPC_DIST_TORQUE_BY;
 	pkt->p[60] = NMPC_DIST_TORQUE_BZ;
-#else
-	pkt->p[55] = 0.0;
-	pkt->p[56] = 0.0;
-	pkt->p[57] = 0.0;
-	pkt->p[58] = 0.0;
-	pkt->p[59] = 0.0;
-	pkt->p[60] = 0.0;
-#endif
 
 	return true;
 }
