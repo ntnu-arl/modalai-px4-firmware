@@ -21,6 +21,7 @@ NMPC_SOLVER_BIN=/usr/local/bin/nmpc_pipe_solver
 NMPC_SOLVER_UNIT=nmpc-pipe-solver
 NMPC_SOLVER_STDOUT_LOG=/tmp/nmpc_solver.log
 NMPC_SOLVER_STDERR_LOG=/tmp/nmpc_solver.err.log
+NMPC_SOLVER_RUN_MANIFEST=/tmp/nmpc_solver_current_run.txt
 NMPC_SOLVER_CPU_CORE=${NMPC_SOLVER_CPU_CORE:-7}
 NMPC_SOLVER_RT_PRIO=${NMPC_SOLVER_RT_PRIO:-50}
 
@@ -31,7 +32,7 @@ start_nmpc_solver()
 		return 0
 	fi
 
-	/bin/rm -f "$NMPC_SOLVER_STDOUT_LOG" "$NMPC_SOLVER_STDERR_LOG"
+	/bin/rm -f "$NMPC_SOLVER_STDOUT_LOG" "$NMPC_SOLVER_STDERR_LOG" "$NMPC_SOLVER_RUN_MANIFEST"
 	/bin/echo "Starting onboard NMPC solver: $NMPC_SOLVER_BIN"
 
 	if command -v systemd-run >/dev/null 2>/dev/null; then
@@ -46,7 +47,15 @@ start_nmpc_solver()
 	fi
 
 	/bin/sleep 2
-	pidof "$(basename "$NMPC_SOLVER_BIN")" >/dev/null 2>/dev/null
+	pidof "$(basename "$NMPC_SOLVER_BIN")" >/dev/null 2>/dev/null || return 1
+
+	if [ ! -f "$NMPC_SOLVER_RUN_MANIFEST" ]; then
+		/bin/echo "ERROR: NMPC solver did not publish run manifest: $NMPC_SOLVER_RUN_MANIFEST"
+		return 1
+	fi
+
+	/bin/echo "Active NMPC run manifest:"
+	/bin/cat "$NMPC_SOLVER_RUN_MANIFEST"
 }
 
 # In order to just exit after starting the uorb / muorb modules define
