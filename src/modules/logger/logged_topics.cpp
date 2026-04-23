@@ -126,6 +126,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_magnetometer", 200);
+	add_topic("vehicle_visual_odometry", 30);
 	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_roi", 1000);
 	add_topic("vehicle_status");
