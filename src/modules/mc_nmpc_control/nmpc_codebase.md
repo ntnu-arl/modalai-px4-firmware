@@ -289,8 +289,8 @@ If `status == 0`:
 
 using:
 
-- `MC_NMPC_MINRPM`
-- `MC_NMPC_MAXRPM`
+- `VOXL_ESC_RPM_MIN`
+- `VOXL_ESC_RPM_MAX`
 - `THR_MDL_FAC`
 
 The result is published as:

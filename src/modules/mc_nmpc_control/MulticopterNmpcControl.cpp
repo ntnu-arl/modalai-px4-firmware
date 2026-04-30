@@ -12,18 +12,17 @@ namespace
 {
 // Allocation matrix B (6x4) in column-major order for CasADi.
 // Maps motor forces to body wrench [Fx, Fy, Fz, Tx, Ty, Tz].
-// Motor positions (FLU): M0=[0.16,-0.16,0], M1=[-0.16,-0.16,0], M2=[-0.16,0.16,0], M3=[0.16,0.16,0]
-// Thrust dirs: all [0,0,1]. Motor dirs: [1,-1,1,-1]. cq=0.01.
-// Column k = [0, 0, 1, cross(pos_k,[0,0,1]) + dir_k*0.01*[0,0,1]]
+// Motor positions and thrust directions are in the solver body frame (FLU).
+// Column k = [thrust_dir_k, cross(pos_k, thrust_dir_k) + motor_dir_k*0.01*thrust_dir_k]
 static constexpr double ALLOC_MATRIX_COLMAJOR[24] = {
-	0.0,  0.0,  1.0, -0.16, -0.16,  0.01,   // motor 0
-	0.0,  0.0,  1.0, -0.16,  0.16, -0.01,   // motor 1
-	0.0,  0.0,  1.0,  0.16,  0.16,  0.01,   // motor 2
-	0.0,  0.0,  1.0,  0.16, -0.16, -0.01,   // motor 3
+	 0.16655232523072261, -0.0052755595681712869, 0.9860185046090576,  -0.0016655232150798805, -0.12498569655684248,   -0.010529186268929696, // motor 0
+	-0.0019413838124934801, 0.3989773984220194,    0.91695870494656939,  0.12640214708521766,    0.0014794431557976725,  0.01052951504271659,  // motor 1
+	-0.1665674759845783,    0.0052907433326074838, 0.9860158639591533,   0.001665674722615062,   0.12498609967044985,   -0.010531090112415764, // motor 2
+	 0.001957027819017243, -0.39899377456418594,   0.91695154610324936, -0.12640267618589821,   -0.0014802161330492048,  0.010531392142931346, // motor 3
 };
 
 // Hardcoded NMPC physical parameters — change here and reflash.
-static constexpr float NMPC_MASS        = 0.363f;          // [kg] total vehicle mass
+static constexpr float NMPC_MASS        = 0.309f;          // [kg] total vehicle mass
 static constexpr float NMPC_IXX         = 0.0004933f;      // [kg·m²] inertia
 static constexpr float NMPC_IXY         = 0.0f;            // [kg·m²] inertia cross term
 static constexpr float NMPC_IXZ         = 0.0f;            // [kg·m²] inertia cross term
