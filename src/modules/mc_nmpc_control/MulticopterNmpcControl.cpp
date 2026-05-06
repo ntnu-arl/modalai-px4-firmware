@@ -46,6 +46,7 @@ static constexpr double NMPC_DIST_FORCE_BZ  = 0.0;
 static constexpr double NMPC_DIST_TORQUE_BX = 0.0;
 static constexpr double NMPC_DIST_TORQUE_BY = 0.0;
 static constexpr double NMPC_DIST_TORQUE_BZ = 0.0;
+static constexpr double NMPC_HOVER_FORCE_PER_MOTOR = (double)NMPC_MASS * 9.81 / 4.0;
 }
 
 MulticopterNmpcControl::MulticopterNmpcControl() :
@@ -362,6 +363,11 @@ bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[59] = NMPC_DIST_TORQUE_BY;
 	pkt->p[60] = NMPC_DIST_TORQUE_BZ;
 
+	pkt->p[61] = _has_valid_control ? (double)NMPC_KF1 * (double)_latest_control.u[0] * (double)_latest_control.u[0] : NMPC_HOVER_FORCE_PER_MOTOR;
+	pkt->p[62] = _has_valid_control ? (double)NMPC_KF2 * (double)_latest_control.u[1] * (double)_latest_control.u[1] : NMPC_HOVER_FORCE_PER_MOTOR;
+	pkt->p[63] = _has_valid_control ? (double)NMPC_KF3 * (double)_latest_control.u[2] * (double)_latest_control.u[2] : NMPC_HOVER_FORCE_PER_MOTOR;
+	pkt->p[64] = _has_valid_control ? (double)NMPC_KF4 * (double)_latest_control.u[3] * (double)_latest_control.u[3] : NMPC_HOVER_FORCE_PER_MOTOR;
+
 	return true;
 }
 
@@ -379,7 +385,6 @@ void MulticopterNmpcControl::publish_actuator_motors(const control_packet_t *pkt
 	const float min_rpm = _actuator_rpm_min;
 	const float rpm_range = max_rpm - min_rpm;
 	const float thrust_factor = _actuator_thr_mdl_fac;
-
 	for (int i = 0; i < 4; i++) {
 		const float desired_rpm = math::max((float)pkt->u[i], 0.0f) * 60.0f;
 		const float cmd = (desired_rpm * 2.0f - max_rpm - min_rpm) / rpm_range;

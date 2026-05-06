@@ -6,7 +6,7 @@
 #define NX 17
 #define NU 4
 #define NRIGID 13
-#define NP 61
+#define NP 65
 #define N_HORIZON 20
 
 #define FLAG_REINIT 0x01
