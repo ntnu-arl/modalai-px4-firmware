@@ -10,6 +10,29 @@ using namespace matrix;
 
 namespace
 {
+enum class TrajectoryMode {
+	HoverInitialPosition,
+	Circle,
+	CollisionCycle,
+};
+
+static constexpr TrajectoryMode ACTIVE_TRAJECTORY_MODE = TrajectoryMode::CollisionCycle;
+
+struct TimedRelativeSetpoint {
+	float pos_rel_enu[3];
+	float vel_enu[3];
+	float setpoint_time_s;
+};
+
+// Collision-task trajectory, relative to the NMPC activation position.
+// Edit this table directly to change the sequence. Each setpoint needs a
+// finite setpoint_time_s so the trajectory can loop.
+static constexpr TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
+	{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f},
+	{{1.15f, 0.0f, 0.0f}, {2.0f, 0.0f, 0.0f}, 0.8f},
+	{{1.5f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f},
+};
+
 // Allocation matrix B (6x4) in column-major order for CasADi.
 // Maps motor forces to body wrench [Fx, Fy, Fz, Tx, Ty, Tz].
 // Motor positions and thrust directions are in the solver body frame (FLU).
@@ -22,7 +45,7 @@ static constexpr double ALLOC_MATRIX_COLMAJOR[24] = {
 };
 
 // Hardcoded NMPC physical parameters — change here and reflash.
-static constexpr float NMPC_MASS        = 0.309f;          // [kg] total vehicle mass
+static constexpr float NMPC_MASS        = 0.360f;          // [kg] total vehicle mass
 static constexpr float NMPC_IXX         = 0.0004933f;      // [kg·m²] inertia
 static constexpr float NMPC_IXY         = 0.0f;            // [kg·m²] inertia cross term
 static constexpr float NMPC_IXZ         = 0.0f;            // [kg·m²] inertia cross term
@@ -198,6 +221,62 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_circle(const Vector3f &initial
 	}
 
 	return sp;
+}
+
+NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f &initial_pos_enu,
+								  hrt_abstime t_start, hrt_abstime t_now)
+{
+	NmpcSetpoint sp{};
+
+	float total_cycle_time_s = 0.0f;
+
+	for (const TimedRelativeSetpoint &cfg : COLLISION_SETPOINTS) {
+		total_cycle_time_s += cfg.setpoint_time_s;
+	}
+
+	const float elapsed_s = (t_now > t_start) ? (float)(t_now - t_start) * 1e-6f : 0.0f;
+	float cycle_time_s = elapsed_s;
+
+	if (total_cycle_time_s > 0.0f) {
+		cycle_time_s = fmodf(elapsed_s, total_cycle_time_s);
+	}
+
+	const TimedRelativeSetpoint *active_cfg = &COLLISION_SETPOINTS[0];
+	float segment_end_time_s = 0.0f;
+
+	for (const TimedRelativeSetpoint &cfg : COLLISION_SETPOINTS) {
+		segment_end_time_s += cfg.setpoint_time_s;
+
+		if (cycle_time_s < segment_end_time_s) {
+			active_cfg = &cfg;
+			break;
+		}
+	}
+
+	sp.pos[0] = initial_pos_enu(0) + active_cfg->pos_rel_enu[0];
+	sp.pos[1] = initial_pos_enu(1) + active_cfg->pos_rel_enu[1];
+	sp.pos[2] = initial_pos_enu(2) + active_cfg->pos_rel_enu[2];
+	sp.vel[0] = active_cfg->vel_enu[0];
+	sp.vel[1] = active_cfg->vel_enu[1];
+	sp.vel[2] = active_cfg->vel_enu[2];
+	return sp;
+}
+
+NmpcSetpoint MulticopterNmpcControl::select_setpoint(const Vector3f &initial_pos_enu,
+						     hrt_abstime t_start, hrt_abstime t_now)
+{
+	switch (ACTIVE_TRAJECTORY_MODE) {
+	case TrajectoryMode::HoverInitialPosition:
+		return get_setpoint_initial_position(initial_pos_enu);
+
+	case TrajectoryMode::Circle:
+		return get_setpoint_circle(initial_pos_enu, t_start, t_now);
+
+	case TrajectoryMode::CollisionCycle:
+		return get_setpoint_collision_cycle(initial_pos_enu, t_start, t_now);
+	}
+
+	return get_setpoint_initial_position(initial_pos_enu);
 }
 
 // ----------------------------------------------------------------------------
@@ -474,9 +553,7 @@ void MulticopterNmpcControl::Run()
 				-_initial_position(2)   // Up    = -NED_z
 			);
 
-			// NOTE: swap get_setpoint_circle <-> get_setpoint_initial_position to change mode.
-			// const NmpcSetpoint sp = get_setpoint_circle(initial_pos_enu, _time_offboard_enabled, _last_run);
-			const NmpcSetpoint sp = get_setpoint_initial_position(initial_pos_enu);
+			const NmpcSetpoint sp = select_setpoint(initial_pos_enu, _time_offboard_enabled, _last_run);
 
 			// Convert ENU setpoint back to NED for _trajectory_setpoint.
 			// ENU->NED: NED_x=ENU_y (North), NED_y=ENU_x (East), NED_z=-ENU_z (Down)
