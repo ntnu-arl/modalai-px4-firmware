@@ -58,7 +58,7 @@ PARAM_DEFINE_INT32(SM_MANUAL_CTRL, 0);
  * @increment 0.001
  * @group Multicopter SM Control
  */
-PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.317f);
+PARAM_DEFINE_FLOAT(SM_POS_MASS, 0.360f);
 
 /**
  * Thrust max
