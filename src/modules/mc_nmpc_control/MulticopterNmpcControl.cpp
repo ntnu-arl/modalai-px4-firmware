@@ -29,8 +29,8 @@ struct TimedRelativeSetpoint {
 // finite setpoint_time_s so the trajectory can loop.
 static constexpr TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
 	{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f},
-	{{0.9f, 0.0f, 0.0f}, {0.75f, 0.0f, 0.0f}, 1.2f},
-	{{1.2f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f},
+	{{1.5f, 0.0f, 0.0f}, {1.5f, 0.0f, 0.0f}, 2.0f},
+	{{2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f},
 };
 
 // Allocation matrix B (6x4) in column-major order for CasADi.
@@ -45,17 +45,17 @@ static constexpr double ALLOC_MATRIX_COLMAJOR[24] = {
 };
 
 // Hardcoded NMPC physical parameters — change here and reflash.
-static constexpr float NMPC_MASS        = 0.360f;          // [kg] total vehicle mass
+static constexpr float NMPC_MASS        = 0.361f;          // [kg] total vehicle mass
 static constexpr float NMPC_IXX         = 0.001085f;       // [kg·m²] inertia
 static constexpr float NMPC_IXY         = 0.000016f;       // [kg·m²] inertia cross term
 static constexpr float NMPC_IXZ         = 0.0000035f;      // [kg·m²] inertia cross term
 static constexpr float NMPC_IYY         = 0.001283f;       // [kg·m²] inertia
 static constexpr float NMPC_IYZ         = -0.00004135f;    // [kg·m²] inertia cross term
 static constexpr float NMPC_IZZ         = 0.001572f;       // [kg·m²] inertia
-static constexpr float NMPC_KF1         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 1
-static constexpr float NMPC_KF2         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 2
-static constexpr float NMPC_KF3         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 3
-static constexpr float NMPC_KF4         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 4
+static constexpr float NMPC_KF1         = 0.00001434f;  // [N/(rad/s)²] thrust coefficient motor 1
+static constexpr float NMPC_KF2         = 0.00001434f;  // [N/(rad/s)²] thrust coefficient motor 2
+static constexpr float NMPC_KF3         = 0.00001434f;  // [N/(rad/s)²] thrust coefficient motor 3
+static constexpr float NMPC_KF4         = 0.00001434f;  // [N/(rad/s)²] thrust coefficient motor 4
 static constexpr float NMPC_TC1         = 0.047f;          // [s] motor time constant 1 (motor index 5)
 static constexpr float NMPC_TC2         = 0.047f;          // [s] motor time constant 2 (motor index 5)
 static constexpr float NMPC_TC3         = 0.047f;          // [s] motor time constant 3 (motor index 5)
