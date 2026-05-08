@@ -7,3 +7,6 @@ uint64 attitude_timestamp_us
 uint64 angular_velocity_timestamp_us
 float64[13] rigid_body_state
 float64[65] p
+float64[4] motor_rps_meas
+uint64[4] motor_rps_timestamp_us
+uint8 motor_rps_valid_mask
