@@ -1,3 +1,5 @@
+#define USE_ABSOLUTE_POSITION
+
 #include "MulticopterNmpcControl.hpp"
 
 #include <drivers/drv_hrt.h>
@@ -25,16 +27,28 @@ struct TimedRelativeSetpoint {
 	float waypoint_x_limit_rel_enu;
 };
 
-// Collision-task trajectory, relative to the NMPC activation position.
-// Edit this table directly to change the sequence. Each setpoint can advance
-// after setpoint_time_s and can also advance early when the relative ENU x
-// position crosses waypoint_x_limit_rel_enu from below to above. Use NAN to
-// disable either trigger for a row.
+// Collision-task trajectory waypoint table.
+// Keep both sections below so it is easy to toggle between relative and
+// absolute positioning by defining or undefining USE_ABSOLUTE_POSITION above.
+#ifdef USE_ABSOLUTE_POSITION
+// Absolute ENU waypoints in the local position frame.
+// Each setpoint can advance after setpoint_time_s and can also advance early
+// when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static constexpr TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
-	{{1.15f, 0.0f, 0.0f}, {2.0f, 0.0f, 0.0f}, NAN, 1.14f},
-	{{1.5f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
+	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 20.0f, NAN},
+	// {{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f},
+	// {{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
 };
+#else
+// Relative ENU waypoints referenced to the NMPC activation position.
+// Each setpoint can advance after setpoint_time_s and can also advance early
+// when the relative ENU x position crosses waypoint_x_limit_rel_enu.
+static constexpr TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
+	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN},
+	{{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f},
+	{{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
+};
+#endif
 
 // Allocation matrix B (6x4) in column-major order for CasADi.
 // Maps motor forces to body wrench [Fx, Fy, Fz, Tx, Ty, Tz].
@@ -238,16 +252,20 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f
 		_collision_setpoint_start = t_now;
 	}
 
-	const float current_rel_x_enu = current_pos_enu(0) - initial_pos_enu(0);
-	const float prev_rel_x_enu = PX4_ISFINITE(_collision_prev_rel_x_enu) ? _collision_prev_rel_x_enu : current_rel_x_enu;
+#ifdef USE_ABSOLUTE_POSITION
+	const float current_x_enu = current_pos_enu(0);
+#else
+	const float current_x_enu = current_pos_enu(0) - initial_pos_enu(0);
+#endif
+	const float prev_x_enu = PX4_ISFINITE(_collision_prev_rel_x_enu) ? _collision_prev_rel_x_enu : current_x_enu;
 
 	for (size_t i = 0; i < num_collision_setpoints; ++i) {
 		const TimedRelativeSetpoint &cfg = COLLISION_SETPOINTS[_collision_setpoint_index];
 		const float elapsed_s = (t_now > _collision_setpoint_start) ? (float)(t_now - _collision_setpoint_start) * 1e-6f : 0.0f;
 		const bool time_elapsed = PX4_ISFINITE(cfg.setpoint_time_s) && elapsed_s >= cfg.setpoint_time_s;
 		const bool x_crossed = PX4_ISFINITE(cfg.waypoint_x_limit_rel_enu)
-				       && prev_rel_x_enu < cfg.waypoint_x_limit_rel_enu
-				       && current_rel_x_enu >= cfg.waypoint_x_limit_rel_enu;
+				       && prev_x_enu < cfg.waypoint_x_limit_rel_enu
+				       && current_x_enu >= cfg.waypoint_x_limit_rel_enu;
 
 		if (!time_elapsed && !x_crossed) {
 			break;
@@ -260,11 +278,18 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f
 	}
 
 	const TimedRelativeSetpoint *active_cfg = &COLLISION_SETPOINTS[_collision_setpoint_index];
-	_collision_prev_rel_x_enu = current_rel_x_enu;
+	_collision_prev_rel_x_enu = current_x_enu;
 
+#ifdef USE_ABSOLUTE_POSITION
+	(void)initial_pos_enu;
+	sp.pos[0] = active_cfg->pos_rel_enu[0];
+	sp.pos[1] = active_cfg->pos_rel_enu[1];
+	sp.pos[2] = active_cfg->pos_rel_enu[2];
+#else
 	sp.pos[0] = initial_pos_enu(0) + active_cfg->pos_rel_enu[0];
 	sp.pos[1] = initial_pos_enu(1) + active_cfg->pos_rel_enu[1];
 	sp.pos[2] = initial_pos_enu(2) + active_cfg->pos_rel_enu[2];
+#endif
 	sp.vel[0] = active_cfg->vel_enu[0];
 	sp.vel[1] = active_cfg->vel_enu[1];
 	sp.vel[2] = active_cfg->vel_enu[2];
