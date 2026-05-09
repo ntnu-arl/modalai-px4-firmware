@@ -27,10 +27,11 @@ struct TimedRelativeSetpoint {
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{-1.85f, 0.28f, 1.25f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
-	{{0.0f, 0.28f, 1.25f}, {2.0f, 0.0f, 0.0f}, NAN, 0.0f},
-	{{0.40f, 0.28f, 1.25f}, {2.0f, 0.0f, 0.0f}, NAN, 0.40f},
-	{{1.3f, 0.28f, 1.25f}, {0.0f, 0.0f, 0.0f}, 120.0f, NAN},
+	{{-1.85f, 0.282f, 1.28f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
+	{{0.0f, 0.282f, 1.28f}, {2.0f, 0.0f, 0.0f}, NAN, 0.0f},
+	{{0.40f, 0.282f, 1.28f}, {2.0f, 0.0f, 0.0f}, NAN, 0.40f},
+	{{1.2f, 0.282f, 1.28f}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f},
+	{{1.5f, 0.282f, 0.5f}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN},
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
