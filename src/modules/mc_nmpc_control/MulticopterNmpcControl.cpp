@@ -19,7 +19,14 @@ struct TimedRelativeSetpoint {
 	float waypoint_x_limit_rel_enu;
 };
 
-static constexpr float BIAS_Y = +1.35f;
+static constexpr float INTIAL_REL_X = -2.0f;
+static constexpr float BIAS_Y = 0.0f;  // +1.35f;
+static constexpr float GAP_Y = +0.282f;
+static constexpr float GAP_X = +0.11f;
+static constexpr float GAP_Z = +1.2f;
+static constexpr float FINAL_Z = +0.8f;
+static constexpr float FINAL_REL_X = +1.7f;
+static constexpr float TRAVERSAL_VEL_X = +2.0f;
 
 // Collision-task trajectory waypoint table.
 // Keep both sections below so it is easy to toggle between relative and
@@ -29,11 +36,11 @@ static constexpr float BIAS_Y = +1.35f;
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{-1.85f, 0.282f + BIAS_Y, 1.28f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN},
-	{{0.0f, 0.282f + BIAS_Y, 1.28f}, {2.0f, 0.0f, 0.0f}, NAN, 0.0f},
-	{{0.40f, 0.282f + BIAS_Y, 1.28f}, {2.0f, 0.0f, 0.0f}, NAN, 0.40f},
-	{{1.6f, 0.282f + BIAS_Y, 1.28f}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f},
-	{{1.85f, 0.282f + BIAS_Y, 0.8f}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN},
+	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN},
+	{{GAP_X -0.15f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, 0.0f},
+	{{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, 0.40f},
+	{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f},
+	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, FINAL_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN},
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
