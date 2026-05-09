@@ -19,6 +19,8 @@ struct TimedRelativeSetpoint {
 	float waypoint_x_limit_rel_enu;
 };
 
+static constexpr float BIAS_Y = +1.35f;
+
 // Collision-task trajectory waypoint table.
 // Keep both sections below so it is easy to toggle between relative and
 // absolute positioning by defining or undefining USE_ABSOLUTE_POSITION above.
@@ -27,11 +29,11 @@ struct TimedRelativeSetpoint {
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{-1.85f, 0.282f, 1.28f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
-	{{0.0f, 0.282f, 1.28f}, {2.0f, 0.0f, 0.0f}, NAN, 0.0f},
-	{{0.40f, 0.282f, 1.28f}, {2.0f, 0.0f, 0.0f}, NAN, 0.40f},
-	{{1.2f, 0.282f, 1.28f}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f},
-	{{1.5f, 0.282f, 0.5f}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN},
+	{{-1.85f, 0.282f + BIAS_Y, 1.28f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN},
+	{{0.0f, 0.282f + BIAS_Y, 1.28f}, {2.0f, 0.0f, 0.0f}, NAN, 0.0f},
+	{{0.40f, 0.282f + BIAS_Y, 1.28f}, {2.0f, 0.0f, 0.0f}, NAN, 0.40f},
+	{{1.6f, 0.282f + BIAS_Y, 1.28f}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f},
+	{{1.85f, 0.282f + BIAS_Y, 0.8f}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN},
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
