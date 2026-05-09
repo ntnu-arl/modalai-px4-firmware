@@ -48,17 +48,17 @@ static constexpr double ALLOC_MATRIX_COLMAJOR[24] = {
 };
 
 // Hardcoded NMPC physical parameters — change here and reflash.
-static constexpr float NMPC_MASS        = 0.360f;          // [kg] total vehicle mass
+static constexpr float NMPC_MASS        = 0.361f;          // [kg] total vehicle mass
 static constexpr float NMPC_IXX         = 0.001085f;       // [kg·m²] inertia
 static constexpr float NMPC_IXY         = 0.000016f;       // [kg·m²] inertia cross term
 static constexpr float NMPC_IXZ         = 0.0000035f;      // [kg·m²] inertia cross term
 static constexpr float NMPC_IYY         = 0.001283f;       // [kg·m²] inertia
 static constexpr float NMPC_IYZ         = -0.00004135f;    // [kg·m²] inertia cross term
 static constexpr float NMPC_IZZ         = 0.001572f;       // [kg·m²] inertia
-static constexpr float NMPC_KF1         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 1
-static constexpr float NMPC_KF2         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 2
-static constexpr float NMPC_KF3         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 3
-static constexpr float NMPC_KF4         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 4
+static constexpr float NMPC_KF1         = 0.00001434f;     // [N/(rad/s)²] thrust coefficient motor 1
+static constexpr float NMPC_KF2         = 0.00001434f;     // [N/(rad/s)²] thrust coefficient motor 2
+static constexpr float NMPC_KF3         = 0.00001434f;     // [N/(rad/s)²] thrust coefficient motor 3
+static constexpr float NMPC_KF4         = 0.00001434f;     // [N/(rad/s)²] thrust coefficient motor 4
 static constexpr float NMPC_TC1         = 0.06314;          // [s] motor time constant 1 (motor index 5)
 static constexpr float NMPC_TC2         = 0.06314;          // [s] motor time constant 2 (motor index 5)
 static constexpr float NMPC_TC3         = 0.06314;          // [s] motor time constant 3 (motor index 5)
@@ -73,6 +73,7 @@ static constexpr double NMPC_DIST_TORQUE_BX = 0.0;
 static constexpr double NMPC_DIST_TORQUE_BY = 0.0;
 static constexpr double NMPC_DIST_TORQUE_BZ = 0.0;
 static constexpr double NMPC_HOVER_FORCE_PER_MOTOR = (double)NMPC_MASS * 9.81 / 4.0;
+static constexpr uint64_t MOTOR_RPS_MEAS_TIMEOUT_US = 50000ULL;
 }
 
 MulticopterNmpcControl::MulticopterNmpcControl() :
@@ -303,6 +304,47 @@ void MulticopterNmpcControl::generateFailsafeTrajectory(trajectory_setpoint_s &t
 	traj_sp.yawspeed = 0.0f;
 }
 
+int MulticopterNmpcControl::mapEscReportToMotorIndex(const esc_report_s &report) const
+{
+	if (report.actuator_function >= actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1
+	    && report.actuator_function < actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + NU) {
+		return report.actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
+	}
+
+	if (report.actuator_function == 0 && report.esc_address >= 1 && report.esc_address <= NU) {
+		return report.esc_address - 1;
+	}
+
+	return -1;
+}
+
+void MulticopterNmpcControl::updateEscTelemetryCache()
+{
+	esc_status_s esc_status{};
+
+	while (_esc_status_sub.update(&esc_status)) {
+		const uint8_t esc_count = math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX);
+
+		for (uint8_t esc_index = 0; esc_index < esc_count; esc_index++) {
+			const esc_report_s &report = esc_status.esc[esc_index];
+			const int motor_index = mapEscReportToMotorIndex(report);
+
+			if (motor_index < 0 || motor_index >= NU || report.timestamp == 0) {
+				continue;
+			}
+
+			const double measured_rps = (double)report.esc_rpm / 60.0;
+
+			if (!PX4_ISFINITE((float)measured_rps)) {
+				continue;
+			}
+
+			_motor_rps_meas[motor_index] = measured_rps;
+			_motor_rps_timestamp_us[motor_index] = report.timestamp;
+		}
+	}
+}
+
 bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 {
 	const hrt_abstime now = hrt_absolute_time();
@@ -456,6 +498,30 @@ bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[63] = _has_valid_control ? (double)NMPC_KF3 * (double)_latest_control.u[2] * (double)_latest_control.u[2] : NMPC_HOVER_FORCE_PER_MOTOR;
 	pkt->p[64] = _has_valid_control ? (double)NMPC_KF4 * (double)_latest_control.u[3] * (double)_latest_control.u[3] : NMPC_HOVER_FORCE_PER_MOTOR;
 
+	pkt->motor_rps_valid_mask = 0;
+
+	for (int motor_index = 0; motor_index < NU; motor_index++) {
+		pkt->motor_rps_meas[motor_index] = 0.0;
+		pkt->motor_rps_timestamp_us[motor_index] = 0;
+
+		const uint64_t measurement_timestamp_us = _motor_rps_timestamp_us[motor_index];
+		const double measured_rps = _motor_rps_meas[motor_index];
+
+		if (measurement_timestamp_us == 0 || !PX4_ISFINITE((float)measured_rps) || measurement_timestamp_us > _last_run) {
+			continue;
+		}
+
+		// voxl_esc reports one ESC per actuator cycle in round-robin, so each motor
+		// needs its own timestamp and a slightly relaxed freshness check.
+		if (_last_run - measurement_timestamp_us > MOTOR_RPS_MEAS_TIMEOUT_US) {
+			continue;
+		}
+
+		pkt->motor_rps_meas[motor_index] = measured_rps;
+		pkt->motor_rps_timestamp_us[motor_index] = measurement_timestamp_us;
+		pkt->motor_rps_valid_mask |= (1u << motor_index);
+	}
+
 	return true;
 }
 
@@ -523,6 +589,8 @@ void MulticopterNmpcControl::Run()
 			_velocity = Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 			_position_velocity_timestamp_us = vehicle_local_position.timestamp_sample;
 		}
+
+		updateEscTelemetryCache();
 
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_offboard_enabled = _vehicle_control_mode.flag_control_offboard_enabled;
@@ -633,6 +701,9 @@ void MulticopterNmpcControl::Run()
 			state_msg.angular_velocity_timestamp_us = pkt_state.angular_velocity_timestamp_us;
 			memcpy(state_msg.rigid_body_state, pkt_state.rigid_body_state, sizeof(pkt_state.rigid_body_state));
 			memcpy(state_msg.p, pkt_state.p, sizeof(pkt_state.p));
+			memcpy(state_msg.motor_rps_meas, pkt_state.motor_rps_meas, sizeof(pkt_state.motor_rps_meas));
+			memcpy(state_msg.motor_rps_timestamp_us, pkt_state.motor_rps_timestamp_us, sizeof(pkt_state.motor_rps_timestamp_us));
+			state_msg.motor_rps_valid_mask = pkt_state.motor_rps_valid_mask;
 			_nmpc_state_pub.publish(state_msg);
 			_need_reinit = false;
 		}

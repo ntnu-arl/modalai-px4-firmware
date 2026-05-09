@@ -167,6 +167,9 @@ void nmpc_io_bridge_task()
                 pkt.angular_velocity_timestamp_us = state_msg.angular_velocity_timestamp_us;
                 memcpy(pkt.rigid_body_state, state_msg.rigid_body_state, sizeof(pkt.rigid_body_state));
                 memcpy(pkt.p,  state_msg.p,  sizeof(pkt.p));
+                memcpy(pkt.motor_rps_meas, state_msg.motor_rps_meas, sizeof(pkt.motor_rps_meas));
+                memcpy(pkt.motor_rps_timestamp_us, state_msg.motor_rps_timestamp_us, sizeof(pkt.motor_rps_timestamp_us));
+                pkt.motor_rps_valid_mask = state_msg.motor_rps_valid_mask;
                 int ret = write(state_fd, &pkt, sizeof(pkt));
                 if (ret < 0) {
                     if (_debug) PX4_WARN("state FIFO write failed, will retry");

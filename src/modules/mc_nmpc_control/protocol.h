@@ -23,6 +23,9 @@ typedef struct {
     uint64_t angular_velocity_timestamp_us;
     double   rigid_body_state[NRIGID];
     double   p[NP];
+    double   motor_rps_meas[NU];
+    uint64_t motor_rps_timestamp_us[NU];
+    uint8_t  motor_rps_valid_mask;
 } state_packet_t;
 
 typedef struct {

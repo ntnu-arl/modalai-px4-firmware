@@ -23,6 +23,7 @@ struct NmpcSetpoint {
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -51,6 +52,8 @@ private:
 	bool pack_state(state_packet_t *pkt);
 	void publish_actuator_motors(const control_packet_t *pkt);
 	bool loadActuatorMappingParams();
+	void updateEscTelemetryCache();
+	int mapEscReportToMotorIndex(const esc_report_s &report) const;
 	void generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
 					 const matrix::Vector3f &position,
 					 const matrix::Quatf &attitude);
@@ -75,6 +78,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 
 	uORB::Publication<offboard_control_mode_s> _offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
@@ -98,6 +102,8 @@ private:
 	hrt_abstime _attitude_timestamp_us{0};
 	hrt_abstime _angular_velocity_timestamp_us{0};
 	hrt_abstime _last_state_error_report_us{0};
+	double _motor_rps_meas[NU] {};
+	uint64_t _motor_rps_timestamp_us[NU] {};
 
 	param_t _param_thr_mdl_fac{PARAM_INVALID};
 	param_t _param_voxl_esc_rpm_min{PARAM_INVALID};
