@@ -22,15 +22,18 @@ struct TimedRelativeSetpoint {
 	float pos_rel_enu[3];
 	float vel_enu[3];
 	float setpoint_time_s;
+	float waypoint_x_limit_rel_enu;
 };
 
 // Collision-task trajectory, relative to the NMPC activation position.
-// Edit this table directly to change the sequence. Each setpoint needs a
-// finite setpoint_time_s so the trajectory can loop.
+// Edit this table directly to change the sequence. Each setpoint can advance
+// after setpoint_time_s and can also advance early when the relative ENU x
+// position crosses waypoint_x_limit_rel_enu from below to above. Use NAN to
+// disable either trigger for a row.
 static constexpr TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f},
-	{{1.15f, 0.0f, 0.0f}, {2.0f, 0.0f, 0.0f}, 0.8f},
-	{{1.5f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f},
+	{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
+	{{1.15f, 0.0f, 0.0f}, {2.0f, 0.0f, 0.0f}, NAN, 1.14f},
+	{{1.5f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
 };
 
 // Allocation matrix B (6x4) in column-major order for CasADi.
@@ -56,10 +59,10 @@ static constexpr float NMPC_KF1         = 0.00001286412f;  // [N/(rad/s)²] thru
 static constexpr float NMPC_KF2         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 2
 static constexpr float NMPC_KF3         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 3
 static constexpr float NMPC_KF4         = 0.00001286412f;  // [N/(rad/s)²] thrust coefficient motor 4
-static constexpr float NMPC_TC1         = 0.047f;          // [s] motor time constant 1 (motor index 5)
-static constexpr float NMPC_TC2         = 0.047f;          // [s] motor time constant 2 (motor index 5)
-static constexpr float NMPC_TC3         = 0.047f;          // [s] motor time constant 3 (motor index 5)
-static constexpr float NMPC_TC4         = 0.047f;          // [s] motor time constant 4 (motor index 5)
+static constexpr float NMPC_TC1         = 0.06314;          // [s] motor time constant 1 (motor index 5)
+static constexpr float NMPC_TC2         = 0.06314;          // [s] motor time constant 2 (motor index 5)
+static constexpr float NMPC_TC3         = 0.06314;          // [s] motor time constant 3 (motor index 5)
+static constexpr float NMPC_TC4         = 0.06314;          // [s] motor time constant 4 (motor index 5)
 static constexpr float NMPC_COM_X       = 0.0f;            // [m] COM offset from base link, body frame x
 static constexpr float NMPC_COM_Y       = 0.0f;            // [m] COM offset from base link, body frame y
 static constexpr float NMPC_COM_Z       = 0.0f;            // [m] COM offset from base link, body frame z
@@ -224,34 +227,39 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_circle(const Vector3f &initial
 }
 
 NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f &initial_pos_enu,
-								  hrt_abstime t_start, hrt_abstime t_now)
+								  const Vector3f &current_pos_enu,
+								  hrt_abstime t_now)
 {
 	NmpcSetpoint sp{};
+	const size_t num_collision_setpoints = sizeof(COLLISION_SETPOINTS) / sizeof(COLLISION_SETPOINTS[0]);
 
-	float total_cycle_time_s = 0.0f;
-
-	for (const TimedRelativeSetpoint &cfg : COLLISION_SETPOINTS) {
-		total_cycle_time_s += cfg.setpoint_time_s;
+	if (_collision_setpoint_start == 0) {
+		_collision_setpoint_start = t_now;
 	}
 
-	const float elapsed_s = (t_now > t_start) ? (float)(t_now - t_start) * 1e-6f : 0.0f;
-	float cycle_time_s = elapsed_s;
+	const float current_rel_x_enu = current_pos_enu(0) - initial_pos_enu(0);
+	const float prev_rel_x_enu = PX4_ISFINITE(_collision_prev_rel_x_enu) ? _collision_prev_rel_x_enu : current_rel_x_enu;
 
-	if (total_cycle_time_s > 0.0f) {
-		cycle_time_s = fmodf(elapsed_s, total_cycle_time_s);
-	}
+	for (size_t i = 0; i < num_collision_setpoints; ++i) {
+		const TimedRelativeSetpoint &cfg = COLLISION_SETPOINTS[_collision_setpoint_index];
+		const float elapsed_s = (t_now > _collision_setpoint_start) ? (float)(t_now - _collision_setpoint_start) * 1e-6f : 0.0f;
+		const bool time_elapsed = PX4_ISFINITE(cfg.setpoint_time_s) && elapsed_s >= cfg.setpoint_time_s;
+		const bool x_crossed = PX4_ISFINITE(cfg.waypoint_x_limit_rel_enu)
+				       && prev_rel_x_enu < cfg.waypoint_x_limit_rel_enu
+				       && current_rel_x_enu >= cfg.waypoint_x_limit_rel_enu;
 
-	const TimedRelativeSetpoint *active_cfg = &COLLISION_SETPOINTS[0];
-	float segment_end_time_s = 0.0f;
-
-	for (const TimedRelativeSetpoint &cfg : COLLISION_SETPOINTS) {
-		segment_end_time_s += cfg.setpoint_time_s;
-
-		if (cycle_time_s < segment_end_time_s) {
-			active_cfg = &cfg;
+		if (!time_elapsed && !x_crossed) {
 			break;
 		}
+
+		_collision_setpoint_index = (_collision_setpoint_index + 1) % num_collision_setpoints;
+		_collision_setpoint_start = time_elapsed
+					    ? _collision_setpoint_start + (hrt_abstime)(cfg.setpoint_time_s * 1e6f)
+					    : t_now;
 	}
+
+	const TimedRelativeSetpoint *active_cfg = &COLLISION_SETPOINTS[_collision_setpoint_index];
+	_collision_prev_rel_x_enu = current_rel_x_enu;
 
 	sp.pos[0] = initial_pos_enu(0) + active_cfg->pos_rel_enu[0];
 	sp.pos[1] = initial_pos_enu(1) + active_cfg->pos_rel_enu[1];
@@ -263,6 +271,7 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f
 }
 
 NmpcSetpoint MulticopterNmpcControl::select_setpoint(const Vector3f &initial_pos_enu,
+						     const Vector3f &current_pos_enu,
 						     hrt_abstime t_start, hrt_abstime t_now)
 {
 	switch (ACTIVE_TRAJECTORY_MODE) {
@@ -273,7 +282,7 @@ NmpcSetpoint MulticopterNmpcControl::select_setpoint(const Vector3f &initial_pos
 		return get_setpoint_circle(initial_pos_enu, t_start, t_now);
 
 	case TrajectoryMode::CollisionCycle:
-		return get_setpoint_collision_cycle(initial_pos_enu, t_start, t_now);
+		return get_setpoint_collision_cycle(initial_pos_enu, current_pos_enu, t_now);
 	}
 
 	return get_setpoint_initial_position(initial_pos_enu);
@@ -523,11 +532,17 @@ void MulticopterNmpcControl::Run()
 					_time_offboard_enabled = _vehicle_control_mode.timestamp;
 					_initial_position = _position;
 					_min_valid_control_seq = _seq;
+					_collision_setpoint_index = 0;
+					_collision_setpoint_start = 0;
+					_collision_prev_rel_x_enu = NAN;
 					_need_reinit = true;
 					_has_valid_control = false;
 				} else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled) {
 					generateFailsafeTrajectory(_trajectory_setpoint, _position, _attitude);
 					_min_valid_control_seq = _seq;
+					_collision_setpoint_index = 0;
+					_collision_setpoint_start = 0;
+					_collision_prev_rel_x_enu = NAN;
 					_need_reinit = true;
 					_has_valid_control = false;
 				}
@@ -552,8 +567,13 @@ void MulticopterNmpcControl::Run()
 				_initial_position(0),   // North = NED_x
 				-_initial_position(2)   // Up    = -NED_z
 			);
+			const Vector3f current_pos_enu(
+				_position(1),   // East  = NED_y
+				_position(0),   // North = NED_x
+				-_position(2)   // Up    = -NED_z
+			);
 
-			const NmpcSetpoint sp = select_setpoint(initial_pos_enu, _time_offboard_enabled, _last_run);
+			const NmpcSetpoint sp = select_setpoint(initial_pos_enu, current_pos_enu, _time_offboard_enabled, _last_run);
 
 			// Convert ENU setpoint back to NED for _trajectory_setpoint.
 			// ENU->NED: NED_x=ENU_y (North), NED_y=ENU_x (East), NED_z=-ENU_z (Down)

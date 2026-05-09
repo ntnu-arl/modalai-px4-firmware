@@ -61,12 +61,14 @@ private:
 	static NmpcSetpoint get_setpoint_initial_position(const matrix::Vector3f &initial_pos_enu);
 	static NmpcSetpoint get_setpoint_circle(const matrix::Vector3f &initial_pos_enu,
 						hrt_abstime t_start, hrt_abstime t_now);
-	static NmpcSetpoint get_setpoint_collision_cycle(const matrix::Vector3f &initial_pos_enu,
-						 hrt_abstime t_start, hrt_abstime t_now);
+	NmpcSetpoint get_setpoint_collision_cycle(const matrix::Vector3f &initial_pos_enu,
+					  const matrix::Vector3f &current_pos_enu,
+					  hrt_abstime t_now);
 	// select_setpoint() uses the top-of-file trajectory mode selection in the
 	// .cpp to choose the active reference.
-	static NmpcSetpoint select_setpoint(const matrix::Vector3f &initial_pos_enu,
-					    hrt_abstime t_start, hrt_abstime t_now);
+	NmpcSetpoint select_setpoint(const matrix::Vector3f &initial_pos_enu,
+			     const matrix::Vector3f &current_pos_enu,
+			     hrt_abstime t_start, hrt_abstime t_now);
 
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -106,8 +108,11 @@ private:
 
 	uint32_t _seq{0};
 	uint32_t _min_valid_control_seq{0};
+	uint32_t _collision_setpoint_index{0};
 	bool _need_reinit{true};
 	bool _has_valid_control{false};
+	hrt_abstime _collision_setpoint_start{0};
+	float _collision_prev_rel_x_enu{NAN};
 	control_packet_t _latest_control{};
 
 };
