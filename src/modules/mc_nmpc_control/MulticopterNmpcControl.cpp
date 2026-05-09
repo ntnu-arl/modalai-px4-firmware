@@ -12,14 +12,6 @@ using namespace matrix;
 
 namespace
 {
-enum class TrajectoryMode {
-	HoverInitialPosition,
-	Circle,
-	CollisionCycle,
-};
-
-static constexpr TrajectoryMode ACTIVE_TRAJECTORY_MODE = TrajectoryMode::CollisionCycle;
-
 struct TimedRelativeSetpoint {
 	float pos_rel_enu[3];
 	float vel_enu[3];
@@ -162,88 +154,12 @@ bool MulticopterNmpcControl::loadActuatorMappingParams()
 }
 
 // ----------------------------------------------------------------------------
-// Trajectory generators — ENU (NMPC) frame throughout.
+// Trajectory setpoint sequence — ENU (NMPC) frame throughout.
 // ----------------------------------------------------------------------------
 
-NmpcSetpoint MulticopterNmpcControl::get_setpoint_initial_position(const Vector3f &initial_pos_enu)
-{
-	NmpcSetpoint sp{};
-	sp.pos[0] = initial_pos_enu(0); // East
-	sp.pos[1] = initial_pos_enu(1); // North
-	sp.pos[2] = initial_pos_enu(2); // Up
-	sp.vel[0] = 0.f;
-	sp.vel[1] = 0.f;
-	sp.vel[2] = 0.f;
-	return sp;
-}
-
-NmpcSetpoint MulticopterNmpcControl::get_setpoint_circle(const Vector3f &initial_pos_enu,
-							  hrt_abstime t_start, hrt_abstime t_now)
-{
-	// ---- tuneable parameters ----
-	static constexpr float circle_diameter = 0.2f; // [m] full diameter of the circle
-	static constexpr float cycle_time      = 4.0f; // [s] duration of one full revolution
-	static constexpr float settle_time     = 4.0f; // [s] hold before starting motion
-	static constexpr int   n_cycles        = 3;    // stop tracking after this many loops
-	// -----------------------------
-
-	const float r     = circle_diameter * 0.5f;
-	const float omega = 2.f * M_PI_F / cycle_time; // [rad/s]
-
-	// Elapsed time since offboard was enabled [s]
-	const float t = (t_now > t_start) ? (float)(t_now - t_start) * 1e-6f : 0.f;
-
-	// Circle center is offset so that theta=0 lands exactly on initial_pos_enu,
-	// giving a continuous position at the settle->fly transition.
-	//   pos(theta) = [cx + r*cos(theta),  cy + r*sin(theta),  cz]
-	//   pos(0)     = [cx + r, cy, cz]  =>  cx = initial(0) - r
-	const float cx = initial_pos_enu(0) - r; // East  component of center
-	const float cy = initial_pos_enu(1);      // North component of center
-	const float cz = initial_pos_enu(2);      // Up    component of center (constant altitude)
-
-	NmpcSetpoint sp{};
-	sp.pos[2] = cz;
-	sp.vel[2] = 0.f;
-
-	if (t < settle_time) {
-		// Hold at initial position (= circle start, theta=0) — no motion.
-		sp.pos[0] = cx + r; // == initial_pos_enu(0)
-		sp.pos[1] = cy;     // == initial_pos_enu(1)
-		sp.vel[0] = 0.f;
-		sp.vel[1] = 0.f;
-
-	} else {
-		const float t_fly           = t - settle_time;
-		const float total_fly_time  = (float)n_cycles * cycle_time;
-
-		if (t_fly >= total_fly_time) {
-			// After n_cycles the drone holds at the end position.
-			// n_cycles full revolutions bring theta back to 0, i.e. initial_pos_enu.
-			sp.pos[0] = cx + r;
-			sp.pos[1] = cy;
-			sp.vel[0] = 0.f;
-			sp.vel[1] = 0.f;
-
-		} else {
-			// Active circle tracking.
-			// theta increases CCW in the ENU x-y (East-North) plane.
-			const float theta = omega * t_fly;
-			const float c = cosf(theta);
-			const float s = sinf(theta);
-			sp.pos[0] = cx + r * c;
-			sp.pos[1] = cy + r * s;
-			// Tangential velocity (d/dt of position, CCW):
-			sp.vel[0] = -r * omega * s;
-			sp.vel[1] =  r * omega * c;
-		}
-	}
-
-	return sp;
-}
-
-NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f &initial_pos_enu,
-								  const Vector3f &current_pos_enu,
-								  hrt_abstime t_now)
+NmpcSetpoint MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &initial_pos_enu,
+							   const Vector3f &current_pos_enu,
+							   hrt_abstime t_now)
 {
 	NmpcSetpoint sp{};
 	const size_t num_collision_setpoints = sizeof(COLLISION_SETPOINTS) / sizeof(COLLISION_SETPOINTS[0]);
@@ -259,7 +175,7 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f
 #endif
 	const float prev_x_enu = PX4_ISFINITE(_collision_prev_rel_x_enu) ? _collision_prev_rel_x_enu : current_x_enu;
 
-	for (size_t i = 0; i < num_collision_setpoints; ++i) {
+	while (_collision_setpoint_index + 1 < num_collision_setpoints) {
 		const TimedRelativeSetpoint &cfg = COLLISION_SETPOINTS[_collision_setpoint_index];
 		const float elapsed_s = (t_now > _collision_setpoint_start) ? (float)(t_now - _collision_setpoint_start) * 1e-6f : 0.0f;
 		const bool time_elapsed = PX4_ISFINITE(cfg.setpoint_time_s) && elapsed_s >= cfg.setpoint_time_s;
@@ -271,7 +187,7 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f
 			break;
 		}
 
-		_collision_setpoint_index = (_collision_setpoint_index + 1) % num_collision_setpoints;
+		++_collision_setpoint_index;
 		_collision_setpoint_start = time_elapsed
 					    ? _collision_setpoint_start + (hrt_abstime)(cfg.setpoint_time_s * 1e6f)
 					    : t_now;
@@ -294,24 +210,6 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_collision_cycle(const Vector3f
 	sp.vel[1] = active_cfg->vel_enu[1];
 	sp.vel[2] = active_cfg->vel_enu[2];
 	return sp;
-}
-
-NmpcSetpoint MulticopterNmpcControl::select_setpoint(const Vector3f &initial_pos_enu,
-						     const Vector3f &current_pos_enu,
-						     hrt_abstime t_start, hrt_abstime t_now)
-{
-	switch (ACTIVE_TRAJECTORY_MODE) {
-	case TrajectoryMode::HoverInitialPosition:
-		return get_setpoint_initial_position(initial_pos_enu);
-
-	case TrajectoryMode::Circle:
-		return get_setpoint_circle(initial_pos_enu, t_start, t_now);
-
-	case TrajectoryMode::CollisionCycle:
-		return get_setpoint_collision_cycle(initial_pos_enu, current_pos_enu, t_now);
-	}
-
-	return get_setpoint_initial_position(initial_pos_enu);
 }
 
 // ----------------------------------------------------------------------------
@@ -622,7 +520,6 @@ void MulticopterNmpcControl::Run()
 
 			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
 				if (!previous_offboard_enabled && _vehicle_control_mode.flag_control_offboard_enabled) {
-					_time_offboard_enabled = _vehicle_control_mode.timestamp;
 					_initial_position = _position;
 					_min_valid_control_seq = _seq;
 					_collision_setpoint_index = 0;
@@ -666,7 +563,7 @@ void MulticopterNmpcControl::Run()
 				-_position(2)   // Up    = -NED_z
 			);
 
-			const NmpcSetpoint sp = select_setpoint(initial_pos_enu, current_pos_enu, _time_offboard_enabled, _last_run);
+			const NmpcSetpoint sp = get_setpoint_sequence(initial_pos_enu, current_pos_enu, _last_run);
 
 			// Convert ENU setpoint back to NED for _trajectory_setpoint.
 			// ENU->NED: NED_x=ENU_y (North), NED_y=ENU_x (East), NED_z=-ENU_z (Down)

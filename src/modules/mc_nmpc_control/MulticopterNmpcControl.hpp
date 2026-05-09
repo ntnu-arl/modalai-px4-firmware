@@ -58,20 +58,12 @@ private:
 					 const matrix::Vector3f &position,
 					 const matrix::Quatf &attitude);
 
-	// Trajectory generators — all inputs/outputs in NMPC/ENU frame.
+	// Trajectory setpoint sequence — all inputs/outputs in NMPC/ENU frame.
 	// initial_pos_enu: drone position at offboard-enable time, in ENU (m).
-	// t_start / t_now: hrt timestamps; t_now - t_start drives the schedule.
-	static NmpcSetpoint get_setpoint_initial_position(const matrix::Vector3f &initial_pos_enu);
-	static NmpcSetpoint get_setpoint_circle(const matrix::Vector3f &initial_pos_enu,
-						hrt_abstime t_start, hrt_abstime t_now);
-	NmpcSetpoint get_setpoint_collision_cycle(const matrix::Vector3f &initial_pos_enu,
-					  const matrix::Vector3f &current_pos_enu,
-					  hrt_abstime t_now);
-	// select_setpoint() uses the top-of-file trajectory mode selection in the
-	// .cpp to choose the active reference.
-	NmpcSetpoint select_setpoint(const matrix::Vector3f &initial_pos_enu,
-			     const matrix::Vector3f &current_pos_enu,
-			     hrt_abstime t_start, hrt_abstime t_now);
+	// t_now drives time-based setpoint advancement.
+	NmpcSetpoint get_setpoint_sequence(const matrix::Vector3f &initial_pos_enu,
+				       const matrix::Vector3f &current_pos_enu,
+				       hrt_abstime t_now);
 
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -97,7 +89,6 @@ private:
 	perf_counter_t _loop_perf;
 
 	hrt_abstime _last_run{0};
-	hrt_abstime _time_offboard_enabled{0};
 	hrt_abstime _position_velocity_timestamp_us{0};
 	hrt_abstime _attitude_timestamp_us{0};
 	hrt_abstime _angular_velocity_timestamp_us{0};
