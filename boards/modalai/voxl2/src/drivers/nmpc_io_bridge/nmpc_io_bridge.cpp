@@ -69,6 +69,50 @@ extern "C" { __EXPORT int nmpc_io_bridge_main(int argc, char *argv[]); }
 namespace nmpc_io_bridge
 {
 
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->seq) == sizeof(((state_packet_t *)nullptr)->seq),
+	      "nmpc_state_data.seq size must match state_packet_t.seq");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->flags) == sizeof(((state_packet_t *)nullptr)->flags),
+	      "nmpc_state_data.flags size must match state_packet_t.flags");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->sample_timestamp_us)
+		      == sizeof(((state_packet_t *)nullptr)->sample_timestamp_us),
+	      "nmpc_state_data.sample_timestamp_us size must match state_packet_t.sample_timestamp_us");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->position_velocity_timestamp_us)
+		      == sizeof(((state_packet_t *)nullptr)->position_velocity_timestamp_us),
+	      "nmpc_state_data.position_velocity_timestamp_us size must match state_packet_t.position_velocity_timestamp_us");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->attitude_timestamp_us)
+		      == sizeof(((state_packet_t *)nullptr)->attitude_timestamp_us),
+	      "nmpc_state_data.attitude_timestamp_us size must match state_packet_t.attitude_timestamp_us");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->angular_velocity_timestamp_us)
+		      == sizeof(((state_packet_t *)nullptr)->angular_velocity_timestamp_us),
+	      "nmpc_state_data.angular_velocity_timestamp_us size must match state_packet_t.angular_velocity_timestamp_us");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->rigid_body_state)
+		      == sizeof(((state_packet_t *)nullptr)->rigid_body_state),
+	      "nmpc_state_data.rigid_body_state layout must match state_packet_t.rigid_body_state");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->p) == sizeof(((state_packet_t *)nullptr)->p),
+	      "nmpc_state_data.p layout must match state_packet_t.p");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_meas)
+		      == sizeof(((state_packet_t *)nullptr)->motor_rps_meas),
+	      "nmpc_state_data.motor_rps_meas layout must match state_packet_t.motor_rps_meas");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_timestamp_us)
+		      == sizeof(((state_packet_t *)nullptr)->motor_rps_timestamp_us),
+	      "nmpc_state_data.motor_rps_timestamp_us layout must match state_packet_t.motor_rps_timestamp_us");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_valid_mask)
+		      == sizeof(((state_packet_t *)nullptr)->motor_rps_valid_mask),
+	      "nmpc_state_data.motor_rps_valid_mask size must match state_packet_t.motor_rps_valid_mask");
+
+static_assert(sizeof(((nmpc_control_data_s *)nullptr)->seq) == sizeof(((control_packet_t *)nullptr)->seq),
+	      "nmpc_control_data.seq size must match control_packet_t.seq");
+static_assert(sizeof(((nmpc_control_data_s *)nullptr)->status) == sizeof(((control_packet_t *)nullptr)->status),
+	      "nmpc_control_data.status size must match control_packet_t.status");
+static_assert(sizeof(((nmpc_control_data_s *)nullptr)->u) == sizeof(((control_packet_t *)nullptr)->u),
+	      "nmpc_control_data.u layout must match control_packet_t.u");
+static_assert(sizeof(((nmpc_control_data_s *)nullptr)->solve_time_us)
+		      == sizeof(((control_packet_t *)nullptr)->solve_time_us),
+	      "nmpc_control_data.solve_time_us size must match control_packet_t.solve_time_us");
+static_assert(sizeof(((nmpc_control_data_s *)nullptr)->quat_next)
+		      == sizeof(((control_packet_t *)nullptr)->quat_next),
+	      "nmpc_control_data.quat_next layout must match control_packet_t.quat_next");
+
 bool _initialized = false;
 bool _is_running = false;
 bool _debug = false;
