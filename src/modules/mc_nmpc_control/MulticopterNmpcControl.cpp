@@ -20,13 +20,28 @@ struct TimedRelativeSetpoint {
 };
 
 static constexpr float INTIAL_REL_X = -2.0f;
-static constexpr float BIAS_Y = 0.0f;  // +1.35f;
-static constexpr float GAP_Y = +0.282f;
+static constexpr float BIAS_Y = 0.0f; // +1.35f;
+static constexpr float GAP_Y = +0.285f;
 static constexpr float GAP_X = +0.11f;
-static constexpr float GAP_Z = +1.2f;
-static constexpr float FINAL_Z = +0.8f;
+static constexpr float GAP_Z = +1.2f;  // +0.6f; // +1.2f;
+static constexpr float FINAL_Z = +0.8f; // +0.8f;
 static constexpr float FINAL_REL_X = +1.7f;
 static constexpr float TRAVERSAL_VEL_X = +2.0f;
+// Post-gap reference relaxation:
+// - START: blend applied immediately after the post-gap trigger is crossed
+// - FINAL: blend reached after DURATION_S and then held
+// - DURATION_S: ramp time from START to FINAL
+// Blend meaning:
+//   sp_axis = current_axis + blend * (nominal_axis - current_axis)
+// so blend=0 fully relaxes that reference to the current state, blend=1 keeps
+// the nominal reference unchanged, and intermediate values keep only a fraction
+// of the nominal tracking error after the gap.
+static constexpr float POST_GAP_POS_BLEND_START[3] = {0.05f, 0.1f, 0.2f};
+static constexpr float POST_GAP_POS_BLEND_FINAL[3] = {1.0f, 0.25f, 0.5f};
+static constexpr float POST_GAP_POS_BLEND_DURATION_S[3] = {1.0f, 1.0f, 1.0f};
+static constexpr float POST_GAP_VEL_BLEND_START[3] = {0.1f, 0.1f, 0.2f};
+static constexpr float POST_GAP_VEL_BLEND_FINAL[3] = {1.0f, 0.33f, 0.5f};
+static constexpr float POST_GAP_VEL_BLEND_DURATION_S[3] = {1.0f, 1.0f, 1.0f};
 
 // Collision-task trajectory waypoint table.
 // Keep both sections below so it is easy to toggle between relative and
@@ -37,8 +52,8 @@ static constexpr float TRAVERSAL_VEL_X = +2.0f;
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
 	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN},
-	{{GAP_X -0.15f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, 0.0f},
-	{{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, 0.40f},
+	{{GAP_X -0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, 0.0f},
+	{{GAP_X, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X},
 	{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f},
 	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, FINAL_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN},
 };
@@ -91,6 +106,23 @@ static constexpr double NMPC_DIST_TORQUE_BY = 0.0;
 static constexpr double NMPC_DIST_TORQUE_BZ = 0.0;
 static constexpr double NMPC_HOVER_FORCE_PER_MOTOR = (double)NMPC_MASS * 9.81 / 4.0;
 static constexpr uint64_t MOTOR_RPS_MEAS_TIMEOUT_US = 50000ULL;
+
+float computePostGapBlend(float elapsed_s, float blend_start, float blend_final, float blend_duration_s)
+{
+	if (!PX4_ISFINITE(blend_start) || !PX4_ISFINITE(blend_final) || !PX4_ISFINITE(blend_duration_s)) {
+		return 1.0f;
+	}
+
+	const float blend_start_clamped = math::constrain(blend_start, 0.0f, 1.0f);
+	const float blend_final_clamped = math::constrain(blend_final, 0.0f, 1.0f);
+
+	if (blend_duration_s <= 0.0f) {
+		return blend_final_clamped;
+	}
+
+	const float relax_alpha = math::constrain(elapsed_s / blend_duration_s, 0.0f, 1.0f);
+	return blend_start_clamped + (blend_final_clamped - blend_start_clamped) * relax_alpha;
+}
 }
 
 MulticopterNmpcControl::MulticopterNmpcControl() :
@@ -170,6 +202,7 @@ bool MulticopterNmpcControl::loadActuatorMappingParams()
 
 NmpcSetpoint MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &initial_pos_enu,
 							   const Vector3f &current_pos_enu,
+							   const Vector3f &current_vel_enu,
 							   hrt_abstime t_now)
 {
 	NmpcSetpoint sp{};
@@ -220,6 +253,37 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &initi
 	sp.vel[0] = active_cfg->vel_enu[0];
 	sp.vel[1] = active_cfg->vel_enu[1];
 	sp.vel[2] = active_cfg->vel_enu[2];
+
+	const float post_gap_relax_trigger_x = COLLISION_SETPOINTS[2].pos_rel_enu[0];
+
+	if (current_x_enu >= post_gap_relax_trigger_x) {
+		if (_post_gap_relax_start == 0) {
+			_post_gap_relax_start = t_now;
+		}
+
+		const float relax_elapsed_s = (t_now > _post_gap_relax_start) ? (float)(t_now - _post_gap_relax_start) * 1e-6f : 0.0f;
+
+		// Blend each axis independently so position and velocity relaxation can
+		// be tuned separately for x/y/z after the gap.
+		for (int axis = 0; axis < 3; axis++) {
+			const float pos_blend = computePostGapBlend(
+				relax_elapsed_s,
+				POST_GAP_POS_BLEND_START[axis],
+				POST_GAP_POS_BLEND_FINAL[axis],
+				POST_GAP_POS_BLEND_DURATION_S[axis]
+			);
+			const float vel_blend = computePostGapBlend(
+				relax_elapsed_s,
+				POST_GAP_VEL_BLEND_START[axis],
+				POST_GAP_VEL_BLEND_FINAL[axis],
+				POST_GAP_VEL_BLEND_DURATION_S[axis]
+			);
+
+			sp.pos[axis] = current_pos_enu(axis) + pos_blend * (sp.pos[axis] - current_pos_enu(axis));
+			sp.vel[axis] = current_vel_enu(axis) + vel_blend * (sp.vel[axis] - current_vel_enu(axis));
+		}
+	}
+
 	return sp;
 }
 
@@ -535,6 +599,7 @@ void MulticopterNmpcControl::Run()
 					_min_valid_control_seq = _seq;
 					_collision_setpoint_index = 0;
 					_collision_setpoint_start = 0;
+					_post_gap_relax_start = 0;
 					_collision_prev_rel_x_enu = NAN;
 					_need_reinit = true;
 					_has_valid_control = false;
@@ -543,6 +608,7 @@ void MulticopterNmpcControl::Run()
 					_min_valid_control_seq = _seq;
 					_collision_setpoint_index = 0;
 					_collision_setpoint_start = 0;
+					_post_gap_relax_start = 0;
 					_collision_prev_rel_x_enu = NAN;
 					_need_reinit = true;
 					_has_valid_control = false;
@@ -573,8 +639,13 @@ void MulticopterNmpcControl::Run()
 				_position(0),   // North = NED_x
 				-_position(2)   // Up    = -NED_z
 			);
+			const Vector3f current_vel_enu(
+				_velocity(1),   // East  = NED_vy
+				_velocity(0),   // North = NED_vx
+				-_velocity(2)   // Up    = -NED_vz
+			);
 
-			const NmpcSetpoint sp = get_setpoint_sequence(initial_pos_enu, current_pos_enu, _last_run);
+			const NmpcSetpoint sp = get_setpoint_sequence(initial_pos_enu, current_pos_enu, current_vel_enu, _last_run);
 
 			// Convert ENU setpoint back to NED for _trajectory_setpoint.
 			// ENU->NED: NED_x=ENU_y (North), NED_y=ENU_x (East), NED_z=-ENU_z (Down)
