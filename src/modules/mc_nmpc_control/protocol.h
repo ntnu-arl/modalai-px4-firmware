@@ -11,6 +11,12 @@
 
 #define FLAG_REINIT 0x01
 
+enum {
+    NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT = 0,
+    NMPC_COST_WEIGHT_SET_RECOVERY = 1,
+    NMPC_COST_WEIGHT_SET_COUNT = 2,
+};
+
 #pragma pack(push, 1)
 
 typedef struct {
@@ -26,6 +32,9 @@ typedef struct {
     double   motor_rps_meas[NU];
     uint64_t motor_rps_timestamp_us[NU];
     uint8_t  motor_rps_valid_mask;
+    uint8_t  cost_weight_set;
+    float    nominal_position_enu[3];
+    float    nominal_velocity_enu[3];
 } state_packet_t;
 
 typedef struct {

@@ -42,6 +42,15 @@ static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_timestamp_us)
 static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_valid_mask)
 		      == sizeof(((state_packet_t *)nullptr)->motor_rps_valid_mask),
 	      "nmpc_state_data.motor_rps_valid_mask size must match state_packet_t.motor_rps_valid_mask");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->cost_weight_set)
+		      == sizeof(((state_packet_t *)nullptr)->cost_weight_set),
+	      "nmpc_state_data.cost_weight_set size must match state_packet_t.cost_weight_set");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->nominal_position_enu)
+		      == sizeof(((state_packet_t *)nullptr)->nominal_position_enu),
+	      "nmpc_state_data.nominal_position_enu layout must match state_packet_t.nominal_position_enu");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->nominal_velocity_enu)
+		      == sizeof(((state_packet_t *)nullptr)->nominal_velocity_enu),
+	      "nmpc_state_data.nominal_velocity_enu layout must match state_packet_t.nominal_velocity_enu");
 
 static_assert(sizeof(((nmpc_control_data_s *)nullptr)->seq) == sizeof(((control_packet_t *)nullptr)->seq),
 	      "nmpc_control_data.seq size must match control_packet_t.seq");
@@ -61,14 +70,15 @@ struct TimedRelativeSetpoint {
 	float vel_enu[3];
 	float setpoint_time_s;
 	float waypoint_x_limit_rel_enu;
+	uint8_t cost_weight_set;
 };
 
-static constexpr float INTIAL_REL_X = -2.0f;
-static constexpr float BIAS_Y = 0.0f; // +1.35f;
+static constexpr float INTIAL_REL_X = -1.5f; // -2.0f;
+static constexpr float BIAS_Y = 1.3f;  //0.0f; // +1.35f;
 static constexpr float GAP_Y = +0.285f;
 static constexpr float GAP_X = +0.11f;
-static constexpr float GAP_Z = +1.2f;  // +0.6f; // +1.2f;
-static constexpr float FINAL_Z = +0.8f; // +0.8f;
+static constexpr float GAP_Z = 0.6f; // +1.2f;  // +0.6f; // +1.2f;
+static constexpr float FINAL_Z = +0.6f; // +0.8f;
 static constexpr float FINAL_REL_X = +1.7f;
 static constexpr float TRAVERSAL_VEL_X = +2.0f;
 // Post-gap reference relaxation:
@@ -80,11 +90,11 @@ static constexpr float TRAVERSAL_VEL_X = +2.0f;
 // so blend=0 fully relaxes that reference to the current state, blend=1 keeps
 // the nominal reference unchanged, and intermediate values keep only a fraction
 // of the nominal tracking error after the gap.
-static constexpr float POST_GAP_POS_BLEND_START[3] = {0.04f, 0.1f, 0.5f};
-static constexpr float POST_GAP_POS_BLEND_FINAL[3] = {1.0f, 0.25f, 0.5f};
+static constexpr float POST_GAP_POS_BLEND_START[3] = {0.05f, 0.2f, 1.0f};
+static constexpr float POST_GAP_POS_BLEND_FINAL[3] = {1.0f, 1.0f, 1.0f};
 static constexpr float POST_GAP_POS_BLEND_DURATION_S[3] = {1.0f, 1.0f, 1.0f};
-static constexpr float POST_GAP_VEL_BLEND_START[3] = {0.05f, 0.1f, 0.2f};
-static constexpr float POST_GAP_VEL_BLEND_FINAL[3] = {1.0f, 0.33f, 0.5f};
+static constexpr float POST_GAP_VEL_BLEND_START[3] = {0.05f, 0.2f, 1.0f};
+static constexpr float POST_GAP_VEL_BLEND_FINAL[3] = {1.0f, 1.0f, 1.0f};
 static constexpr float POST_GAP_VEL_BLEND_DURATION_S[3] = {1.0f, 1.0f, 1.0f};
 
 // Collision-task trajectory waypoint table.
@@ -95,20 +105,20 @@ static constexpr float POST_GAP_VEL_BLEND_DURATION_S[3] = {1.0f, 1.0f, 1.0f};
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN},
-	{{GAP_X -0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, 0.0f},
-	{{GAP_X, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X},
-	{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f},
-	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, FINAL_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN},
+	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
+	{{GAP_X -0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, 0.0f, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
+	{{GAP_X, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
+	{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f, NMPC_COST_WEIGHT_SET_RECOVERY},
+	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, FINAL_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_COST_WEIGHT_SET_RECOVERY},
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the relative ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN},
-	{{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f},
-	{{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN},
+	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
+	{{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
+	{{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
 };
 #endif
 
@@ -166,6 +176,11 @@ float computePostGapBlend(float elapsed_s, float blend_start, float blend_final,
 
 	const float relax_alpha = math::constrain(elapsed_s / blend_duration_s, 0.0f, 1.0f);
 	return blend_start_clamped + (blend_final_clamped - blend_start_clamped) * relax_alpha;
+}
+
+uint8_t sanitizeCostWeightSet(uint8_t cost_weight_set)
+{
+	return cost_weight_set < NMPC_COST_WEIGHT_SET_COUNT ? cost_weight_set : NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT;
 }
 }
 
@@ -244,12 +259,12 @@ bool MulticopterNmpcControl::loadActuatorMappingParams()
 // Trajectory setpoint sequence — ENU (NMPC) frame throughout.
 // ----------------------------------------------------------------------------
 
-NmpcSetpoint MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &initial_pos_enu,
-							   const Vector3f &current_pos_enu,
-							   const Vector3f &current_vel_enu,
-							   hrt_abstime t_now)
+NmpcSetpointPair MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &initial_pos_enu,
+							       const Vector3f &current_pos_enu,
+							       const Vector3f &current_vel_enu,
+							       hrt_abstime t_now)
 {
-	NmpcSetpoint sp{};
+	NmpcSetpointPair refs{};
 	const size_t num_collision_setpoints = sizeof(COLLISION_SETPOINTS) / sizeof(COLLISION_SETPOINTS[0]);
 
 	if (_collision_setpoint_start == 0) {
@@ -286,17 +301,19 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &initi
 
 #ifdef USE_ABSOLUTE_POSITION
 	(void)initial_pos_enu;
-	sp.pos[0] = active_cfg->pos_rel_enu[0];
-	sp.pos[1] = active_cfg->pos_rel_enu[1];
-	sp.pos[2] = active_cfg->pos_rel_enu[2];
+	refs.nominal.pos[0] = active_cfg->pos_rel_enu[0];
+	refs.nominal.pos[1] = active_cfg->pos_rel_enu[1];
+	refs.nominal.pos[2] = active_cfg->pos_rel_enu[2];
 #else
-	sp.pos[0] = initial_pos_enu(0) + active_cfg->pos_rel_enu[0];
-	sp.pos[1] = initial_pos_enu(1) + active_cfg->pos_rel_enu[1];
-	sp.pos[2] = initial_pos_enu(2) + active_cfg->pos_rel_enu[2];
+	refs.nominal.pos[0] = initial_pos_enu(0) + active_cfg->pos_rel_enu[0];
+	refs.nominal.pos[1] = initial_pos_enu(1) + active_cfg->pos_rel_enu[1];
+	refs.nominal.pos[2] = initial_pos_enu(2) + active_cfg->pos_rel_enu[2];
 #endif
-	sp.vel[0] = active_cfg->vel_enu[0];
-	sp.vel[1] = active_cfg->vel_enu[1];
-	sp.vel[2] = active_cfg->vel_enu[2];
+	refs.nominal.vel[0] = active_cfg->vel_enu[0];
+	refs.nominal.vel[1] = active_cfg->vel_enu[1];
+	refs.nominal.vel[2] = active_cfg->vel_enu[2];
+	refs.nominal.cost_weight_set = sanitizeCostWeightSet(active_cfg->cost_weight_set);
+	refs.solver = refs.nominal;
 
 	const float post_gap_relax_trigger_x = COLLISION_SETPOINTS[2].pos_rel_enu[0];
 
@@ -323,12 +340,12 @@ NmpcSetpoint MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &initi
 				POST_GAP_VEL_BLEND_DURATION_S[axis]
 			);
 
-			sp.pos[axis] = current_pos_enu(axis) + pos_blend * (sp.pos[axis] - current_pos_enu(axis));
-			sp.vel[axis] = current_vel_enu(axis) + vel_blend * (sp.vel[axis] - current_vel_enu(axis));
+			refs.solver.pos[axis] = current_pos_enu(axis) + pos_blend * (refs.solver.pos[axis] - current_pos_enu(axis));
+			refs.solver.vel[axis] = current_vel_enu(axis) + vel_blend * (refs.solver.vel[axis] - current_vel_enu(axis));
 		}
 	}
 
-	return sp;
+	return refs;
 }
 
 // ----------------------------------------------------------------------------
@@ -541,6 +558,7 @@ bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[64] = _has_valid_control ? (double)NMPC_KF4 * (double)_latest_control.u[3] * (double)_latest_control.u[3] : NMPC_HOVER_FORCE_PER_MOTOR;
 
 	pkt->motor_rps_valid_mask = 0;
+	pkt->cost_weight_set = sanitizeCostWeightSet(_active_cost_weight_set);
 
 	for (int motor_index = 0; motor_index < NU; motor_index++) {
 		pkt->motor_rps_meas[motor_index] = 0.0;
@@ -647,6 +665,7 @@ void MulticopterNmpcControl::Run()
 					_collision_prev_rel_x_enu = NAN;
 					_need_reinit = true;
 					_has_valid_control = false;
+					_active_cost_weight_set = NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT;
 				} else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled) {
 					generateFailsafeTrajectory(_trajectory_setpoint, _position, _attitude);
 					_min_valid_control_seq = _seq;
@@ -656,6 +675,7 @@ void MulticopterNmpcControl::Run()
 					_collision_prev_rel_x_enu = NAN;
 					_need_reinit = true;
 					_has_valid_control = false;
+					_active_cost_weight_set = NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT;
 				}
 			}
 		}
@@ -689,16 +709,17 @@ void MulticopterNmpcControl::Run()
 				-_velocity(2)   // Up    = -NED_vz
 			);
 
-			const NmpcSetpoint sp = get_setpoint_sequence(initial_pos_enu, current_pos_enu, current_vel_enu, _last_run);
+			const NmpcSetpointPair refs = get_setpoint_sequence(initial_pos_enu, current_pos_enu, current_vel_enu, _last_run);
+			_active_cost_weight_set = sanitizeCostWeightSet(refs.solver.cost_weight_set);
 
 			// Convert ENU setpoint back to NED for _trajectory_setpoint.
 			// ENU->NED: NED_x=ENU_y (North), NED_y=ENU_x (East), NED_z=-ENU_z (Down)
-			_trajectory_setpoint.position[0] = sp.pos[1];   // North = ENU_y
-			_trajectory_setpoint.position[1] = sp.pos[0];   // East  = ENU_x
-			_trajectory_setpoint.position[2] = -sp.pos[2];  // Down  = -ENU_z
-			_trajectory_setpoint.velocity[0] = sp.vel[1];   // North = ENU_y
-			_trajectory_setpoint.velocity[1] = sp.vel[0];   // East  = ENU_x
-			_trajectory_setpoint.velocity[2] = -sp.vel[2];  // Down  = -ENU_z
+			_trajectory_setpoint.position[0] = refs.solver.pos[1];   // North = ENU_y
+			_trajectory_setpoint.position[1] = refs.solver.pos[0];   // East  = ENU_x
+			_trajectory_setpoint.position[2] = -refs.solver.pos[2];  // Down  = -ENU_z
+			_trajectory_setpoint.velocity[0] = refs.solver.vel[1];   // North = ENU_y
+			_trajectory_setpoint.velocity[1] = refs.solver.vel[0];   // East  = ENU_x
+			_trajectory_setpoint.velocity[2] = -refs.solver.vel[2];  // Down  = -ENU_z
 			_trajectory_setpoint.acceleration[0] = 0.0f;
 			_trajectory_setpoint.acceleration[1] = 0.0f;
 			_trajectory_setpoint.acceleration[2] = 0.0f;
@@ -752,6 +773,11 @@ void MulticopterNmpcControl::Run()
 			memcpy(state_msg.motor_rps_meas, pkt_state.motor_rps_meas, sizeof(pkt_state.motor_rps_meas));
 			memcpy(state_msg.motor_rps_timestamp_us, pkt_state.motor_rps_timestamp_us, sizeof(pkt_state.motor_rps_timestamp_us));
 			state_msg.motor_rps_valid_mask = pkt_state.motor_rps_valid_mask;
+			state_msg.cost_weight_set = pkt_state.cost_weight_set;
+			memcpy(state_msg.nominal_position_enu, refs.nominal.pos, sizeof(refs.nominal.pos));
+			memcpy(state_msg.nominal_velocity_enu, refs.nominal.vel, sizeof(refs.nominal.vel));
+			memcpy(state_msg.solver_position_enu, refs.solver.pos, sizeof(refs.solver.pos));
+			memcpy(state_msg.solver_velocity_enu, refs.solver.vel, sizeof(refs.solver.vel));
 			_nmpc_state_pub.publish(state_msg);
 			_need_reinit = false;
 		}
