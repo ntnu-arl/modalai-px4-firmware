@@ -34,6 +34,7 @@ struct NmpcSetpoint {
 	float pos[3]; // ENU: [East, North, Up]  (m)
 	float vel[3]; // ENU: [East, North, Up]  (m/s)
 	uint8_t cost_weight_set{NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT};
+	uint8_t control_mode{0};
 };
 
 struct NmpcSetpointPair {
@@ -57,6 +58,8 @@ private:
 	void Run() override;
 	bool pack_state(state_packet_t *pkt);
 	void publish_actuator_motors(const control_packet_t *pkt);
+	void publish_offboard_control_mode(bool use_px4_position_control);
+	void publish_trajectory_setpoint(const trajectory_setpoint_s &traj_sp);
 	bool loadActuatorMappingParams();
 	void updateEscTelemetryCache();
 	int mapEscReportToMotorIndex(const esc_report_s &report) const;
@@ -81,6 +84,7 @@ private:
 
 	uORB::Publication<offboard_control_mode_s> _offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<nmpc_state_data_s> _nmpc_state_pub{ORB_ID(nmpc_state_data)};
 	uORB::Subscription _nmpc_control_sub{ORB_ID(nmpc_control_data)};
 
@@ -115,10 +119,12 @@ private:
 	uint32_t _collision_setpoint_index{0};
 	bool _need_reinit{true};
 	bool _has_valid_control{false};
+	bool _using_px4_position_control{false};
 	uint8_t _active_cost_weight_set{NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT};
 	hrt_abstime _collision_setpoint_start{0};
 	hrt_abstime _post_gap_relax_start{0};
 	float _collision_prev_rel_x_enu{NAN};
+	float _px4_position_control_yaw{NAN};
 	control_packet_t _latest_control{};
 
 };

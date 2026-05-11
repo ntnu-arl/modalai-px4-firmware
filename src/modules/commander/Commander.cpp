@@ -97,6 +97,17 @@ static constexpr bool operator ==(const actuator_armed_s &a, const actuator_arme
 }
 static_assert(sizeof(actuator_armed_s) == 16, "actuator_armed equality operator review");
 
+static constexpr bool offboard_control_mode_interface_equal(const offboard_control_mode_s &a,
+		const offboard_control_mode_s &b)
+{
+	return (a.position == b.position &&
+		a.velocity == b.velocity &&
+		a.acceleration == b.acceleration &&
+		a.attitude == b.attitude &&
+		a.body_rate == b.body_rate &&
+		a.actuator == b.actuator);
+}
+
 #if defined(BOARD_HAS_POWER_CONTROL)
 static orb_advert_t tune_control_pub = nullptr;
 
@@ -2793,9 +2804,13 @@ void Commander::manualControlCheck()
 
 void Commander::offboardControlCheck()
 {
+	const offboard_control_mode_s previous_offboard_control_mode = _offboard_control_mode_sub.get();
+
 	if (_offboard_control_mode_sub.update()) {
-		if (_failsafe_flags.offboard_control_signal_lost) {
-			// Run arming checks immediately to allow for offboard mode activation
+		const bool control_interface_changed =
+			!offboard_control_mode_interface_equal(previous_offboard_control_mode, _offboard_control_mode_sub.get());
+
+		if (_failsafe_flags.offboard_control_signal_lost || control_interface_changed) {
 			_status_changed = true;
 		}
 	}
