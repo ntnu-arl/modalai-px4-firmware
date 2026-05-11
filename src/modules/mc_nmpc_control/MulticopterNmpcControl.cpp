@@ -73,14 +73,14 @@ struct TimedRelativeSetpoint {
 	uint8_t cost_weight_set;
 };
 
-static constexpr float INTIAL_REL_X = -1.5f; // -2.0f;
-static constexpr float BIAS_Y = 1.3f;  //0.0f; // +1.35f;
-static constexpr float GAP_Y = +0.285f;
-static constexpr float GAP_X = +0.11f;
-static constexpr float GAP_Z = 0.6f; // +1.2f;  // +0.6f; // +1.2f;
-static constexpr float FINAL_Z = +0.6f; // +0.8f;
+static constexpr float INTIAL_REL_X = -2.0f;  //-1.5f; // -2.0f;
+static constexpr float BIAS_Y = 0.0f; // +1.35f;
+static constexpr float GAP_Y = +0.01f;
+static constexpr float GAP_X = +1.439f;
+static constexpr float GAP_Z = +1.0f;  // +0.6f; // +1.2f;
+static constexpr float FINAL_Z = +0.8f; // +0.8f;
 static constexpr float FINAL_REL_X = +1.7f;
-static constexpr float TRAVERSAL_VEL_X = +2.0f;
+static constexpr float TRAVERSAL_VEL_X = +1.25f;
 // Post-gap reference relaxation:
 // - START: blend applied immediately after the post-gap trigger is crossed
 // - FINAL: blend reached after DURATION_S and then held
@@ -106,8 +106,7 @@ static constexpr float POST_GAP_VEL_BLEND_DURATION_S[3] = {1.0f, 1.0f, 1.0f};
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
 	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
-	{{GAP_X -0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, 0.0f, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
-	{{GAP_X, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
+	{{GAP_X + 0.1f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT},
 	{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f, NMPC_COST_WEIGHT_SET_RECOVERY},
 	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, FINAL_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_COST_WEIGHT_SET_RECOVERY},
 };
