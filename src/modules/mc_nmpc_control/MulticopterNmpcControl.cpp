@@ -79,10 +79,10 @@ enum TrajectoryControlMode : uint8_t {
 	PX4_POSITION_CONTROL = 1,
 };
 
-static constexpr float INTIAL_REL_X = -2.0f;  //-1.5f; // -2.0f;
+static constexpr float INTIAL_REL_X = -1.5f; // -2.0f;
 static constexpr float BIAS_Y = 0.0f; // +1.35f;
-static constexpr float GAP_Y = +0.01f;
-static constexpr float GAP_X = +1.439f;
+static constexpr float GAP_Y = +0.012f;
+static constexpr float GAP_X = +1.4428f;
 static constexpr float GAP_Z = +1.0f;  // +0.6f; // +1.2f;
 static constexpr float FINAL_Z = +0.8f; // +0.8f;
 static constexpr float FINAL_REL_X = +1.7f;
@@ -141,13 +141,13 @@ static constexpr double ALLOC_MATRIX_COLMAJOR[24] = {
 };
 
 // Hardcoded NMPC physical parameters — change here and reflash.
-static constexpr float NMPC_MASS        = 0.361f;          // [kg] total vehicle mass
-static constexpr float NMPC_IXX         = 0.001085f;       // [kg·m²] inertia
-static constexpr float NMPC_IXY         = 0.000016f;       // [kg·m²] inertia cross term
-static constexpr float NMPC_IXZ         = 0.0000035f;      // [kg·m²] inertia cross term
-static constexpr float NMPC_IYY         = 0.001283f;       // [kg·m²] inertia
-static constexpr float NMPC_IYZ         = -0.00004135f;    // [kg·m²] inertia cross term
-static constexpr float NMPC_IZZ         = 0.001572f;       // [kg·m²] inertia
+static constexpr float NMPC_MASS        = 0.371f;          // [kg] total vehicle mass
+static constexpr float NMPC_IXX         = 0.001130051f;   // [kg·m²] inertia
+static constexpr float NMPC_IXY         = 0.0000177f;     // [kg·m²] inertia cross term
+static constexpr float NMPC_IXZ         = -0.00000068f;   // [kg·m²] inertia cross term
+static constexpr float NMPC_IYY         = 0.001299153f;   // [kg·m²] inertia
+static constexpr float NMPC_IYZ         = -0.0000481047f; // [kg·m²] inertia cross term
+static constexpr float NMPC_IZZ         = 0.00161747f;    // [kg·m²] inertia
 static constexpr float NMPC_KF1         = 0.00001434f;     // [N/(rad/s)²] thrust coefficient motor 1
 static constexpr float NMPC_KF2         = 0.00001434f;     // [N/(rad/s)²] thrust coefficient motor 2
 static constexpr float NMPC_KF3         = 0.00001434f;     // [N/(rad/s)²] thrust coefficient motor 3
