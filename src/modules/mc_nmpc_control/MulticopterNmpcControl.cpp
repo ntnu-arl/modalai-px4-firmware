@@ -42,9 +42,6 @@ static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_timestamp_us)
 static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_valid_mask)
 		      == sizeof(((state_packet_t *)nullptr)->motor_rps_valid_mask),
 	      "nmpc_state_data.motor_rps_valid_mask size must match state_packet_t.motor_rps_valid_mask");
-static_assert(sizeof(((nmpc_state_data_s *)nullptr)->cost_weight_set)
-		      == sizeof(((state_packet_t *)nullptr)->cost_weight_set),
-	      "nmpc_state_data.cost_weight_set size must match state_packet_t.cost_weight_set");
 static_assert(sizeof(((nmpc_state_data_s *)nullptr)->nominal_position_enu)
 		      == sizeof(((state_packet_t *)nullptr)->nominal_position_enu),
 	      "nmpc_state_data.nominal_position_enu layout must match state_packet_t.nominal_position_enu");
@@ -70,7 +67,6 @@ struct TimedRelativeSetpoint {
 	float vel_enu[3];
 	float setpoint_time_s;
 	float waypoint_x_limit_rel_enu;
-	uint8_t cost_weight_set;
 	uint8_t control_mode;
 };
 
@@ -96,21 +92,21 @@ static constexpr float TRAVERSAL_VEL_X = +1.25f;
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, NMPC_DIRECT_ACTUATOR},
-	//{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, PX4_POSITION_CONTROL},
-	//{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, NMPC_DIRECT_ACTUATOR},
-	{{GAP_X + 0.1f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, NMPC_DIRECT_ACTUATOR},
-	//{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, PX4_POSITION_CONTROL},
-	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, PX4_POSITION_CONTROL},
+	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR},
+	//{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, PX4_POSITION_CONTROL},
+	//{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR},
+	{{GAP_X + 0.1f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_DIRECT_ACTUATOR},
+	//{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f, PX4_POSITION_CONTROL},
+	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, PX4_POSITION_CONTROL},
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the relative ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, NMPC_DIRECT_ACTUATOR},
-	{{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, NMPC_DIRECT_ACTUATOR},
-	{{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT, NMPC_DIRECT_ACTUATOR},
+	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR},
+	{{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f, NMPC_DIRECT_ACTUATOR},
+	{{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_DIRECT_ACTUATOR},
 };
 #endif
 
@@ -152,11 +148,6 @@ static constexpr double NMPC_DIST_TORQUE_BY = 0.0;
 static constexpr double NMPC_DIST_TORQUE_BZ = 0.0;
 static constexpr double NMPC_HOVER_FORCE_PER_MOTOR = (double)NMPC_MASS * 9.81 / 4.0;
 static constexpr uint64_t MOTOR_RPS_MEAS_TIMEOUT_US = 50000ULL;
-
-uint8_t sanitizeCostWeightSet(uint8_t cost_weight_set)
-{
-	return cost_weight_set < NMPC_COST_WEIGHT_SET_COUNT ? cost_weight_set : NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT;
-}
 
 uint8_t sanitizeTrajectoryControlMode(uint8_t control_mode)
 {
@@ -291,7 +282,6 @@ NmpcSetpointPair MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &i
 	refs.nominal.vel[0] = active_cfg->vel_enu[0];
 	refs.nominal.vel[1] = active_cfg->vel_enu[1];
 	refs.nominal.vel[2] = active_cfg->vel_enu[2];
-	refs.nominal.cost_weight_set = sanitizeCostWeightSet(active_cfg->cost_weight_set);
 	refs.nominal.control_mode = sanitizeTrajectoryControlMode(active_cfg->control_mode);
 	refs.solver = refs.nominal;
 
@@ -508,7 +498,6 @@ bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[64] = _has_valid_control ? (double)NMPC_KF4 * (double)_latest_control.u[3] * (double)_latest_control.u[3] : NMPC_HOVER_FORCE_PER_MOTOR;
 
 	pkt->motor_rps_valid_mask = 0;
-	pkt->cost_weight_set = sanitizeCostWeightSet(_active_cost_weight_set);
 
 	for (int motor_index = 0; motor_index < NU; motor_index++) {
 		pkt->motor_rps_meas[motor_index] = 0.0;
@@ -633,7 +622,6 @@ void MulticopterNmpcControl::Run()
 					_need_reinit = true;
 					_has_valid_control = false;
 					_using_px4_position_control = false;
-					_active_cost_weight_set = NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT;
 					_px4_position_control_yaw = NAN;
 				} else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled) {
 					generateFailsafeTrajectory(_trajectory_setpoint, _position, _attitude);
@@ -644,7 +632,6 @@ void MulticopterNmpcControl::Run()
 					_need_reinit = true;
 					_has_valid_control = false;
 					_using_px4_position_control = false;
-					_active_cost_weight_set = NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT;
 					_px4_position_control_yaw = NAN;
 				}
 			}
@@ -666,7 +653,6 @@ void MulticopterNmpcControl::Run()
 			);
 
 			const NmpcSetpointPair refs = get_setpoint_sequence(initial_pos_enu, current_pos_enu, _last_run);
-			_active_cost_weight_set = sanitizeCostWeightSet(refs.solver.cost_weight_set);
 			const bool use_px4_position_control = refs.solver.control_mode == PX4_POSITION_CONTROL;
 
 			if (use_px4_position_control != _using_px4_position_control) {
@@ -753,7 +739,6 @@ void MulticopterNmpcControl::Run()
 			memcpy(state_msg.motor_rps_meas, pkt_state.motor_rps_meas, sizeof(pkt_state.motor_rps_meas));
 			memcpy(state_msg.motor_rps_timestamp_us, pkt_state.motor_rps_timestamp_us, sizeof(pkt_state.motor_rps_timestamp_us));
 			state_msg.motor_rps_valid_mask = pkt_state.motor_rps_valid_mask;
-			state_msg.cost_weight_set = pkt_state.cost_weight_set;
 			memcpy(state_msg.nominal_position_enu, refs.nominal.pos, sizeof(refs.nominal.pos));
 			memcpy(state_msg.nominal_velocity_enu, refs.nominal.vel, sizeof(refs.nominal.vel));
 			memcpy(state_msg.solver_position_enu, refs.solver.pos, sizeof(refs.solver.pos));

@@ -33,7 +33,6 @@ using namespace time_literals;
 struct NmpcSetpoint {
 	float pos[3]; // ENU: [East, North, Up]  (m)
 	float vel[3]; // ENU: [East, North, Up]  (m/s)
-	uint8_t cost_weight_set{NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT};
 	uint8_t control_mode{0};
 };
 
@@ -119,7 +118,6 @@ private:
 	bool _need_reinit{true};
 	bool _has_valid_control{false};
 	bool _using_px4_position_control{false};
-	uint8_t _active_cost_weight_set{NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT};
 	hrt_abstime _collision_setpoint_start{0};
 	float _collision_prev_rel_x_enu{NAN};
 	float _px4_position_control_yaw{NAN};
