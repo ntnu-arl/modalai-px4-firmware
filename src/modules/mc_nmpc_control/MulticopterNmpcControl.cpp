@@ -85,7 +85,7 @@ static constexpr float GAP_X = +1.4428f;
 static constexpr float GAP_Z = +1.0f;  // +0.6f; // +1.2f;
 static constexpr float FINAL_Z = +0.8f; // +0.8f;
 static constexpr float FINAL_REL_X = +1.7f;
-static constexpr float TRAVERSAL_VEL_X = +1.25f;
+static constexpr float TRAVERSAL_VEL_X = +1.5f;
 
 // Collision-task trajectory waypoint table.
 // Keep both sections below so it is easy to toggle between relative and
@@ -98,8 +98,8 @@ static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
 	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR},
 	//{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, PX4_POSITION_CONTROL},
 	//{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR},
-	{{GAP_X - 0.3f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X - 0.3f, NMPC_DIRECT_ACTUATOR},
-	{{GAP_X + 0.5f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_DIRECT_ACTUATOR},
+	{{GAP_X - 0.15f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X - 0.15f, NMPC_DIRECT_ACTUATOR},
+	{{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_DIRECT_ACTUATOR},
 	//{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f, PX4_POSITION_CONTROL},
 	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, PX4_POSITION_CONTROL},
 };
