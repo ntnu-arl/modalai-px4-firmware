@@ -72,7 +72,6 @@ private:
 	// t_now drives time-based setpoint advancement.
 	NmpcSetpointPair get_setpoint_sequence(const matrix::Vector3f &initial_pos_enu,
 					      const matrix::Vector3f &current_pos_enu,
-					      const matrix::Vector3f &current_vel_enu,
 					      hrt_abstime t_now);
 
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -122,7 +121,6 @@ private:
 	bool _using_px4_position_control{false};
 	uint8_t _active_cost_weight_set{NMPC_COST_WEIGHT_SET_REGULAR_FLIGHT};
 	hrt_abstime _collision_setpoint_start{0};
-	hrt_abstime _post_gap_relax_start{0};
 	float _collision_prev_rel_x_enu{NAN};
 	float _px4_position_control_yaw{NAN};
 	control_packet_t _latest_control{};
