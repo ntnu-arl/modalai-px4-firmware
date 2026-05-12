@@ -42,6 +42,9 @@ static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_timestamp_us)
 static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_valid_mask)
 		      == sizeof(((state_packet_t *)nullptr)->motor_rps_valid_mask),
 	      "nmpc_state_data.motor_rps_valid_mask size must match state_packet_t.motor_rps_valid_mask");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->reserved0)
+		      == sizeof(((state_packet_t *)nullptr)->reserved0),
+	      "nmpc_state_data.reserved0 size must match state_packet_t.reserved0");
 static_assert(sizeof(((nmpc_state_data_s *)nullptr)->nominal_position_enu)
 		      == sizeof(((state_packet_t *)nullptr)->nominal_position_enu),
 	      "nmpc_state_data.nominal_position_enu layout must match state_packet_t.nominal_position_enu");
@@ -498,6 +501,7 @@ bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 	pkt->p[64] = _has_valid_control ? (double)NMPC_KF4 * (double)_latest_control.u[3] * (double)_latest_control.u[3] : NMPC_HOVER_FORCE_PER_MOTOR;
 
 	pkt->motor_rps_valid_mask = 0;
+	pkt->reserved0 = 0;
 
 	for (int motor_index = 0; motor_index < NU; motor_index++) {
 		pkt->motor_rps_meas[motor_index] = 0.0;
@@ -739,6 +743,7 @@ void MulticopterNmpcControl::Run()
 			memcpy(state_msg.motor_rps_meas, pkt_state.motor_rps_meas, sizeof(pkt_state.motor_rps_meas));
 			memcpy(state_msg.motor_rps_timestamp_us, pkt_state.motor_rps_timestamp_us, sizeof(pkt_state.motor_rps_timestamp_us));
 			state_msg.motor_rps_valid_mask = pkt_state.motor_rps_valid_mask;
+			state_msg.reserved0 = pkt_state.reserved0;
 			memcpy(state_msg.nominal_position_enu, refs.nominal.pos, sizeof(refs.nominal.pos));
 			memcpy(state_msg.nominal_velocity_enu, refs.nominal.vel, sizeof(refs.nominal.vel));
 			memcpy(state_msg.solver_position_enu, refs.solver.pos, sizeof(refs.solver.pos));

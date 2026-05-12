@@ -26,6 +26,7 @@ typedef struct {
     double   motor_rps_meas[NU];
     uint64_t motor_rps_timestamp_us[NU];
     uint8_t  motor_rps_valid_mask;
+    uint8_t  reserved0;
     float    nominal_position_enu[3];
     float    nominal_velocity_enu[3];
 } state_packet_t;

@@ -99,6 +99,9 @@ static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_timestamp_us)
 static_assert(sizeof(((nmpc_state_data_s *)nullptr)->motor_rps_valid_mask)
 		      == sizeof(((state_packet_t *)nullptr)->motor_rps_valid_mask),
 	      "nmpc_state_data.motor_rps_valid_mask size must match state_packet_t.motor_rps_valid_mask");
+static_assert(sizeof(((nmpc_state_data_s *)nullptr)->reserved0)
+		      == sizeof(((state_packet_t *)nullptr)->reserved0),
+	      "nmpc_state_data.reserved0 size must match state_packet_t.reserved0");
 static_assert(sizeof(((nmpc_state_data_s *)nullptr)->nominal_position_enu)
 		      == sizeof(((state_packet_t *)nullptr)->nominal_position_enu),
 	      "nmpc_state_data.nominal_position_enu layout must match state_packet_t.nominal_position_enu");
@@ -220,6 +223,7 @@ void nmpc_io_bridge_task()
                 memcpy(pkt.motor_rps_meas, state_msg.motor_rps_meas, sizeof(pkt.motor_rps_meas));
                 memcpy(pkt.motor_rps_timestamp_us, state_msg.motor_rps_timestamp_us, sizeof(pkt.motor_rps_timestamp_us));
                 pkt.motor_rps_valid_mask = state_msg.motor_rps_valid_mask;
+                pkt.reserved0 = state_msg.reserved0;
                 memcpy(pkt.nominal_position_enu, state_msg.nominal_position_enu, sizeof(pkt.nominal_position_enu));
                 memcpy(pkt.nominal_velocity_enu, state_msg.nominal_velocity_enu, sizeof(pkt.nominal_velocity_enu));
                 int ret = write(state_fd, &pkt, sizeof(pkt));

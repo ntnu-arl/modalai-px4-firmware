@@ -10,6 +10,7 @@ float64[65] p
 float64[4] motor_rps_meas
 uint64[4] motor_rps_timestamp_us
 uint8 motor_rps_valid_mask
+uint8 reserved0
 float32[3] nominal_position_enu
 float32[3] nominal_velocity_enu
 float32[3] solver_position_enu
