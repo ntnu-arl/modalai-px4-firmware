@@ -79,13 +79,13 @@ enum TrajectoryControlMode : uint8_t {
 };
 
 static constexpr float INTIAL_REL_X = -2.0f; // -2.0f;
-static constexpr float BIAS_Y = +1.35f;  // 0.0f; // +1.35f;
-static constexpr float GAP_Y = +0.012f;
-static constexpr float GAP_X = +1.4428f;
-static constexpr float GAP_Z = +1.0f;  // +0.6f; // +1.2f;
-static constexpr float FINAL_Z = +0.8f; // +0.8f;
-static constexpr float FINAL_REL_X = +1.7f;
-static constexpr float TRAVERSAL_VEL_X = +1.5f;
+static constexpr float BIAS_Y = 0.0f; // +1.35f;
+static constexpr float GAP_Y = +0.04f;
+static constexpr float GAP_X = +1.41f;
+static constexpr float GAP_Z = +1.075f;  // +0.6f; // +1.2f;
+static constexpr float FINAL_Z = +1.2f; // +0.8f;
+static constexpr float FINAL_REL_X = +1.5f;
+static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
 
 // Collision-task trajectory waypoint table.
 // Keep both sections below so it is easy to toggle between relative and
