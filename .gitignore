@@ -108,3 +108,7 @@ src/systemcmds/topic_listener/listener_generated.cpp
 
 # colcon
 log/
+.cbmignore
+.codebase-memory/.gitattributes
+.codebase-memory/artifact.json
+.codebase-memory/graph.db.zst
