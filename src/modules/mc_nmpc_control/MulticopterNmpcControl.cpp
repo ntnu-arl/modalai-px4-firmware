@@ -79,11 +79,10 @@ enum TrajectoryControlMode : uint8_t {
 };
 
 static constexpr float INTIAL_REL_X = -2.0f; // -2.0f;
-static constexpr float BIAS_Y = 0.0f; // +1.35f;
+static constexpr float BIAS_Y = +0.0f; // +1.55f;
 static constexpr float GAP_Y = +0.04f;
 static constexpr float GAP_X = +1.41f;
-static constexpr float GAP_Z = +1.075f;  // +0.6f; // +1.2f;
-static constexpr float FINAL_Z = +1.2f; // +0.8f;
+static constexpr float GAP_Z = +0.6f; // +1.075f;
 static constexpr float FINAL_REL_X = +1.5f;
 static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
 
@@ -96,12 +95,12 @@ static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
 	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR},
-	//{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, PX4_POSITION_CONTROL},
-	//{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR},
-	{{GAP_X - 0.15f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X - 0.15f, NMPC_DIRECT_ACTUATOR},
+	// {{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, PX4_POSITION_CONTROL},
+	// {{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR},
+	// {{GAP_X - 0.15f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X - 0.15f, NMPC_DIRECT_ACTUATOR},
 	{{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_DIRECT_ACTUATOR},
-	//{{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f, PX4_POSITION_CONTROL},
-	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, PX4_POSITION_CONTROL},
+	// {{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f, PX4_POSITION_CONTROL},
+	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR},
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
