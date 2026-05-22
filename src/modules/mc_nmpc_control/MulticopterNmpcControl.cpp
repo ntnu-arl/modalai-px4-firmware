@@ -71,6 +71,7 @@ struct TimedRelativeSetpoint {
 	float setpoint_time_s;
 	float waypoint_x_limit_rel_enu;
 	uint8_t control_mode;
+	NmpcFlightMode nmpc_mode;
 };
 
 enum TrajectoryControlMode : uint8_t {
@@ -94,22 +95,22 @@ static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR},
-	// {{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, PX4_POSITION_CONTROL},
-	// {{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR},
-	// {{GAP_X - 0.15f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X - 0.15f, NMPC_DIRECT_ACTUATOR},
-	{{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_DIRECT_ACTUATOR},
-	// {{GAP_X + 1.35f, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, NAN, 1.20f, PX4_POSITION_CONTROL},
-	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR},
+	// {{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+	// {{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+	// {{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
+	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 2.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
+	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 2.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the relative ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR},
-	{{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f, NMPC_DIRECT_ACTUATOR},
-	{{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_DIRECT_ACTUATOR},
+	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+	{{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+	{{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
 };
 #endif
 
@@ -286,7 +287,16 @@ NmpcSetpointPair MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &i
 	refs.nominal.vel[1] = active_cfg->vel_enu[1];
 	refs.nominal.vel[2] = active_cfg->vel_enu[2];
 	refs.nominal.control_mode = sanitizeTrajectoryControlMode(active_cfg->control_mode);
+	refs.nominal.nmpc_mode = active_cfg->nmpc_mode;
 	refs.solver = refs.nominal;
+
+	if (active_cfg->nmpc_mode == NMPC_RECOVERY_MODE) {
+		refs.solver.pos[0] = current_pos_enu(0);
+		refs.solver.pos[1] = current_pos_enu(1);
+		refs.solver.vel[0] = 0.0f;
+		refs.solver.vel[1] = 0.0f;
+		refs.solver.vel[2] = 0.0f;
+	}
 
 	return refs;
 }
@@ -395,6 +405,10 @@ bool MulticopterNmpcControl::pack_state(state_packet_t *pkt)
 
 	if (_need_reinit) {
 		pkt->flags |= FLAG_REINIT;
+	}
+
+	if (_active_nmpc_mode == NMPC_RECOVERY_MODE) {
+		pkt->flags |= FLAG_RECOVERY;
 	}
 
 	pkt->pad[0] = pkt->pad[1] = pkt->pad[2] = 0;
@@ -626,6 +640,7 @@ void MulticopterNmpcControl::Run()
 					_need_reinit = true;
 					_has_valid_control = false;
 					_using_px4_position_control = false;
+					_active_nmpc_mode = NMPC_FLIGHT_MODE;
 					_px4_position_control_yaw = NAN;
 				} else if (previous_offboard_enabled && !_vehicle_control_mode.flag_control_offboard_enabled) {
 					generateFailsafeTrajectory(_trajectory_setpoint, _position, _attitude);
@@ -636,6 +651,7 @@ void MulticopterNmpcControl::Run()
 					_need_reinit = true;
 					_has_valid_control = false;
 					_using_px4_position_control = false;
+					_active_nmpc_mode = NMPC_FLIGHT_MODE;
 					_px4_position_control_yaw = NAN;
 				}
 			}
@@ -658,6 +674,7 @@ void MulticopterNmpcControl::Run()
 
 			const NmpcSetpointPair refs = get_setpoint_sequence(initial_pos_enu, current_pos_enu, _last_run);
 			const bool use_px4_position_control = refs.solver.control_mode == PX4_POSITION_CONTROL;
+			_active_nmpc_mode = refs.solver.nmpc_mode;
 
 			if (use_px4_position_control != _using_px4_position_control) {
 				_using_px4_position_control = use_px4_position_control;

@@ -10,6 +10,7 @@
 #define N_HORIZON 20
 
 #define FLAG_REINIT 0x01
+#define FLAG_RECOVERY 0x02
 
 #pragma pack(push, 1)
 

@@ -27,13 +27,19 @@
 
 using namespace time_literals;
 
+enum NmpcFlightMode : uint8_t {
+	NMPC_FLIGHT_MODE = 0,
+	NMPC_RECOVERY_MODE = 1,
+};
+
 // Setpoint in the NMPC/ENU frame: x=East, y=North, z=Up.
 // Use the trajectory helpers to generate setpoints without touching PX4 NED
 // internals.
 struct NmpcSetpoint {
 	float pos[3]; // ENU: [East, North, Up]  (m)
 	float vel[3]; // ENU: [East, North, Up]  (m/s)
-	uint8_t control_mode{0};
+	uint8_t control_mode;
+	NmpcFlightMode nmpc_mode;
 };
 
 struct NmpcSetpointPair {
@@ -118,6 +124,7 @@ private:
 	bool _need_reinit{true};
 	bool _has_valid_control{false};
 	bool _using_px4_position_control{false};
+	NmpcFlightMode _active_nmpc_mode{NMPC_FLIGHT_MODE};
 	hrt_abstime _collision_setpoint_start{0};
 	float _collision_prev_rel_x_enu{NAN};
 	float _px4_position_control_yaw{NAN};
