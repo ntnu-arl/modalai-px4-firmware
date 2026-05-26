@@ -71,7 +71,7 @@ enum TrajectoryControlMode : uint8_t {
 
 static constexpr size_t MAX_COLLISION_SETPOINTS = 4;
 
-// Allocation matrix B (6x4) in column-major order for CasADi.
+// Allocation matrix B (6x4) in column-major order for CasADi..
 // Maps motor forces to body wrench [Fx, Fy, Fz, Tx, Ty, Tz].
 // Motor positions and thrust directions are in the solver body frame (FLU).
 // Column k = [thrust_dir_k, cross(pos_k, thrust_dir_k) + motor_dir_k*0.01*thrust_dir_k]
