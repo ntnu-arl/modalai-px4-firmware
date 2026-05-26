@@ -79,12 +79,27 @@ enum TrajectoryControlMode : uint8_t {
 	PX4_POSITION_CONTROL = 1,
 };
 
-static constexpr float INTIAL_REL_X = -2.0f; // -2.0f;
-static constexpr float BIAS_Y = +0.0f; // +1.55f;
-static constexpr float GAP_Y = +0.04f;
-static constexpr float GAP_X = +1.41f;
-static constexpr float GAP_Z = +0.6f; // +1.075f;
+
+// Gap reference points (converting from mm to meters for PX4)
+static constexpr float GAP_REF1_X = 1867.4f / 1000.0f;
+static constexpr float GAP_REF1_Y = 190.0f / 1000.0f;
+static constexpr float GAP_REF1_Z = 1342.0f / 1000.0f;
+
+static constexpr float GAP_REF2_X = 1866.0f / 1000.0f;
+static constexpr float GAP_REF2_Y = 393.96f / 1000.0f;
+static constexpr float GAP_REF2_Z = 1339.1f / 1000.0f;
+
+static constexpr float GAP_X = (GAP_REF1_X + GAP_REF2_X) / 2.0f;
+static constexpr float GAP_Y = (GAP_REF1_Y + GAP_REF2_Y) / 2.0f;
+static constexpr float GAP_Z = (GAP_REF1_Z + GAP_REF2_Z) / 2.0f;
+
+
+
+static constexpr float INTIAL_REL_X = -2.0f;
+static constexpr float BIAS_Y_REL = +1.55f; // +1.55f;
 static constexpr float FINAL_REL_X = +1.0f;
+static constexpr float DESIRED_Z = 1.05f;
+
 static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
 
 // Collision-task trajectory waypoint table.
@@ -95,11 +110,10 @@ static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z},     {0.0f, 0.0f, 0.0f}, 10.0f,   NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-	{{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f},   NAN, GAP_X, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z},      {0.0f, 0.0f, 0.0f},  1.0f,   NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
-	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z},      {0.0f, 0.0f, 0.0f}, 60.0f,   NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-
+  {{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y_REL, DESIRED_Z},     {0.0f, 0.0f, 0.0f},       10.0f,    NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+  {{GAP_X + 0.25f,        GAP_Y + BIAS_Y_REL, DESIRED_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f},  NAN,  GAP_X, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+  {{GAP_X + FINAL_REL_X,  GAP_Y + BIAS_Y_REL, DESIRED_Z},      {0.0f, 0.0f, 0.0f},       1.0f,    NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
+  {{GAP_X + FINAL_REL_X,  GAP_Y + BIAS_Y_REL, DESIRED_Z},      {0.0f, 0.0f, 0.0f},      60.0f,    NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
