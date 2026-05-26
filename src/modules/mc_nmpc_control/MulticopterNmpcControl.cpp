@@ -84,7 +84,7 @@ static constexpr float BIAS_Y = +0.0f; // +1.55f;
 static constexpr float GAP_Y = +0.04f;
 static constexpr float GAP_X = +1.41f;
 static constexpr float GAP_Z = +0.6f; // +1.075f;
-static constexpr float FINAL_REL_X = +1.5f;
+static constexpr float FINAL_REL_X = +1.0f;
 static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
 
 // Collision-task trajectory waypoint table.
@@ -95,13 +95,11 @@ static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
 // Each setpoint can advance after setpoint_time_s and can also advance early
 // when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
 static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	// {{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-	// {{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f}, NAN, GAP_X, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-	// {{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 60.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
-	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 2.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
-	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z}, {0.0f, 0.0f, 0.0f}, 2.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
+	{{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y, GAP_Z},     {0.0f, 0.0f, 0.0f}, 10.0f,   NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+	{{GAP_X + 0.25f, GAP_Y + BIAS_Y, GAP_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f},   NAN, GAP_X, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z},      {0.0f, 0.0f, 0.0f},  1.0f,   NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
+	{{GAP_X + FINAL_REL_X, GAP_Y + BIAS_Y, GAP_Z},      {0.0f, 0.0f, 0.0f}, 60.0f,   NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
+
 };
 #else
 // Relative ENU waypoints referenced to the NMPC activation position.
