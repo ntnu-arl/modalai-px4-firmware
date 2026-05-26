@@ -1,5 +1,3 @@
-#define USE_ABSOLUTE_POSITION
-
 #include "MulticopterNmpcControl.hpp"
 
 #include <drivers/drv_hrt.h>
@@ -7,6 +5,7 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 #include <stdio.h>
+#include <string.h>
 
 using namespace matrix;
 
@@ -65,66 +64,12 @@ static_assert(sizeof(((nmpc_control_data_s *)nullptr)->quat_next)
 		      == sizeof(((control_packet_t *)nullptr)->quat_next),
 	      "nmpc_control_data.quat_next layout must match control_packet_t.quat_next");
 
-struct TimedRelativeSetpoint {
-	float pos_rel_enu[3];
-	float vel_enu[3];
-	float setpoint_time_s;
-	float waypoint_x_limit_rel_enu;
-	uint8_t control_mode;
-	NmpcFlightMode nmpc_mode;
-};
-
 enum TrajectoryControlMode : uint8_t {
 	NMPC_DIRECT_ACTUATOR = 0,
 	PX4_POSITION_CONTROL = 1,
 };
 
-
-// Gap reference points (converting from mm to meters for PX4)
-static constexpr float GAP_REF1_X = 1867.4f / 1000.0f;
-static constexpr float GAP_REF1_Y = 190.0f / 1000.0f;
-static constexpr float GAP_REF1_Z = 1342.0f / 1000.0f;
-
-static constexpr float GAP_REF2_X = 1866.0f / 1000.0f;
-static constexpr float GAP_REF2_Y = 393.96f / 1000.0f;
-static constexpr float GAP_REF2_Z = 1339.1f / 1000.0f;
-
-static constexpr float GAP_X = (GAP_REF1_X + GAP_REF2_X) / 2.0f;
-static constexpr float GAP_Y = (GAP_REF1_Y + GAP_REF2_Y) / 2.0f;
-static constexpr float GAP_Z = (GAP_REF1_Z + GAP_REF2_Z) / 2.0f;
-
-
-
-static constexpr float INTIAL_REL_X = -2.0f;
-static constexpr float BIAS_Y_REL = +1.55f; // +1.55f;
-static constexpr float FINAL_REL_X = +1.0f;
-static constexpr float DESIRED_Z = 1.05f;
-
-static constexpr float TRAVERSAL_VEL_X = +2.1f; // +1.75f;
-
-// Collision-task trajectory waypoint table.
-// Keep both sections below so it is easy to toggle between relative and
-// absolute positioning by defining or undefining USE_ABSOLUTE_POSITION above.
-#ifdef USE_ABSOLUTE_POSITION
-// Absolute ENU waypoints in the local position frame.
-// Each setpoint can advance after setpoint_time_s and can also advance early
-// when the absolute ENU x position crosses waypoint_x_limit_rel_enu.
-static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-  {{GAP_X + INTIAL_REL_X, GAP_Y + BIAS_Y_REL, DESIRED_Z},     {0.0f, 0.0f, 0.0f},       10.0f,    NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-  {{GAP_X + 0.25f,        GAP_Y + BIAS_Y_REL, DESIRED_Z}, {TRAVERSAL_VEL_X, 0.0f, 0.0f},  NAN,  GAP_X, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-  {{GAP_X + FINAL_REL_X,  GAP_Y + BIAS_Y_REL, DESIRED_Z},      {0.0f, 0.0f, 0.0f},       1.0f,    NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
-  {{GAP_X + FINAL_REL_X,  GAP_Y + BIAS_Y_REL, DESIRED_Z},      {0.0f, 0.0f, 0.0f},      60.0f,    NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-};
-#else
-// Relative ENU waypoints referenced to the NMPC activation position.
-// Each setpoint can advance after setpoint_time_s and can also advance early
-// when the relative ENU x position crosses waypoint_x_limit_rel_enu.
-static const TimedRelativeSetpoint COLLISION_SETPOINTS[] = {
-	{{0.0f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 10.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-	{{1.15f, 0.0f, 0.6f}, {1.5f, 0.0f, 0.0f}, NAN, 1.14f, NMPC_DIRECT_ACTUATOR, NMPC_FLIGHT_MODE},
-	{{1.5f, 0.0f, 0.6f}, {0.0f, 0.0f, 0.0f}, 5.0f, NAN, NMPC_DIRECT_ACTUATOR, NMPC_RECOVERY_MODE},
-};
-#endif
+static constexpr size_t MAX_COLLISION_SETPOINTS = 4;
 
 // Allocation matrix B (6x4) in column-major order for CasADi.
 // Maps motor forces to body wrench [Fx, Fy, Fz, Tx, Ty, Tz].
@@ -169,6 +114,51 @@ uint8_t sanitizeTrajectoryControlMode(uint8_t control_mode)
 {
 	return control_mode <= PX4_POSITION_CONTROL ? control_mode : NMPC_DIRECT_ACTUATOR;
 }
+
+bool readRequiredParamFloat(const char *name, float *value)
+{
+	const param_t handle = param_find(name);
+
+	if (handle == PARAM_INVALID) {
+		PX4_ERR("required NMPC parameter missing: %s", name);
+		return false;
+	}
+
+	float parsed = NAN;
+
+	if (param_get(handle, &parsed) != PX4_OK) {
+		PX4_ERR("failed to read NMPC parameter: %s", name);
+		return false;
+	}
+
+	if (!PX4_ISFINITE(parsed) || fabsf(parsed) > 1.0e20f) {
+		PX4_ERR("NMPC parameter must be set to a valid finite value: %s", name);
+		return false;
+	}
+
+	*value = parsed;
+	return true;
+}
+
+bool readRequiredParamInt(const char *name, int32_t *value)
+{
+	const param_t handle = param_find(name);
+
+	if (handle == PARAM_INVALID) {
+		PX4_ERR("required NMPC parameter missing: %s", name);
+		return false;
+	}
+
+	int32_t parsed = -1;
+
+	if (param_get(handle, &parsed) != PX4_OK) {
+		PX4_ERR("failed to read NMPC parameter: %s", name);
+		return false;
+	}
+
+	*value = parsed;
+	return true;
+}
 }
 
 MulticopterNmpcControl::MulticopterNmpcControl() :
@@ -180,6 +170,111 @@ MulticopterNmpcControl::MulticopterNmpcControl() :
 MulticopterNmpcControl::~MulticopterNmpcControl()
 {
 	perf_free(_loop_perf);
+}
+
+bool MulticopterNmpcControl::loadNmpcControllerConfig()
+{
+	float gap_ref1_mm[3] {};
+	float gap_ref2_mm[3] {};
+	int32_t use_absolute_position = -1;
+	int32_t parsed_setpoint_count = -1;
+
+	if (!readRequiredParamInt("NMPC_ABS_POS", &use_absolute_position)
+	    || !readRequiredParamFloat("NMPC_G1_XMM", &gap_ref1_mm[0])
+	    || !readRequiredParamFloat("NMPC_G1_YMM", &gap_ref1_mm[1])
+	    || !readRequiredParamFloat("NMPC_G1_ZMM", &gap_ref1_mm[2])
+	    || !readRequiredParamFloat("NMPC_G2_XMM", &gap_ref2_mm[0])
+	    || !readRequiredParamFloat("NMPC_G2_YMM", &gap_ref2_mm[1])
+	    || !readRequiredParamFloat("NMPC_G2_ZMM", &gap_ref2_mm[2])
+	    || !readRequiredParamInt("NMPC_SP_COUNT", &parsed_setpoint_count)) {
+		return false;
+	}
+
+	if (use_absolute_position != 0 && use_absolute_position != 1) {
+		PX4_ERR("invalid NMPC_ABS_POS=%ld", (long)use_absolute_position);
+		return false;
+	}
+
+	_use_absolute_position = use_absolute_position == 1;
+
+	const float gap_x = 0.5f * (gap_ref1_mm[0] + gap_ref2_mm[0]) / 1000.0f;
+	const float gap_y = 0.5f * (gap_ref1_mm[1] + gap_ref2_mm[1]) / 1000.0f;
+	const float gap_z = 0.5f * (gap_ref1_mm[2] + gap_ref2_mm[2]) / 1000.0f;
+
+	if (parsed_setpoint_count <= 0 || parsed_setpoint_count > static_cast<int32_t>(MAX_COLLISION_SETPOINTS)) {
+		PX4_ERR("invalid NMPC_SP_COUNT=%ld", (long)parsed_setpoint_count);
+		return false;
+	}
+
+	for (int32_t i = 0; i < parsed_setpoint_count; i++) {
+		char name[80];
+		NmpcCollisionSetpoint setpoint {};
+		int32_t has_time = -1;
+		int32_t has_x_limit = -1;
+		int32_t control_mode = -1;
+		int32_t nmpc_mode = -1;
+
+		snprintf(name, sizeof(name), "NMPC_S%ld_PX", (long)i);
+		if (!readRequiredParamFloat(name, &setpoint.pos_rel_enu[0])) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_PY", (long)i);
+		if (!readRequiredParamFloat(name, &setpoint.pos_rel_enu[1])) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_PZ", (long)i);
+		if (!readRequiredParamFloat(name, &setpoint.pos_rel_enu[2])) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_VX", (long)i);
+		if (!readRequiredParamFloat(name, &setpoint.vel_enu[0])) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_VY", (long)i);
+		if (!readRequiredParamFloat(name, &setpoint.vel_enu[1])) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_VZ", (long)i);
+		if (!readRequiredParamFloat(name, &setpoint.vel_enu[2])) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_HAS_T", (long)i);
+		if (!readRequiredParamInt(name, &has_time)) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_T", (long)i);
+		if (!readRequiredParamFloat(name, &setpoint.setpoint_time_s)) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_HAS_X", (long)i);
+		if (!readRequiredParamInt(name, &has_x_limit)) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_XLIM", (long)i);
+		if (!readRequiredParamFloat(name, &setpoint.waypoint_x_limit_rel_enu)) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_CTRL", (long)i);
+		if (!readRequiredParamInt(name, &control_mode)) { return false; }
+		snprintf(name, sizeof(name), "NMPC_S%ld_MODE", (long)i);
+		if (!readRequiredParamInt(name, &nmpc_mode)) { return false; }
+
+		if ((has_time != 0 && has_time != 1) || (has_x_limit != 0 && has_x_limit != 1)
+		    || control_mode < 0 || control_mode > PX4_POSITION_CONTROL
+		    || nmpc_mode < 0 || nmpc_mode > NMPC_RECOVERY_MODE) {
+			PX4_ERR("invalid NMPC setpoint mode at index %ld", (long)i);
+			return false;
+		}
+
+		if (!has_time) {
+			setpoint.setpoint_time_s = NAN;
+		}
+
+		if (!has_x_limit) {
+			setpoint.waypoint_x_limit_rel_enu = NAN;
+		}
+
+		setpoint.control_mode = (uint8_t)control_mode;
+		setpoint.nmpc_mode = (NmpcFlightMode)nmpc_mode;
+
+		if (_use_absolute_position) {
+			setpoint.pos_rel_enu[0] += gap_x;
+			setpoint.pos_rel_enu[1] += gap_y;
+
+			if (PX4_ISFINITE(setpoint.waypoint_x_limit_rel_enu)) {
+				setpoint.waypoint_x_limit_rel_enu += gap_x;
+			}
+		}
+
+		_collision_setpoints[i] = setpoint;
+	}
+
+	_collision_setpoint_count = parsed_setpoint_count;
+
+	PX4_INFO("loaded %u NMPC collision setpoints from PX4 params gap=[%.3f %.3f %.3f] absolute=%d",
+		 (unsigned)_collision_setpoint_count,
+		 (double)gap_x, (double)gap_y, (double)gap_z, (int)_use_absolute_position);
+	return true;
 }
 
 bool MulticopterNmpcControl::init()
@@ -195,6 +290,10 @@ bool MulticopterNmpcControl::init()
 	}
 
 	if (!loadActuatorMappingParams()) {
+		return false;
+	}
+
+	if (!loadNmpcControllerConfig()) {
 		return false;
 	}
 
@@ -251,21 +350,16 @@ NmpcSetpointPair MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &i
 							       hrt_abstime t_now)
 {
 	NmpcSetpointPair refs{};
-	const size_t num_collision_setpoints = sizeof(COLLISION_SETPOINTS) / sizeof(COLLISION_SETPOINTS[0]);
 
 	if (_collision_setpoint_start == 0) {
 		_collision_setpoint_start = t_now;
 	}
 
-#ifdef USE_ABSOLUTE_POSITION
-	const float current_x_enu = current_pos_enu(0);
-#else
-	const float current_x_enu = current_pos_enu(0) - initial_pos_enu(0);
-#endif
+	const float current_x_enu = _use_absolute_position ? current_pos_enu(0) : current_pos_enu(0) - initial_pos_enu(0);
 	const float prev_x_enu = PX4_ISFINITE(_collision_prev_rel_x_enu) ? _collision_prev_rel_x_enu : current_x_enu;
 
-	while (_collision_setpoint_index + 1 < num_collision_setpoints) {
-		const TimedRelativeSetpoint &cfg = COLLISION_SETPOINTS[_collision_setpoint_index];
+	while (_collision_setpoint_index + 1 < _collision_setpoint_count) {
+		const NmpcCollisionSetpoint &cfg = _collision_setpoints[_collision_setpoint_index];
 		const float elapsed_s = (t_now > _collision_setpoint_start) ? (float)(t_now - _collision_setpoint_start) * 1e-6f : 0.0f;
 		const bool time_elapsed = PX4_ISFINITE(cfg.setpoint_time_s) && elapsed_s >= cfg.setpoint_time_s;
 		const bool x_crossed = PX4_ISFINITE(cfg.waypoint_x_limit_rel_enu)
@@ -282,19 +376,19 @@ NmpcSetpointPair MulticopterNmpcControl::get_setpoint_sequence(const Vector3f &i
 					    : t_now;
 	}
 
-	const TimedRelativeSetpoint *active_cfg = &COLLISION_SETPOINTS[_collision_setpoint_index];
+	const NmpcCollisionSetpoint *active_cfg = &_collision_setpoints[_collision_setpoint_index];
 	_collision_prev_rel_x_enu = current_x_enu;
 
-#ifdef USE_ABSOLUTE_POSITION
-	(void)initial_pos_enu;
-	refs.nominal.pos[0] = active_cfg->pos_rel_enu[0];
-	refs.nominal.pos[1] = active_cfg->pos_rel_enu[1];
-	refs.nominal.pos[2] = active_cfg->pos_rel_enu[2];
-#else
-	refs.nominal.pos[0] = initial_pos_enu(0) + active_cfg->pos_rel_enu[0];
-	refs.nominal.pos[1] = initial_pos_enu(1) + active_cfg->pos_rel_enu[1];
-	refs.nominal.pos[2] = initial_pos_enu(2) + active_cfg->pos_rel_enu[2];
-#endif
+	if (_use_absolute_position) {
+		(void)initial_pos_enu;
+		refs.nominal.pos[0] = active_cfg->pos_rel_enu[0];
+		refs.nominal.pos[1] = active_cfg->pos_rel_enu[1];
+		refs.nominal.pos[2] = active_cfg->pos_rel_enu[2];
+	} else {
+		refs.nominal.pos[0] = initial_pos_enu(0) + active_cfg->pos_rel_enu[0];
+		refs.nominal.pos[1] = initial_pos_enu(1) + active_cfg->pos_rel_enu[1];
+		refs.nominal.pos[2] = initial_pos_enu(2) + active_cfg->pos_rel_enu[2];
+	}
 	refs.nominal.vel[0] = active_cfg->vel_enu[0];
 	refs.nominal.vel[1] = active_cfg->vel_enu[1];
 	refs.nominal.vel[2] = active_cfg->vel_enu[2];

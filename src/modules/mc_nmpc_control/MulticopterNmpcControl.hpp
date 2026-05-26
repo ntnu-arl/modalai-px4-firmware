@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <matrix/matrix/math.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
@@ -47,6 +48,15 @@ struct NmpcSetpointPair {
 	NmpcSetpoint solver{};
 };
 
+struct NmpcCollisionSetpoint {
+	float pos_rel_enu[3];
+	float vel_enu[3];
+	float setpoint_time_s;
+	float waypoint_x_limit_rel_enu;
+	uint8_t control_mode;
+	NmpcFlightMode nmpc_mode;
+};
+
 class MulticopterNmpcControl : public ModuleBase<MulticopterNmpcControl>, public px4::WorkItem
 {
 public:
@@ -66,6 +76,7 @@ private:
 	void publish_offboard_control_mode(bool use_px4_position_control);
 	void publish_trajectory_setpoint(const trajectory_setpoint_s &traj_sp);
 	bool loadActuatorMappingParams();
+	bool loadNmpcControllerConfig();
 	void updateEscTelemetryCache();
 	int mapEscReportToMotorIndex(const esc_report_s &report) const;
 	void generateFailsafeTrajectory(trajectory_setpoint_s &traj_sp,
@@ -117,6 +128,10 @@ private:
 	float _actuator_thr_mdl_fac{NAN};
 	float _actuator_rpm_min{NAN};
 	float _actuator_rpm_max{NAN};
+
+	NmpcCollisionSetpoint _collision_setpoints[4] {};
+	size_t _collision_setpoint_count{0};
+	bool _use_absolute_position{false};
 
 	uint32_t _seq{0};
 	uint32_t _min_valid_control_seq{0};
