@@ -1,124 +1,104 @@
 # NMPC Codebase Notes
 
+This note documents the current `mc_nmpc_control` architecture and how it interacts with the VOXL-side solver code in the separate repository:
+
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code`
+
+It is limited to the current runtime path used by this PX4 module.
+
 ## Purpose
 
-This note explains where the NMPC solver code used by `mc_nmpc_control` actually comes from, and how data flows from PX4 state to the acados solver and back to motor commands.
+`mc_nmpc_control` does not link acados directly.
 
-The short version is:
+Its job is to:
 
-- `mc_nmpc_control` does not link acados directly.
-- It publishes a packed NMPC state over uORB.
-- `nmpc_io_bridge` forwards that state to `/run/mpa/nmpc_state`.
-- `/usr/local/bin/nmpc_pipe_solver` reads that pipe, calls the generated acados solver, and writes results to `/run/mpa/nmpc_control`.
-- `nmpc_io_bridge` republishes the result on uORB.
-- `mc_nmpc_control` consumes that result and publishes `actuator_motors`.
+1. Read PX4 vehicle state and ESC telemetry.
+2. Pack the solver input into the shared NMPC packet format.
+3. Publish that data on uORB as `nmpc_state_data`.
+4. Receive solver output on uORB as `nmpc_control_data`.
+5. Convert valid solver output into `actuator_motors`.
+6. Optionally hand the final segment over to PX4 position control by publishing `trajectory_setpoint` and changing `offboard_control_mode`.
 
-## Main Files
+The actual userspace solver runs outside PX4 on the VOXL apps processor.
 
-### PX4 side
+## Main Files In This Directory
 
-- `src/modules/mc_nmpc_control/MulticopterNmpcControl.cpp`
-- `src/modules/mc_nmpc_control/MulticopterNmpcControl.hpp`
-- `src/modules/mc_nmpc_control/protocol.h`
+- `MulticopterNmpcControl.cpp`
+- `MulticopterNmpcControl.hpp`
+- `protocol.h`
+- `mc_nmpc_control_params.c`
+- `CMakeLists.txt`
+- `Kconfig`
+
+## External Files This Module Depends On
+
+### In the other repository
+
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/protocol.h`
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/generate_nmpc_solver.py`
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/nmpc_pipe_solver.c`
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/Makefile.voxl`
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/src/nmpc_controller.py`
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code/`
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code_recovery/`
+
+### Elsewhere in this PX4 repo
+
 - `msg/NmpcStateData.msg`
 - `msg/NmpcControlData.msg`
 - `boards/modalai/voxl2/src/drivers/nmpc_io_bridge/nmpc_io_bridge.cpp`
 - `boards/modalai/voxl2/target/voxl-px4-start`
 
-### Host / VOXL solver side
+## Runtime Architecture
 
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/src/nmpc_controller.py`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/acados_ocp_quadrotor.json`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code/acados_solver_quadrotor_nmpc.c`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code/acados_solver_quadrotor_nmpc.h`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/Makefile.voxl`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/nmpc_pipe_solver.c`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/nmpc_udp_solver.c`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/voxl_nmpc_bridge.py`
+The current real-hardware runtime chain is:
 
-## Where the acados solver comes from
+1. `mc_nmpc_control` samples PX4 state and builds a packed NMPC state packet.
+2. `mc_nmpc_control` publishes `nmpc_state_data`.
+3. `nmpc_io_bridge` forwards `nmpc_state_data` to `/run/mpa/nmpc_state`.
+4. `/usr/local/bin/nmpc_pipe_solver` reads the FIFO, runs the generated acados solver, and writes `control_packet_t` to `/run/mpa/nmpc_control`.
+5. `nmpc_io_bridge` republishes that output as `nmpc_control_data`.
+6. `mc_nmpc_control` consumes `nmpc_control_data` and either:
+   - publishes `actuator_motors` directly, or
+   - publishes `trajectory_setpoint` and enables PX4 position control for the configured segment.
 
-The solver-specific acados code is generated from the Python OCP definition in:
+This module is therefore a PX4-side bridge, not the solver itself.
 
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/src/nmpc_controller.py`
+## Shared Packet ABI
 
-That file defines:
+The shared packed ABI is defined locally in `protocol.h` and must stay compatible with:
 
-- model name: `quadrotor_nmpc`
-- state dimension: 17
-- control dimension: 4
-- parameter dimension: 55
-- horizon: 20
-- cost type: `NONLINEAR_LS`
-- solver type: `SQP_RTI`
-- QP solver: `PARTIAL_CONDENSING_HPIPM`
-- integrator: `ERK`
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/protocol.h`
 
-The generated export metadata is stored in:
-
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/acados_ocp_quadrotor.json`
-
-That JSON points to the generated code directory:
-
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code`
-
-The actual generated solver sources used by the VOXL solver wrapper are:
-
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code/acados_solver_quadrotor_nmpc.c`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code/acados_solver_quadrotor_nmpc.h`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code/quadrotor_nmpc_model/...`
-- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code/quadrotor_nmpc_cost/...`
-
-## Important build detail
-
-`voxl_src/Makefile.voxl` builds the onboard solver from `../c_generated_code` and links against acados from:
-
-- `/home/paran/acados`
-- `/home/paran/acados/build_aarch64`
-
-So the actual onboard solver build path is:
-
-1. OCP defined in `code/src/nmpc_controller.py`
-2. acados generates C into `code/c_generated_code`
-3. `voxl_src/nmpc_pipe_solver.c` wraps that generated solver
-4. `voxl_src/Makefile.voxl` compiles the wrapper plus generated code into `nmpc_pipe_solver`
-5. PX4 startup launches `/usr/local/bin/nmpc_pipe_solver`
-
-Note: `voxl_src/build_voxl.sh` builds the vendored `voxl_src/acados` tree, but `voxl_src/Makefile.voxl` is configured to use `/home/paran/acados`, not `voxl_src/acados`. That means the active build currently depends on the external `/home/paran/acados` installation.
-
-## Runtime process layout
-
-On boot, `boards/modalai/voxl2/target/voxl-px4-start` does two relevant things:
-
-1. starts `/usr/local/bin/nmpc_pipe_solver`
-2. starts `nmpc_io_bridge`
-
-This means the runtime architecture is:
-
-- PX4 module on the flight side: `mc_nmpc_control`
-- bridge on the VOXL board side: `nmpc_io_bridge`
-- userspace solver process on the apps processor: `nmpc_pipe_solver`
-
-## Data structures
-
-The packet ABI shared between PX4 and the solver wrapper is in:
-
-- `src/modules/mc_nmpc_control/protocol.h`
-
-It defines:
+Current constants:
 
 - `NX = 17`
 - `NU = 4`
-- `NP = 55`
+- `NRIGID = 13`
+- `NP = 65`
 - `N_HORIZON = 20`
+
+Current flags:
+
+- `FLAG_REINIT = 0x01`
+- `FLAG_RECOVERY = 0x02`
 
 ### `state_packet_t`
 
 - `seq`
 - `flags`
 - `sample_timestamp_us`
+- `position_velocity_timestamp_us`
+- `attitude_timestamp_us`
+- `angular_velocity_timestamp_us`
 - `rigid_body_state[13]`
-- `p[55]`
+- `p[65]`
+- `motor_rps_meas[4]`
+- `motor_rps_timestamp_us[4]`
+- `motor_rps_valid_mask`
+- `reserved0`
+- `nominal_position_enu[3]`
+- `nominal_velocity_enu[3]`
 
 ### `control_packet_t`
 
@@ -128,213 +108,162 @@ It defines:
 - `solve_time_us`
 - `quat_next[4]`
 
-The corresponding uORB topics are:
+`MulticopterNmpcControl.cpp` uses `static_assert`s to verify that the `nmpc_state_data` and `nmpc_control_data` uORB message layouts remain compatible with these packet structs.
 
-- `msg/NmpcStateData.msg`
-- `msg/NmpcControlData.msg`
+## What `mc_nmpc_control` Publishes And Subscribes
 
-## Meaning of `rigid_body_state`, `x0`, and `p`
-
-`MulticopterNmpcControl::pack_state()` packs the solver inputs.
-
-### Measured state `rigid_body_state[13]`
-
-- `rigid_body_state[0:3]`: position, PX4 NED converted to solver ENU
-- `rigid_body_state[3:6]`: linear velocity, PX4 NED converted to solver ENU
-- `rigid_body_state[6:10]`: quaternion, PX4 FRD converted to solver FLU convention
-- `rigid_body_state[10:13]`: body angular velocity, PX4 FRD converted to solver FLU
-
-### Solver state `x0[17]`
-
-- `x0[0:13]`: copied from `rigid_body_state`
-- `x0[13:17]`: internal motor-state estimate owned by the solver runtime
-
-### Parameters `p[55]`
-
-- `p[0]`: mass
-- `p[1:7]`: inertia terms
-- `p[7:10]`: gravity vector
-- `p[10:13]`: position setpoint
-- `p[13:16]`: velocity setpoint
-- `p[16:20]`: quaternion setpoint
-- `p[20:44]`: 6x4 allocation matrix, column-major
-- `p[44:48]`: thrust coefficients `kf`
-- `p[48:52]`: motor time constants `tau`
-- `p[52:55]`: COM offset
-
-## Actual data flow
-
-### 1. PX4 collects vehicle state
-
-`mc_nmpc_control` reads:
+### Subscriptions
 
 - `vehicle_local_position`
 - `vehicle_attitude`
 - `vehicle_angular_velocity`
-- `trajectory_setpoint`
 - `vehicle_control_mode`
-
-PX4 does not estimate solver motor RPS.
-
-### 2. PX4 packs solver input
-
-`MulticopterNmpcControl::pack_state()` builds a `state_packet_t` from:
-
-- vehicle state
-- sample timestamp
-- setpoint
-- parameters
-- allocation matrix
-- thrust coefficients
-- motor time constants
-- COM offset
-
-If offboard just started, or the solver needs resetting, it sets `FLAG_REINIT`.
-
-### 3. PX4 publishes `nmpc_state_data`
-
-`mc_nmpc_control` publishes the packed state on uORB topic:
-
-- `nmpc_state_data`
-
-### 4. `nmpc_io_bridge` forwards state to FIFO
-
-`boards/modalai/voxl2/src/drivers/nmpc_io_bridge/nmpc_io_bridge.cpp` subscribes to `nmpc_state_data`, copies it into `state_packet_t`, and writes it to:
-
-- `/run/mpa/nmpc_state`
-
-### 5. `nmpc_pipe_solver` reads the state packet
-
-`voxl_src/nmpc_pipe_solver.c` blocks on:
-
-- `/run/mpa/nmpc_state`
-
-For each received packet it:
-
-1. resets or propagates its internal motor-state estimate from the packet timestamp and previous commanded RPS
-2. assembles full solver state `x0[17]` locally
-3. optionally warm-starts on `FLAG_REINIT`
-4. fixes the stage-0 state with `lbx = ubx = x0`
-5. updates parameter vector `p` for all shooting stages `0..N`
-6. calls `quadrotor_nmpc_acados_solve()`
-
-### 6. acados runs the generated solver
-
-The wrapper uses the generated capsule from:
-
-- `acados_solver_quadrotor_nmpc.c`
-- `acados_solver_quadrotor_nmpc.h`
-
-This is the actual acados solver used in flight.
-
-The wrapper then extracts:
-
-- `u_opt = u(stage 0)`
-- `x1 = x(stage 1)`
-
-### 7. Solver wrapper converts force command to RPS
-
-The generated solver optimizes motor force commands.
-
-`nmpc_pipe_solver.c` converts those forces to motor RPS using:
-
-- `rps = sqrt(force / kf)`
-
-That converted RPS becomes `control_packet_t.u`.
-
-So the meaning of solver output at the PX4 side is:
-
-- `u[4]` = desired motor speed in RPS
-
-not raw force.
-
-### 8. `nmpc_pipe_solver` writes control packet
-
-The wrapper writes `control_packet_t` to:
-
-- `/run/mpa/nmpc_control`
-
-It also includes:
-
-- solver `status`
-- `solve_time_us`
-- predicted next quaternion `quat_next`
-
-### 9. `nmpc_io_bridge` republishes control to uORB
-
-`nmpc_io_bridge` receives data from `/run/mpa/nmpc_control` and republishes:
-
+- `vehicle_status`
+- `esc_status`
 - `nmpc_control_data`
 
-### 10. `mc_nmpc_control` consumes the result
+### Publications
 
-`mc_nmpc_control` reads `nmpc_control_data`.
+- `offboard_control_mode`
+- `actuator_motors`
+- `trajectory_setpoint`
+- `nmpc_state_data`
 
-If `status != 0`:
+## State Packing Details
 
-- it marks the solver for reinit
-- it does not use the returned command
+`MulticopterNmpcControl::pack_state()` is the key packing function.
 
-If `status == 0`:
+### Measured rigid-body state
 
-- it stores the commanded motor RPS
-- it publishes `actuator_motors`
+`rigid_body_state[0:13]` is built from PX4 state after frame conversion:
 
-### 11. PX4 maps RPS to normalized actuator command
+- position: PX4 NED -> solver ENU
+- linear velocity: PX4 NED -> solver ENU
+- attitude quaternion: PX4 FRD -> solver FLU convention
+- body angular velocity: PX4 FRD -> solver FLU
 
-`publish_actuator_motors()` converts motor RPS to:
+### Parameter vector `p[65]`
 
-- RPM
-- then PX4 normalized actuator command in `[0, 1]`
+The parameter vector currently contains:
 
-using:
+- `p[0]`: mass
+- `p[1:7]`: inertia terms
+- `p[7:10]`: gravity vector in solver frame
+- `p[10:13]`: position setpoint in solver frame
+- `p[13:16]`: velocity setpoint in solver frame
+- `p[16:20]`: quaternion setpoint
+- `p[20:44]`: allocation matrix
+- `p[44:48]`: thrust coefficients
+- `p[48:52]`: motor time constants
+- `p[52:55]`: COM offset
+- `p[55:58]`: fixed body-force disturbance
+- `p[58:61]`: fixed body-torque disturbance
+- `p[61:65]`: previous motor forces
 
+### ESC telemetry side channel
+
+Fresh ESC RPM telemetry is forwarded separately through:
+
+- `motor_rps_meas[4]`
+- `motor_rps_timestamp_us[4]`
+- `motor_rps_valid_mask`
+
+This allows the userspace solver to correct its motor-state estimate with asynchronous ESC updates.
+
+### Reference metadata
+
+`nmpc_state_data` carries more than the raw packet:
+
+- `nominal_position_enu`
+- `nominal_velocity_enu`
+- `solver_position_enu`
+- `solver_velocity_enu`
+
+The nominal reference is the intended task-level reference. The solver reference can differ during recovery mode.
+
+## NMPC Modes And Handoff Behavior
+
+This module currently supports two NMPC modes:
+
+- nominal flight mode
+- recovery mode
+
+The active mode is chosen from the PX4 `NMPC_S*_MODE` parameters and encoded in the outgoing packet via `FLAG_RECOVERY`.
+
+This module also supports two control styles per setpoint segment:
+
+- direct NMPC actuator control
+- PX4 position-control handoff
+
+The control style is chosen from `NMPC_S*_CTRL`.
+
+Behavior:
+
+- In direct actuator mode, valid solver output is converted to `actuator_motors`.
+- In PX4 position-control mode, `offboard_control_mode.position` and `.velocity` are enabled, `offboard_control_mode.actuator` is disabled, and a `trajectory_setpoint` is published instead.
+
+When switching back from PX4 position control to direct actuator control, the solver is marked for reinitialization.
+
+## PX4 Parameters Used By This Module
+
+### Standard PX4 actuator mapping parameters
+
+- `THR_MDL_FAC`
 - `VOXL_ESC_RPM_MIN`
 - `VOXL_ESC_RPM_MAX`
-- `THR_MDL_FAC`
 
-The result is published as:
+These are used to map solver-returned motor RPS back to PX4 normalized `actuator_motors.control`.
 
-- `actuator_motors`
+### NMPC sequence parameters
 
-## End-to-end flow summary
+Defined in `mc_nmpc_control_params.c`:
 
-```text
-vehicle state + setpoint + params
-    -> mc_nmpc_control
-    -> nmpc_state_data (uORB)
-    -> nmpc_io_bridge
-    -> /run/mpa/nmpc_state
-    -> nmpc_pipe_solver
-    -> generated acados solver (quadrotor_nmpc)
-    -> u_opt(0) in motor force
-    -> wrapper converts force to motor RPS
-    -> /run/mpa/nmpc_control
-    -> nmpc_io_bridge
-    -> nmpc_control_data (uORB)
-    -> mc_nmpc_control
-    -> actuator_motors
-```
+- `NMPC_ABS_POS`
+- `NMPC_G1_XMM`, `NMPC_G1_YMM`, `NMPC_G1_ZMM`
+- `NMPC_G2_XMM`, `NMPC_G2_YMM`, `NMPC_G2_ZMM`
+- `NMPC_SP_COUNT`
+- `NMPC_S0_*`
+- `NMPC_S1_*`
+- `NMPC_S2_*`
+- `NMPC_S3_*`
 
-## Relationship to `voxl_src/voxl_nmpc_bridge.py`
+These parameters describe up to four collision/setpoint segments, including:
 
-`voxl_src/voxl_nmpc_bridge.py` uses the same packet format, but over TCP for host-side experiments and simulation. It is not the in-flight PX4 pipe path.
+- ENU setpoint position and velocity
+- optional time-based transition
+- optional x-limit-based transition
+- control mode
+- NMPC nominal/recovery mode
 
-That path is:
+## Where The Solver Actually Comes From
 
-- host-side Python controller
-- TCP socket
-- `voxl_src/nmpc_udp_solver.c`
+The solver logic used by `nmpc_pipe_solver` is generated from the Python OCP definition in:
 
-Despite the filename, `nmpc_udp_solver.c` actually runs a TCP server.
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/src/nmpc_controller.py`
 
-## Practical answer to "where does the solver source come from?"
+The current generator script is:
 
-If the question is about the solver logic used by `MulticopterNmpcControl.cpp`, the answer is:
+- `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/generate_nmpc_solver.py`
 
-1. model and OCP are defined in `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/src/nmpc_controller.py`
-2. acados generates C code into `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/c_generated_code`
-3. `/home/paran/Dropbox/NTNU/13_optimizing_soft_drones/code/voxl_src/nmpc_pipe_solver.c` is the runtime wrapper around that generated solver
-4. PX4 talks to that wrapper through `nmpc_io_bridge` and the `/run/mpa/nmpc_*` pipes
+That generator currently emits:
 
-So the acados solver source ultimately used by `mc_nmpc_control` comes from `code/c_generated_code`, which itself is generated from `code/src/nmpc_controller.py`.
+- nominal solver code under `c_generated_code/`
+- recovery solver code under `c_generated_code_recovery/`
+- `acados_ocp_quadrotor.json`
+- `acados_ocp_quadrotor_recovery.json`
+
+This PX4 module never calls acados directly. It only packs data for the external solver process and consumes the returned control packet.
+
+## Important Synchronization Requirements
+
+When changing this module, keep these contracts aligned with the other repo:
+
+1. `protocol.h` layout must match `voxl_src/protocol.h`.
+2. Packet dimensions and parameter indexing must match the generated solver expectations.
+3. Any change to packed state fields must be reflected in the VOXL-side solver and analysis scripts.
+4. Any change to `MulticopterNmpcControl.cpp` constants can affect:
+   - `voxl_src/extract_px4_motor_log.py`
+   - `voxl_src/plot_hitl.py`
+   - `voxl_src/plot_px4_handoff_control_errors.py`
+   - `voxl_src/real_flight_replica/replica.py`
+5. Any change to the NMPC sequence parameter schema must stay consistent with the deployment scripts that write those PX4 params.
