@@ -88,60 +88,34 @@ inline Eigen::VectorXf sigmoid(const Eigen::VectorXf& x){
 
 
 // Gate order in PyTorch nn.GRU is: r, z, n
-static inline Eigen::VectorXf gru_cell_step_pytorch(
-  const Eigen::VectorXf& x_t,      // [I]
-  const Eigen::VectorXf& h_prev,   // [H]
-  const Eigen::MatrixXf& W_ih,     // [3H, I]
-  const Eigen::MatrixXf& W_hh,     // [3H, H]
-  const Eigen::VectorXf& b_ih,     // [3H]
-  const Eigen::VectorXf& b_hh      // [3H]
+static inline Eigen::VectorXf gru_cell_step_pytorch_presplit(
+  const Eigen::VectorXf& x_t,
+  const Eigen::VectorXf& h_prev,
+  const Eigen::MatrixXf& W_ih_r,
+  const Eigen::MatrixXf& W_ih_z,
+  const Eigen::MatrixXf& W_ih_n,
+  const Eigen::MatrixXf& W_hh_r,
+  const Eigen::MatrixXf& W_hh_z,
+  const Eigen::MatrixXf& W_hh_n,
+  const Eigen::VectorXf& b_ih_r,
+  const Eigen::VectorXf& b_ih_z,
+  const Eigen::VectorXf& b_ih_n,
+  const Eigen::VectorXf& b_hh_r,
+  const Eigen::VectorXf& b_hh_z,
+  const Eigen::VectorXf& b_hh_n
 ) {
   const int H = static_cast<int>(h_prev.size());
-  // if (W_ih.rows() != 3 * H || W_hh.rows() != 3 * H || b_ih.size() != 3 * H || b_hh.size() != 3 * H) {
-  //   throw std::runtime_error("GRU param shapes inconsistent with hidden size H");
-  // }
-  // if (W_hh.cols() != H) {
-  //   throw std::runtime_error("W_hh must be [3H, H]");
-  // }
-  // if (W_ih.cols() != x_t.size()) {
-  //   throw std::runtime_error("W_ih must be [3H, I] where I == x_t.size()");
-  // }
 
-  // Split into r,z,n blocks (PyTorch order: r, z, n)
-  const auto W_ih_r = W_ih.block(0,    0, H, W_ih.cols());
-  const auto W_ih_z = W_ih.block(H,    0, H, W_ih.cols());
-  const auto W_ih_n = W_ih.block(2*H,  0, H, W_ih.cols());
-
-  const auto W_hh_r = W_hh.block(0,    0, H, W_hh.cols());
-  const auto W_hh_z = W_hh.block(H,    0, H, W_hh.cols());
-  const auto W_hh_n = W_hh.block(2*H,  0, H, W_hh.cols());
-
-  const auto b_ih_r = b_ih.segment(0,   H);
-  const auto b_ih_z = b_ih.segment(H,   H);
-  const auto b_ih_n = b_ih.segment(2*H, H);
-
-  const auto b_hh_r = b_hh.segment(0,   H);
-  const auto b_hh_z = b_hh.segment(H,   H);
-  const auto b_hh_n = b_hh.segment(2*H, H);
-
-  // r_t = sigmoid(W_ir x + b_ir + W_hr h + b_hr)
   Eigen::VectorXf r = sigmoid(W_ih_r * x_t + b_ih_r + W_hh_r * h_prev + b_hh_r);
-
-  // z_t = sigmoid(W_iz x + b_iz + W_hz h + b_hz)
   Eigen::VectorXf z = sigmoid(W_ih_z * x_t + b_ih_z + W_hh_z * h_prev + b_hh_z);
 
-  // n_t = tanh(W_in x + b_in + r ⊙ (W_hn h + b_hn))
   Eigen::VectorXf n = (W_ih_n * x_t + b_ih_n).array()
-                  + r.array() * (W_hh_n * h_prev + b_hh_n).array();
+                    + r.array() * (W_hh_n * h_prev + b_hh_n).array();
   n = n.array().tanh();
 
-
-  // h_t = (1 - z) ⊙ n + z ⊙ h_prev   (PyTorch convention)
-  Eigen::VectorXf h = (Eigen::VectorXf::Ones(H) - z).array() * n.array()
-                    + z.array() * h_prev.array();
-  return h;
+  return (Eigen::VectorXf::Ones(H) - z).array() * n.array()
+       + z.array() * h_prev.array();
 }
-
 NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
 {
   _n_motors = n_motors;
@@ -158,9 +132,8 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _weight_layer_1 = openDataUnconstrained(path + "weight_layer_1.csv");
     _bias_layer_2 = openDataUnconstrained(path + "bias_layer_2.csv");
     _weight_layer_2 = openDataUnconstrained(path + "weight_layer_2.csv");
-    // _bias_layer_res = openDataUnconstrained(path + "bias_layer_res.csv");
-    // _weight_layer_res = openDataUnconstrained(path + "weight_layer_res.csv");
-    PX4_INFO("loading model files mid");
+    // _bias_layer_3 = openDataUnconstrained(path + "bias_layer_3.csv");
+    // _weight_layer_3 = openDataUnconstrained(path + "weight_layer_3.csv");
     // _bias_layer_4 = openDataUnconstrained(path + "bias_layer_4.csv");
     // _weight_layer_4 = openDataUnconstrained(path + "weight_layer_4.csv");
     _gru_b_ih = openDataUnconstrained(path + "gru_b_ih.csv");
@@ -168,6 +141,23 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _gru_b_hh = openDataUnconstrained(path + "gru_b_hh.csv");
     _gru_w_hh = openDataUnconstrained(path + "gru_w_hh.csv");
 
+    const int H = _gru_b_ih.size() / 3;
+
+    _gru_w_ih_r = _gru_w_ih.block(0,     0, H, _gru_w_ih.cols());
+    _gru_w_ih_z = _gru_w_ih.block(H,     0, H, _gru_w_ih.cols());
+    _gru_w_ih_n = _gru_w_ih.block(2 * H, 0, H, _gru_w_ih.cols());
+
+    _gru_w_hh_r = _gru_w_hh.block(0,     0, H, _gru_w_hh.cols());
+    _gru_w_hh_z = _gru_w_hh.block(H,     0, H, _gru_w_hh.cols());
+    _gru_w_hh_n = _gru_w_hh.block(2 * H, 0, H, _gru_w_hh.cols());
+
+    _gru_b_ih_r = _gru_b_ih.segment(0,     H);
+    _gru_b_ih_z = _gru_b_ih.segment(H,     H);
+    _gru_b_ih_n = _gru_b_ih.segment(2 * H, H);
+
+    _gru_b_hh_r = _gru_b_hh.segment(0,     H);
+    _gru_b_hh_z = _gru_b_hh.segment(H,     H);
+    _gru_b_hh_n = _gru_b_hh.segment(2 * H, H);
 
     _bias_allocation_layer_1 = openDataUnconstrained(path + "bias_allocation_layer_1.csv");
     _weight_allocation_layer_1 = openDataUnconstrained(path + "weight_allocation_layer_1.csv");
@@ -206,39 +196,39 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     // 0.0000230800, 0.0000230800, 0.0000230800;
 
     // RANDOM
-    // _static_obs << -0.0524631999, -0.0034823790, -0.1379704177,
-    //   -0.0248000175, -0.3285540640, -0.2313752472,
-    //   -0.0728767738, 0.1940524578, -0.1017157137,
-    //   -0.0848886222, 0.1751111001, -0.0183620267,
-    //   0.9959603548, 0.9809851646, 0.9851994514,
-    //   0.9960820079, 0.9281100631, 0.9726912975,
-    //   13.6686782837, 35.4589271545, 14.9543304443,
-    //   -20.4407768250, -33.7843704224, -19.5748863220,
-    //   -36.6505546570, -0.6981964111, 26.1290206909,
-    //   28.5084590912, -4.4967226982, -21.1564331055,
-    //   -1.9816964865, -3.2155427933, 6.7260589600,
-    //   1.5454597473, -5.2164754868, -6.6769838333,
-    //   0.0469999984, 0.0469999984, 0.0469999984,
-    //   0.0469999984, 0.0469999984, 0.0469999984,
-    //   0.0000230800, 0.0000230800, 0.0000230800,
-    //   0.0000230800, 0.0000230800, 0.0000230800;
+    _static_obs << -0.0524631999, -0.0034823790, -0.1379704177,
+      -0.0248000175, -0.3285540640, -0.2313752472,
+      -0.0728767738, 0.1940524578, -0.1017157137,
+      -0.0848886222, 0.1751111001, -0.0183620267,
+      0.9959603548, 0.9809851646, 0.9851994514,
+      0.9960820079, 0.9281100631, 0.9726912975,
+      13.6686782837, 35.4589271545, 14.9543304443,
+      -20.4407768250, -33.7843704224, -19.5748863220,
+      -36.6505546570, -0.6981964111, 26.1290206909,
+      28.5084590912, -4.4967226982, -21.1564331055,
+      -1.9816964865, -3.2155427933, 6.7260589600,
+      1.5454597473, -5.2164754868, -6.6769838333,
+      0.0469999984, 0.0469999984, 0.0469999984,
+      0.0469999984, 0.0469999984, 0.0469999984,
+      0.0000230800, 0.0000230800, 0.0000230800,
+      0.0000230800, 0.0000230800, 0.0000230800;
     // SYMMETRIC
-    _static_obs << -0.4144534767, 0.4226180017, -0.0081652552,
-    -0.0081652552, 0.4226180017, -0.4144534767,
-    0.2487128377, -0.2345705926, -0.4832834601,
-    0.4832834601, 0.2345705926, -0.2487128377,
-    0.8754273653, 0.8754258752, 0.8754268885,
-    0.8754268885, 0.8754258752, 0.8754273653,
-    21.4497375488, 51.8568572998, 38.0831794739,
-    -38.1207542419, -51.8518676758, -21.4045333862,
-    -56.2695846558, -6.2326774597, 46.7501525879,
-    46.7803497314, -6.1915826797, -56.2526016235,
-    25.1736164093, -26.0442790985, 24.9760608673,
-    -24.9756145477, 26.0442199707, -25.1741523743,
-    0.0469999984, 0.0469999984, 0.0469999984,
-    0.0469999984, 0.0469999984, 0.0469999984,
-    0.00001286412, 0.00001286412, 0.00001286412,
-    0.00001286412, 0.00001286412, 0.00001286412;
+    // _static_obs << -0.4144534767, 0.4226180017, -0.0081652552,
+    // -0.0081652552, 0.4226180017, -0.4144534767,
+    // 0.2487128377, -0.2345705926, -0.4832834601,
+    // 0.4832834601, 0.2345705926, -0.2487128377,
+    // 0.8754273653, 0.8754258752, 0.8754268885,
+    // 0.8754268885, 0.8754258752, 0.8754273653,
+    // 21.4497375488, 51.8568572998, 38.0831794739,
+    // -38.1207542419, -51.8518676758, -21.4045333862,
+    // -56.2695846558, -6.2326774597, 46.7501525879,
+    // 46.7803497314, -6.1915826797, -56.2526016235,
+    // 25.1736164093, -26.0442790985, 24.9760608673,
+    // -24.9756145477, 26.0442199707, -25.1741523743,
+    // 0.0469999984, 0.0469999984, 0.0469999984,
+    // 0.0469999984, 0.0469999984, 0.0469999984,
+    // 0.00001286412, 0.00001286412, 0.00001286412,
+    // 0.00001286412, 0.00001286412, 0.00001286412;
 
     _motor_min_thrusts = Eigen::VectorXf::Constant(_n_motors, 0.05f);
     _motor_max_thrusts = Eigen::VectorXf::Constant(_n_motors, 1.7f);
@@ -417,11 +407,18 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   cat << ca2, ca1_;
   //cat = ca2;
 
-  Eigen::VectorXf gru_output = gru_cell_step_pytorch(cat, hidden_state, _gru_w_ih, _gru_w_hh, _gru_b_ih, _gru_b_hh);
+  Eigen::VectorXf gru_output = gru_cell_step_pytorch_presplit(
+    cat,
+    hidden_state,
+    _gru_w_ih_r, _gru_w_ih_z, _gru_w_ih_n,
+    _gru_w_hh_r, _gru_w_hh_z, _gru_w_hh_n,
+    _gru_b_ih_r, _gru_b_ih_z, _gru_b_ih_n,
+    _gru_b_hh_r, _gru_b_hh_z, _gru_b_hh_n
+  );
+  Eigen::VectorXf output = _weight_output_layer * gru_output + _bias_output_layer;
   // IMPORTANT: update hidden for next tick
   hidden_state = gru_output;
-  gru_output = gru_output + ca2; // residual connection from input
-  Eigen::VectorXf output = _weight_output_layer * gru_output + _bias_output_layer;
+
 
   // Eigen::VectorXf co3 = _weight_layer_3 * cat + _bias_layer_3;
   // Eigen::VectorXf ca3 = elu(co3);
@@ -444,7 +441,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   //_force_clamped << _forces_clamped_reverse(0), _forces_clamped_reverse(1), _forces_clamped_reverse(2), _forces_clamped_reverse(3), _forces_clamped_reverse(4), _forces_clamped_reverse(5);
   // conversion to rpm
-  static const float _thrust_coefficient = 0.00001286412; //0.00002308; //0.00001286412;
+  static const float _thrust_coefficient = 0.00002308; //0.00001286412; //0.00002308; //0.00001286412;
 
   Eigen::VectorXf rps = Eigen::VectorXf::Zero(_n_motors);
   rps = _force_clamped / _thrust_coefficient;

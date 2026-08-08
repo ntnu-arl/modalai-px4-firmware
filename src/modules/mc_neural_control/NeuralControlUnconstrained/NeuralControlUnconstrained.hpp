@@ -60,15 +60,14 @@ public:
   matrix::Vector<float,6> updateNeural();
 
 private:
-  Eigen::VectorXf _unnorm_input;
-  // Eigen::VectorXf _norm_weight;
-  // Eigen::VectorXf _norm_bias;
+  Eigen::VectorXf _norm_weight;
+  Eigen::VectorXf _norm_bias;
   Eigen::VectorXf _bias_layer_1;
   Eigen::MatrixXf _weight_layer_1;
   Eigen::VectorXf _bias_layer_2;
   Eigen::MatrixXf _weight_layer_2;
-  // Eigen::VectorXf _bias_layer_3;
-  // Eigen::MatrixXf _weight_layer_3;
+  // Eigen::VectorXf _bias_layer_res;
+  // Eigen::MatrixXf _weight_layer_res;
   // Eigen::VectorXf _bias_layer_4;
   // Eigen::MatrixXf _weight_layer_4;
   Eigen::VectorXf _bias_allocation_layer_1;
@@ -80,6 +79,12 @@ private:
   Eigen::MatrixXf _gru_w_ih;
   Eigen::VectorXf _gru_b_hh;
   Eigen::MatrixXf _gru_w_hh;
+
+  Eigen::MatrixXf _gru_w_ih_r, _gru_w_ih_z, _gru_w_ih_n;
+  Eigen::MatrixXf _gru_w_hh_r, _gru_w_hh_z, _gru_w_hh_n;
+
+  Eigen::VectorXf _gru_b_ih_r, _gru_b_ih_z, _gru_b_ih_n;
+  Eigen::VectorXf _gru_b_hh_r, _gru_b_hh_z, _gru_b_hh_n;
 
   Eigen::VectorXf _motor_min_thrusts;
   Eigen::VectorXf _motor_max_thrusts;
@@ -120,6 +125,7 @@ private:
   Eigen::VectorXf _motor_cmds;
   Eigen::VectorXf _force_offset_comp;
   Eigen::VectorXf _input;
+  Eigen::VectorXf _unnorm_input;
   matrix::Vector<float,6> _debug;
 
 

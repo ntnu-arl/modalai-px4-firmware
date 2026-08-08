@@ -158,9 +158,8 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _weight_layer_1 = openDataUnconstrained(path + "weight_layer_1.csv");
     _bias_layer_2 = openDataUnconstrained(path + "bias_layer_2.csv");
     _weight_layer_2 = openDataUnconstrained(path + "weight_layer_2.csv");
-    // _bias_layer_res = openDataUnconstrained(path + "bias_layer_res.csv");
-    // _weight_layer_res = openDataUnconstrained(path + "weight_layer_res.csv");
-    PX4_INFO("loading model files mid");
+    // _bias_layer_3 = openDataUnconstrained(path + "bias_layer_3.csv");
+    // _weight_layer_3 = openDataUnconstrained(path + "weight_layer_3.csv");
     // _bias_layer_4 = openDataUnconstrained(path + "bias_layer_4.csv");
     // _weight_layer_4 = openDataUnconstrained(path + "weight_layer_4.csv");
     _gru_b_ih = openDataUnconstrained(path + "gru_b_ih.csv");
@@ -169,8 +168,8 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _gru_w_hh = openDataUnconstrained(path + "gru_w_hh.csv");
 
 
-    _bias_allocation_layer_1 = openDataUnconstrained(path + "bias_allocation_layer_1.csv");
-    _weight_allocation_layer_1 = openDataUnconstrained(path + "weight_allocation_layer_1.csv");
+    // _bias_allocation_layer_1 = openDataUnconstrained(path + "bias_allocation_layer_1.csv");
+    // _weight_allocation_layer_1 = openDataUnconstrained(path + "weight_allocation_layer_1.csv");
 
     _bias_output_layer = openDataUnconstrained(path + "bias_output_layer.csv");
     _weight_output_layer = openDataUnconstrained(path + "weight_output_layer.csv");
@@ -184,61 +183,9 @@ NeuralControlUnconstrained::NeuralControlUnconstrained(int n_motors)
     _scaled_input_allocation_net = Eigen::VectorXf::Zero(6);
     _motor_cmds = Eigen::VectorXf::Zero(6);
     _force_offset_comp = Eigen::VectorXf::Zero(4);
-    _input = Eigen::VectorXf::Zero(61); // 15
-    hidden_state = Eigen::VectorXf::Zero(50); // 15
+    _input = Eigen::VectorXf::Zero(13); // 15
+    hidden_state = Eigen::VectorXf::Zero(16); // 15
 
-    _static_obs.resize(48);
-    // _static_obs << 0.0000000000, 0.0000000000, 0.0000000000,
-    // 0.0000000000, 0.0000000000, 0.0000000000,
-    // 0.0000000000, 0.0000000000, 0.0000000000,
-    // 0.0000000000, 0.0000000000, 0.0000000000,
-    // 1.0000000000, 1.0000000000, 1.0000000000,
-    // 1.0000000000, 1.0000000000, 1.0000000000,
-    // 16.8050422668, 33.7117881775, 16.9048366547,
-    // -16.8050403595, -33.7117881775, -16.9048404694,
-    // -30.3044166565, 0.0438822098, 30.3895034790,
-    // 30.3044185638, -0.0438815393, -30.3895015717,
-    // 1.3655222654, -1.5416842699, 1.6916804314,
-    // -1.3655222654, 1.5416842699, -1.6916804314,
-    // 0.0469999984, 0.0469999984, 0.0469999984,
-    // 0.0469999984, 0.0469999984, 0.0469999984,
-    // 0.0000230800, 0.0000230800, 0.0000230800,
-    // 0.0000230800, 0.0000230800, 0.0000230800;
-
-    // RANDOM
-    // _static_obs << -0.0524631999, -0.0034823790, -0.1379704177,
-    //   -0.0248000175, -0.3285540640, -0.2313752472,
-    //   -0.0728767738, 0.1940524578, -0.1017157137,
-    //   -0.0848886222, 0.1751111001, -0.0183620267,
-    //   0.9959603548, 0.9809851646, 0.9851994514,
-    //   0.9960820079, 0.9281100631, 0.9726912975,
-    //   13.6686782837, 35.4589271545, 14.9543304443,
-    //   -20.4407768250, -33.7843704224, -19.5748863220,
-    //   -36.6505546570, -0.6981964111, 26.1290206909,
-    //   28.5084590912, -4.4967226982, -21.1564331055,
-    //   -1.9816964865, -3.2155427933, 6.7260589600,
-    //   1.5454597473, -5.2164754868, -6.6769838333,
-    //   0.0469999984, 0.0469999984, 0.0469999984,
-    //   0.0469999984, 0.0469999984, 0.0469999984,
-    //   0.0000230800, 0.0000230800, 0.0000230800,
-    //   0.0000230800, 0.0000230800, 0.0000230800;
-    // SYMMETRIC
-    _static_obs << -0.4144534767, 0.4226180017, -0.0081652552,
-    -0.0081652552, 0.4226180017, -0.4144534767,
-    0.2487128377, -0.2345705926, -0.4832834601,
-    0.4832834601, 0.2345705926, -0.2487128377,
-    0.8754273653, 0.8754258752, 0.8754268885,
-    0.8754268885, 0.8754258752, 0.8754273653,
-    21.4497375488, 51.8568572998, 38.0831794739,
-    -38.1207542419, -51.8518676758, -21.4045333862,
-    -56.2695846558, -6.2326774597, 46.7501525879,
-    46.7803497314, -6.1915826797, -56.2526016235,
-    25.1736164093, -26.0442790985, 24.9760608673,
-    -24.9756145477, 26.0442199707, -25.1741523743,
-    0.0469999984, 0.0469999984, 0.0469999984,
-    0.0469999984, 0.0469999984, 0.0469999984,
-    0.00001286412, 0.00001286412, 0.00001286412,
-    0.00001286412, 0.00001286412, 0.00001286412;
 
     _motor_min_thrusts = Eigen::VectorXf::Constant(_n_motors, 0.05f);
     _motor_max_thrusts = Eigen::VectorXf::Constant(_n_motors, 1.7f);
@@ -366,7 +313,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   angular_velocity_state_b << angvel_m(0), angvel_m(1), angvel_m(2);
 
   // input vector for network
-  _unnorm_input = Eigen::VectorXf::Zero(61);
+  _unnorm_input = Eigen::VectorXf::Zero(13);
   // 0..2  position error (world)
   _unnorm_input.segment<3>(0) = pos_input_clamped;
 
@@ -378,7 +325,6 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   // 10..12 angular velocity error (body)
   _unnorm_input.segment<3>(10) = angular_velocity_state_b;
-  _unnorm_input.segment<48>(13) = _static_obs;
 
   // normalize observations
   //Eigen::VectorXf 
@@ -403,25 +349,24 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
   }
   //PX4_INFO("input norm %f %f %f ",double(_input(10)), double(_input(11)), double(_input(12)));
   Eigen::VectorXf main = _input.head(13);          // (13)
-  Eigen::VectorXf side = _input.segment(13, 48);   // (36)
   // forward path
   Eigen::VectorXf co1 = _weight_layer_1 * main + _bias_layer_1;
   Eigen::VectorXf ca1 = elu(co1);
   //PX4_INFO("first layer done");
   Eigen::VectorXf co2 = _weight_layer_2 * ca1 + _bias_layer_2;
   Eigen::VectorXf ca2 = elu(co2);
-  Eigen::VectorXf co1_ = _weight_allocation_layer_1 * side + _bias_allocation_layer_1;
-  Eigen::VectorXf ca1_ = elu(co1_);
+//   Eigen::VectorXf co1_ = _weight_allocation_layer_1 * side + _bias_allocation_layer_1;
+//   Eigen::VectorXf ca1_ = elu(co1_);
 
-  Eigen::VectorXf cat(100); //cat(128); 100
-  cat << ca2, ca1_;
+//   Eigen::VectorXf cat(32); //cat(128); 100
+//   cat << ca1, ca1_;
   //cat = ca2;
 
-  Eigen::VectorXf gru_output = gru_cell_step_pytorch(cat, hidden_state, _gru_w_ih, _gru_w_hh, _gru_b_ih, _gru_b_hh);
+  Eigen::VectorXf gru_output = gru_cell_step_pytorch(ca2, hidden_state, _gru_w_ih, _gru_w_hh, _gru_b_ih, _gru_b_hh);
+  Eigen::VectorXf output = _weight_output_layer * gru_output + _bias_output_layer;
   // IMPORTANT: update hidden for next tick
   hidden_state = gru_output;
-  gru_output = gru_output + ca2; // residual connection from input
-  Eigen::VectorXf output = _weight_output_layer * gru_output + _bias_output_layer;
+
 
   // Eigen::VectorXf co3 = _weight_layer_3 * cat + _bias_layer_3;
   // Eigen::VectorXf ca3 = elu(co3);
@@ -444,7 +389,7 @@ matrix::Vector<float,6> NeuralControlUnconstrained::updateNeural()
 
   //_force_clamped << _forces_clamped_reverse(0), _forces_clamped_reverse(1), _forces_clamped_reverse(2), _forces_clamped_reverse(3), _forces_clamped_reverse(4), _forces_clamped_reverse(5);
   // conversion to rpm
-  static const float _thrust_coefficient = 0.00001286412; //0.00002308; //0.00001286412;
+  static const float _thrust_coefficient = 0.00002308; //0.00001286412; //0.00002308; //0.00001286412;
 
   Eigen::VectorXf rps = Eigen::VectorXf::Zero(_n_motors);
   rps = _force_clamped / _thrust_coefficient;
